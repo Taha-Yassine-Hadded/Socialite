@@ -3,11 +3,11 @@ from . import views
 
 urlpatterns = [
     # Main page
-    path('', views.index, name='index'),
+    path('', views.feed, name='feed'),
     
     # Authentication
-    path('form-login/', views.form_login, name='form_login'),
-    path('form-register/', views.form_register, name='form_register'),
+    path('login/', views.login_page, name='login_page'),
+    path('register/', views.register_page, name='register_page'),
     
     # Timeline pages
     path('timeline/', views.timeline, name='timeline'),
@@ -59,8 +59,4 @@ urlpatterns = [
     
     # Single page
     path('single/', views.single, name='single'),
-    
-    # Components and code
-    path('components/', views.components, name='components'),
-    path('code/', views.code, name='code'),
 ]

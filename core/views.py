@@ -1,15 +1,12 @@
 from django.shortcuts import render
 
-# Main page
-def index(request):
-    return render(request, 'index.html')
 
 # Authentication forms
-def form_login(request):
-    return render(request, 'form-login.html')
+def login_page(request):
+    return render(request, 'login.html')
 
-def form_register(request):
-    return render(request, 'form-register.html')
+def register_page(request):
+    return render(request, 'register.html')
 
 # Timeline pages
 def timeline(request):
@@ -98,11 +95,3 @@ def upgrade(request):
 # Single page (could be profile or post single)
 def single(request):
     return render(request, 'single.html')
-
-# Components page (for UI showcase)
-def components(request):
-    return render(request, 'components.html')
-
-# Code page (for developers)
-def code(request):
-    return render(request, 'code.html')

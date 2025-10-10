@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Favicon -->
-    <link href="{% static 'images/favicon.png' %}" rel="icon" type="image/png">
+    <link href="{% static 'images/logo-light.webp' %}" rel="icon" type="image/webp">
 
     <!-- Title and description -->
     <title>{% block title %}Socialite{% endblock %}</title>
@@ -44,11 +44,11 @@
                                 <ion-icon name="close-outline" class="hidden text-2xl group-aria-expanded:block"></ion-icon>
                         </button>
                         <div id="logo">
-                            <a href="feed.html"> 
-                                <img src="{% static 'images/logo.png' %}" alt="" class="w-28 md:block hidden dark:!hidden">
-                                <img src="{% static 'images/logo-light.png' %}" alt="" class="dark:md:block hidden">
-                                <img src="{% static 'images/logo-mobile.png' %}" class="hidden max-md:block w-20 dark:!hidden" alt="">
-                                <img src="{% static 'images/logo-mobile-light.png' %}" class="hidden dark:max-md:block w-20" alt="">
+                            <a href="{% url 'feed' %}"> 
+                                <img src="{% static 'images/logo.webp' %}" alt="" class="w-28 md:block hidden dark:!hidden">
+                                <img src="{% static 'images/logo-light.webp' %}" alt="" class="dark:md:block hidden">
+                                <img src="{% static 'images/logo-mobile.webp' %}" class="hidden max-md:block w-20 dark:!hidden" alt="">
+                                <img src="{% static 'images/logo-mobile-light.webp' %}" class="hidden dark:max-md:block w-20" alt="">
                             </a>
                         </div>
                          
@@ -73,7 +73,7 @@
                                     <button type="button" class="text-blue-500">Clear</button>
                                 </div>
                                 <nav class="text-sm font-medium text-black dark:text-white">
-                                    <a href="#" class="relative px-3 py-1.5 flex items-center gap-4 hover:bg-secondery rounded-lg dark:hover:bg-white/10"> <img src="{% static 'images/avatars/avatar-2.jpg' %}" class="w-9 h-9 rounded-full"> <div>   <div> Jesse Steeve </div>  <div class="text-xs text-blue-500 font-medium mt-0.5">  Friend </div>   </div> <ion-icon name="close" class="text-base absolute right-3 top-1/2 -translate-y-1/2 "></ion-icon>  </a>  
+                                    <a href="#" class="relative px-3 py-1.5 flex items-center gap-4 hover:bg-secondery rounded-lg dark:hover:bg-white/10"> <img src="{% static 'images/avatars/avatar-2.webp' %}" class="w-9 h-9 rounded-full"> <div>   <div> Jesse Steeve </div>  <div class="text-xs text-blue-500 font-medium mt-0.5">  Friend </div>   </div> <ion-icon name="close" class="text-base absolute right-3 top-1/2 -translate-y-1/2 "></ion-icon>  </a>  
                                     <!-- Other nav items -->
                                 </nav>
                                 <hr class="-mx-2 mt-2 hidden">
@@ -154,37 +154,37 @@
                                     <!-- list -->
                                     <ul class="-m-1 mt-4 pb-1 text-xs text-gray-500 dark:text-white" uk-scrollspy="target: > li; cls: uk-animation-scale-up , uk-animation-slide-bottom-small ;repeat: true">
                                         <li class="flex items-center gap-4 hover:bg-secondery rounded-md p-1.5 cursor-pointer dark:hover:bg-white/10">
-                                            <img src="{% static 'images/icons/group.png' %}" alt="" class="w-7">
+                                            <img src="{% static 'images/icons/group.webp' %}" alt="" class="w-7">
                                             <div class="flex-1">
-                                                <a href="timeline.html"><h4 class="font-medium text-sm text-black dark:text-white"> Groups </h4></a>
+                                                <a href="{% url 'timeline' %}"><h4 class="font-medium text-sm text-black dark:text-white"> Groups </h4></a>
                                                 <div class="mt-1 text-xs text-gray-500 dark:text-white"> Meet people with similar interests. </div>
                                             </div>
                                         </li>
                                         <li class="flex items-center gap-4 hover:bg-secondery rounded-md p-1.5 cursor-pointer dark:hover:bg-white/10">
-                                            <img src="{% static 'images/icons/page.png' %}" alt="" class="w-7">
+                                            <img src="{% static 'images/icons/page.webp' %}" alt="" class="w-7">
                                             <div class="flex-1">
-                                                <a href="timeline.html"><h4 class="font-medium text-sm text-black dark:text-white"> Pages </h4></a>
+                                                <a href="{% url 'timeline' %}"><h4 class="font-medium text-sm text-black dark:text-white"> Pages </h4></a>
                                                 <div class="mt-1"> Find and connect with businesses.
                                             </div>
                                         </li>
                                         <li class="flex items-center gap-4 hover:bg-secondery rounded-md p-1.5 cursor-pointer dark:hover:bg-white/10">
-                                            <img src="{% static 'images/icons/event.png' %}" alt="" class="w-7">
+                                            <img src="{% static 'images/icons/event.webp' %}" alt="" class="w-7">
                                             <div class="flex-1">
-                                                <a href="timeline.html"><h4 class="font-medium text-sm text-black dark:text-white"> Event </h4></a>
+                                                <a href="{% url 'timeline' %}"><h4 class="font-medium text-sm text-black dark:text-white"> Event </h4></a>
                                                 <div class="mt-1">Discover fun activities near you .</div>
                                             </div>
                                         </li>
                                         <li class="flex items-center gap-4 hover:bg-secondery rounded-md p-1.5 cursor-pointer dark:hover:bg-white/10">
-                                            <img src="{% static 'images/icons/market.png' %}" alt="" class="w-8 -ml-1">
+                                            <img src="{% static 'images/icons/market.webp' %}" alt="" class="w-8 -ml-1">
                                             <div class="flex-1">
-                                                <a href="timeline.html"><h4 class="font-medium text-sm text-black dark:text-white"> Event </h4></a>
+                                                <a href="{% url 'timeline' %}"><h4 class="font-medium text-sm text-black dark:text-white"> Event </h4></a>
                                                 <div class="mt-1">Find local buyers and sellers .</div>
                                             </div>
                                         </li>
                                         <li class="flex items-center gap-4 hover:bg-secondery rounded-md p-1.5 cursor-pointer dark:hover:bg-white/10">
-                                            <img src="{% static 'images/icons/game.png' %}" alt="" class="w-7">
+                                            <img src="{% static 'images/icons/game.webp' %}" alt="" class="w-7">
                                             <div class="flex-1">
-                                                <a href="timeline.html"><h4 class="font-medium text-sm text-black dark:text-white"> Games </h4></a>
+                                                <a href="{% url 'timeline' %}"><h4 class="font-medium text-sm text-black dark:text-white"> Games </h4></a>
                                                 <div class="mt-1"> play game with friends have fun. </div>
                                             </div>
                                         </li>
@@ -227,7 +227,7 @@
                                     <div class="pl-2 p-1 text-sm font-normal dark:text-white">
                                         
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10 bg-teal-500/5">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-3.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 ">
                                                 <p> <b class="font-bold mr-1"> Alexa Gray</b> started following you. Welcome him to your profile. 👋 </p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 4 hours ago </div>
@@ -235,21 +235,21 @@
                                             </div>
                                         </a>
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-7.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-7.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 ">
                                                 <p> <b class="font-bold mr-1">Jesse Steeve</b> mentioned you in a story. Check it out and reply. 📣 </p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 8 hours ago </div> 
                                             </div>
                                         </a>
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-6.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-6.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 ">
                                                 <p> <b class="font-bold mr-1"> Alexa stella</b> commented on your photo  “Wow, stunning shot!” 💬 </p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 8 hours ago </div> 
                                             </div>
                                         </a>
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-2.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 "> 
                                                 <p> <b class="font-bold mr-1"> John Michael</b> who you might know,  is on socialite.</p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 2 hours ago </div>
@@ -257,7 +257,7 @@
                                             <button type="button" class="button text-white bg-primary">fallow</button>
                                         </a>
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10 bg-teal-500/5">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-3.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 ">
                                                 <p> <b class="font-bold mr-1"> Sarah Gray</b> sent you a message. He wants to chat with you. 💖 </p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 4 hours ago </div>
@@ -265,21 +265,21 @@
                                             </div>
                                         </a>
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-4.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 ">
                                                 <p> <b class="font-bold mr-1"> Jesse Steeve</b> sarah tagged you <br> in a photo of your birthday party. 📸 </p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 8 hours ago </div>
                                             </div> 
                                         </a>
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-2.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 ">
                                                 <p> <b class="font-bold mr-1"> Lewis Lewis</b> mentioned you in a story. Check it out and reply. 📣 </p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 8 hours ago </div> 
                                             </div>
                                         </a> 
                                         <a href="#" class="relative flex items-center gap-3 p-2 duration-200 rounded-xl pr-10 hover:bg-secondery dark:hover:bg-white/10">
-                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-7.jpg' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
+                                            <div class="relative w-12 h-12 shrink-0"> <img src="{% static 'images/avatars/avatar-7.webp' %}" alt="" class="object-cover w-full h-full rounded-full"></div>
                                             <div class="flex-1 ">
                                                 <p> <b class="font-bold mr-1"> Martin Gray</b> liked your photo of the Eiffel Tower. 😍 </p>
                                                 <div class="text-xs text-gray-500 mt-1.5 dark:text-white/80"> 8 hours ago </div> 
@@ -330,7 +330,7 @@
 
                                         <a href="#" class="relative flex items-center gap-4 p-2 py-3 duration-200 rounded-lg hover:bg-secondery dark:hover:bg-white/10">
                                             <div class="relative w-10 h-10 shrink-0"> 
-                                                <img src="{% static 'images/avatars/avatar-2.jpg' %}" alt="" class="object-cover w-full h-full rounded-full">
+                                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="object-cover w-full h-full rounded-full">
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex items-center gap-2 mb-1">
@@ -343,7 +343,7 @@
                                         </a>  
                                         <a href="#" class="relative flex items-center gap-4 p-2 py-3 duration-200 rounded-lg hover:bg-secondery dark:hover:bg-white/10">
                                             <div class="relative w-10 h-10 shrink-0"> 
-                                                <img src="{% static 'images/avatars/avatar-4.jpg' %}" alt="" class="object-cover w-full h-full rounded-full">
+                                                <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="" class="object-cover w-full h-full rounded-full">
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex items-center gap-2 mb-1">
@@ -355,7 +355,7 @@
                                         </a>  
                                         <a href="#" class="relative flex items-center gap-4 p-2 py-3 duration-200 rounded-lg hover:bg-secondery dark:hover:bg-white/10">
                                             <div class="relative w-10 h-10 shrink-0"> 
-                                                <img src="{% static 'images/avatars/avatar-5.jpg' %}" alt="" class="object-cover w-full h-full rounded-full">
+                                                <img src="{% static 'images/avatars/avatar-5.webp' %}" alt="" class="object-cover w-full h-full rounded-full">
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex items-center gap-2 mb-1">
@@ -367,7 +367,7 @@
                                         </a>  
                                         <a href="#" class="relative flex items-center gap-4 p-2 py-3 duration-200 rounded-lg hover:bg-secondery dark:hover:bg-white/10">
                                             <div class="relative w-10 h-10 shrink-0"> 
-                                                <img src="{% static 'images/avatars/avatar-3.jpg' %}" alt="" class="object-cover w-full h-full rounded-full">
+                                                <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="object-cover w-full h-full rounded-full">
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex items-center gap-2 mb-1">
@@ -380,7 +380,7 @@
                                         </a>
                                         <a href="#" class="relative flex items-center gap-4 p-2 py-3 duration-200 rounded-lg hover:bg-secondery dark:hover:bg-white/10">
                                             <div class="relative w-10 h-10 shrink-0"> 
-                                                <img src="{% static 'images/avatars/avatar-7.jpg' %}" alt="" class="object-cover w-full h-full rounded-full">
+                                                <img src="{% static 'images/avatars/avatar-7.webp' %}" alt="" class="object-cover w-full h-full rounded-full">
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex items-center gap-2 mb-1">
@@ -392,7 +392,7 @@
                                         </a>
                                         <a href="#" class="relative flex items-center gap-4 p-2 py-3 duration-200 rounded-lg hover:bg-secondery dark:hover:bg-white/10">
                                             <div class="relative w-10 h-10 shrink-0"> 
-                                                <img src="{% static 'images/avatars/avatar-4.jpg' %}" alt="" class="object-cover w-full h-full rounded-full">
+                                                <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="" class="object-cover w-full h-full rounded-full">
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex items-center gap-2 mb-1">
@@ -418,14 +418,14 @@
         
                             <!-- profile -->
                             <div class="rounded-full relative bg-secondery cursor-pointer shrink-0">
-                                <img src="{% static 'images/avatars/avatar-2.jpg' %}" alt="" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0"> 
+                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0"> 
                             </div>
                             <div class="hidden bg-white rounded-lg drop-shadow-xl dark:bg-slate-700 w-64 border2"
                                 uk-drop="offset:6;pos: bottom-right;animate-out: true; animation: uk-animation-scale-up uk-transform-origin-top-right ">
                                 
-                                <a href="timeline.html">
+                                <a href="{% url 'timeline' %}">
                                     <div class="p-4 py-5 flex items-center gap-4">
-                                        <img src="{% static 'images/avatars/avatar-2.jpg' %}" alt="" class="w-10 h-10 rounded-full shadow">
+                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-10 h-10 rounded-full shadow">
                                         <div class="flex-1">
                                             <h4 class="text-sm font-medium text-black">Stell johnson</h4>
                                             <div class="text-sm mt-1 text-blue-600 font-light dark:text-white/70">@mohnson</div>
@@ -436,7 +436,7 @@
                                 <hr class="dark:border-gray-600/60">
 
                                 <nav class="p-2 text-sm text-black font-normal dark:text-white">
-                                    <a href="upgrade.html">
+                                    <a href="{% url 'upgrade' %}">
                                         <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10 text-blue-600">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
@@ -444,7 +444,7 @@
                                             Upgrade To Premium 
                                         </div>
                                     </a>  
-                                    <a href="setting.html">
+                                    <a href="{% url 'setting' %}">
                                         <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10"> 
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
@@ -452,7 +452,7 @@
                                             My Billing 
                                         </div>
                                     </a>
-                                    <a href="setting.html">
+                                    <a href="{% url 'setting' %}">
                                         <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10"> 
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
@@ -460,7 +460,7 @@
                                             Advatancing
                                         </div>
                                     </a>
-                                    <a href="setting.html">
+                                    <a href="{% url 'setting' %}">
                                         <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10"> 
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
@@ -469,19 +469,8 @@
                                             My Account
                                         </div>
                                     </a>
-                                    <button type="button" class="w-full">
-                                        <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10"> 
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                                            </svg>
-                                            Night mode
-                                            <span class="bg-slate-200/40 ml-auto p-0.5 rounded-full w-9 dark:hover:bg-white/20">
-                                                <span class="bg-white block h-4 relative rounded-full shadow-md w-2 w-4 dark:bg-blue-600"></span>
-                                            </span>
-                                        </div>
-                                    </button>   
                                     <hr class="-mx-2 my-2 dark:border-gray-600/60">
-                                    <a href="form-login.html">
+                                    <a href="{% url 'login_page' %}">
                                         <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10"> 
                                             <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
@@ -496,7 +485,7 @@
 
                             <div class="flex items-center gap-2 hidden">
         
-                                <img src="{% static 'images/avatars/avatar-2.jpg' %}" alt="" class="w-9 h-9 rounded-full shadow">
+                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-9 h-9 rounded-full shadow">
         
                                 <div class="w-20 font-semibold text-gray-600"> Hamse </div>
         
@@ -529,62 +518,80 @@
                         <ul>
                             <li class="{% if request.resolver_match.url_name == 'feed' %}active{% endif %}">
                                 <a href="{% url 'feed' %}">
-                                    <img src="{% static 'images/icons/home.png' %}" alt="feeds" class="w-6">
+                                    <img src="{% static 'images/icons/home.webp' %}" alt="feeds" class="w-6">
                                     <span> Feed </span> 
                                 </a>
                             </li>
                             <li class="{% if request.resolver_match.url_name == 'messages' %}active{% endif %}">
                                 <a href="{% url 'messages' %}">
-                                    <img src="{% static 'images/icons/message.png' %}" alt="messages" class="w-5">
+                                    <img src="{% static 'images/icons/message.webp' %}" alt="messages" class="w-5">
                                     <span> messages </span> 
                                 </a>
                             </li> 
                             <li class="{% if request.resolver_match.url_name == 'video' %}active{% endif %}">
                                 <a href="{% url 'video' %}">
-                                    <img src="{% static 'images/icons/video.png' %}" alt="messages" class="w-6">
+                                    <img src="{% static 'images/icons/video.webp' %}" alt="messages" class="w-6">
                                     <span> video </span> 
                                 </a>
                             </li>
                             <li class="{% if request.resolver_match.url_name == 'event' %}active{% endif %}">
                                 <a href="{% url 'event' %}">
-                                    <img src="{% static 'images/icons/event.png' %}" alt="messages" class="w-6">
+                                    <img src="{% static 'images/icons/event.webp' %}" alt="messages" class="w-6">
                                     <span> event </span> 
                                 </a>
                             </li>
                             <li class="{% if request.resolver_match.url_name == 'pages' %}active{% endif %}">
                                 <a href="{% url 'pages' %}">
-                                    <img src="{% static 'images/icons/page.png' %}" alt="pages" class="w-6">
+                                    <img src="{% static 'images/icons/page.webp' %}" alt="pages" class="w-6">
                                     <span> Pages </span> 
                                 </a>
                             </li>
                             <li class="{% if request.resolver_match.url_name == 'groups' %}active{% endif %}">
                                 <a href="{% url 'groups' %}">
-                                    <img src="{% static 'images/icons/group.png' %}" alt="groups" class="w-6">
+                                    <img src="{% static 'images/icons/group.webp' %}" alt="groups" class="w-6">
                                     <span> Groups </span> 
                                 </a>
                             </li>
                             <li class="{% if request.resolver_match.url_name == 'market' %}active{% endif %}">
                                 <a href="{% url 'market' %}">
-                                    <img src="{% static 'images/icons/market.png' %}" alt="market" class="w-7 -ml-1">
+                                    <img src="{% static 'images/icons/market.webp' %}" alt="market" class="w-7 -ml-1">
                                     <span> market </span> 
                                 </a>
                             </li> 
                             <li class="{% if request.resolver_match.url_name == 'blog' %}active{% endif %}">
                                 <a href="{% url 'blog' %}">
-                                    <img src="{% static 'images/icons/blog.png' %}" alt="blog" class="w-6">
+                                    <img src="{% static 'images/icons/blog.webp' %}" alt="blog" class="w-6">
                                     <span> blog </span> 
                                 </a>
                             </li> 
                             <li class="!hidden {% if request.resolver_match.url_name == 'games' %}active{% endif %}" id="show__more">
                                 <a href="{% url 'games' %}">
-                                    <img src="{% static 'images/icons/game.png' %}" alt="games" class="w-6">
+                                    <img src="{% static 'images/icons/game.webp' %}" alt="games" class="w-6">
                                     <span> games </span> 
                                 </a>
                             </li>
                             <li class="!hidden {% if request.resolver_match.url_name == 'funding' %}active{% endif %}" id="show__more">
                                 <a href="{% url 'funding' %}">
-                                    <img src="{% static 'images/icons/fund.png' %}" alt="messages" class="w-6">
+                                    <img src="{% static 'images/icons/fund.webp' %}" alt="messages" class="w-6">
                                     <span> Fundraiser  </span> 
+                                </a>
+                            </li>
+                            <li class="!hidden" id="show__more">
+                                <a href="{% url 'blog_2' %}">
+                                    <img src="{% static 'images/icons/blog-2.webp' %}" alt="blog" class="w-6">
+                                    <span> blog II </span> 
+                                </a>
+                            </li>
+                            <li class="!hidden" id="show__more">
+                                <a href="{% url 'event_2' %}">
+                                    <img src="{% static 'images/icons/event-2.webp' %}" alt="event" class="w-6">
+                                    <span> Event II </span> 
+                                </a>
+                            </li>
+                            <li class="!hidden" id="show__more">
+                                <a href="{% url 'groups_2' %}">
+                                    <img src="{% static 'images/icons/group-2.webp' %}" alt="groups" class="w-6">
+                                    <span> Groups II </span> 
                                 </a>
                             </li>
                         </ul>
@@ -604,19 +611,19 @@
                         </div>
                         <a href="#">
                             <div class="flex items-center gap-2 p-3 px-4 rounded-xl hover:bg-secondery">
-                                <img src="{% static 'images/avatars/avatar-2.jpg' %}" alt="" class="w-6 rounded-full object-cover">
+                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-6 rounded-full object-cover">
                                 <div> Marin Gray</div>
                             </div>
                         </a>
                         <a href="#">
                             <div class="flex items-center gap-2 p-3 px-4 rounded-xl hover:bg-secondery">
-                                <img src="{% static 'images/avatars/avatar-7.jpg' %}" alt="" class="w-6 rounded-full object-cover">
+                                <img src="{% static 'images/avatars/avatar-7.webp' %}" alt="" class="w-6 rounded-full object-cover">
                                 <div> Alexa Stella</div>
                             </div>
                         </a>
                         <a href="#">
                             <div class="flex items-center gap-2 p-3 px-4 rounded-xl hover:bg-secondery">
-                                <img src="{% static 'images/avatars/avatar-3.jpg' %}" alt="" class="w-6 rounded-full object-cover">
+                                <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="w-6 rounded-full object-cover">
                                 <div> Sarah Ali</div>
                             </div>
                         </a> 
@@ -647,26 +654,12 @@
                                 </a>
                             </li>
                             <li>   
-                                <a href="{% url 'form_login' %}"> 
+                                <a href="{% url 'login_page' %}"> 
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                                     </svg>
                                     <span> Authentication </span>                  
                                 </a>
-                            </li>
-                            <li class="uk-parent">
-                                <a href="#" class="group"> 
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                                    </svg>
-                                    <span> Development </span>   
-                                    <ion-icon name="chevron-down" class="text-base ml-auto duration-200 group-aria-expanded:rotate-180"></ion-icon>              
-                                </a>
-                                <ul class="pl-10 my-1 space-y-0 text-sm">
-                                    <li><a href="{% url 'components' %}" class="!py-2 !rounded -md">Elements</a></li>
-                                    <li><a href="{% url 'components' %}" class="!py-2 !rounded -md">Components</a></li>
-                                    <li><a href="{% url 'components' %}" class="!py-2 !rounded -md">Icons</a></li>
-                                </ul>
                             </li>
                         </ul>
                     </nav>
@@ -691,11 +684,256 @@
             </div>
         </div>
 
+
+
+
         <!-- Main Content Area -->
         <main id="site__main" class="2xl:ml-[--w-side] xl:ml-[--w-side-sm] p-2.5 h-[calc(100vh-var(--m-top))] mt-[--m-top]">
             {% block content %}
             <!-- Page content goes here -->
             {% endblock %}
+            <!-- open chat box -->
+            <div>
+                <button type="button" class="sm:m-10 m-5 px-4 py-2.5 rounded-2xl bg-gradient-to-tr from-blue-500 to-blue-700 text-white shadow fixed bottom-0 right-0 group flex items-center gap-2">
+                    
+                    <svg class="w-6 h-6 group-aria-expanded:hidden duration-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"></path>
+                    </svg>
+            
+                    <div class="text-base font-semibold max-sm:hidden"> Chat </div>
+            
+                    <svg class="w-6 h-6 -mr-1 hidden group-aria-expanded:block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z" clip-rule="evenodd" />
+                    </svg>
+                    
+                </button>
+                <div  class="bg-white rounded-xl drop-shadow-xl  sm:w-80 w-screen border-t dark:bg-dark3 dark:border-slate-600" id="chat__box"
+                    uk-drop="offset:10;pos: bottom-right; animate-out: true; animation: uk-animation-scale-up uk-transform-origin-bottom-right; mode: click">
+                                                    
+                    <div class="relative">
+                        <div class="p-5">
+                            <h1 class="text-lg font-bold text-black"> Chats </h1>
+                        </div>
+                
+                        <!-- search input defaul is hidden -->
+                        <div class="bg-white p-3 absolute w-full top-11 border-b flex gap-2 hidden dark:border-slate-600 dark:bg-slate-700 z-10" 
+                            uk-scrollspy="cls:uk-animation-slide-bottom-small ; repeat: true; duration:0" id="search__chat">
+                            
+                            <div class="relative w-full">
+                                <input type="text" class="w-full rounded-3xl dark:!bg-white/10" placeholder="Search">
+            
+                                <button type="button" class="absolute  right-0  rounded-full shrink-0 px-2 -translate-y-1/2 top-1/2" 
+                                        uk-toggle="target: #search__chat ; cls: hidden">
+                                    
+                                        <ion-icon name="close-outline" class="text-xl flex"></ion-icon>
+                                </button>
+                            </div>
+            
+                        </div>
+                        
+                        <!-- button actions -->
+                        <div class="absolute top-0 -right-1 m-5 flex gap-2 text-xl">
+                            <button uk-toggle="target: #search__chat ; cls: hidden">
+                                <ion-icon name="search-outline"></ion-icon>
+                            </button>
+                            <button uk-toggle="target: #chat__box ; cls: uk-open">
+                                <ion-icon name="close-outline"></ion-icon>
+                            </button>
+                        </div>
+                        
+                        <!-- tabs -->
+                        <div class="page-heading bg-slat e-50 ">
+                            
+                            <nav class="nav__underline -mt-7 px-5">
+                
+                                <ul class="group" uk-switcher="connect: #chat__tabs ; animation: uk-animation-slide-right-medium, uk-animation-slide-left-medium"> 
+                            
+                                    <li> <a href="#" class="inline-block py-[18px] border-b-2 border-transparent aria-expanded:text-black aria-expanded:border-black aria-expanded:dark:text-white aria-expanded:dark:border-white"> Friends  </a> </li>
+                                    <li> <a href="#"> Groups </a> </li>
+                                    
+                                </ul> 
+                
+                            </nav>
+                
+                        </div>
+                        
+                        <!-- tab 2 optional -->
+                        <div class="grid grid-cols-2 px-3 py-2 bg-slate-50  -mt-12 relative z-10 text-sm border-b  hidden" uk-switcher="connect: #chat__tabs; toggle: * > button ; animation: uk-animation-slide-right uk-animation-slide-top">
+                            <button class="bg-white shadow rounded-md py-1.5"> Friends </button>
+                            <button> Groups </button>
+                        </div>
+            
+                        <!-- chat list -->
+                        <div class="uk-switcher overflow-hidden rounded-xl -mt-8" id="chat__tabs">
+            
+                            <!-- tab list 1 -->
+                            <div class="space-y -m t-5 p-3 text-sm font-medium h-[280px] overflow-y-auto">
+                
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Jesse Steeve </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> John Michael </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Monroe Parker </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-5.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> James Lewis </div>
+                                    </div>
+                                </a> 
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Martin Gray </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-6.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Alexa stella </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Jesse Steeve </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> John Michael </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Monroe Parker </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-5.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> James Lewis </div>
+                                    </div>
+                                </a>
+                                
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Martin Gray </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-6.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Alexa stella </div>
+                                    </div>
+                                </a>
+                                
+                                
+                            </div>
+                
+                            <!-- tab list 2 -->
+                            <div class="space-y -m t-5 p-3 text-sm font-medium h-[280px] overflow-y-auto">
+                
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Jesse Steeve </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> John Michael </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Monroe Parker </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-5.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> James Lewis </div>
+                                    </div>
+                                </a> 
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Martin Gray </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-6.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Alexa stella </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Jesse Steeve </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> John Michael </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Monroe Parker </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-5.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> James Lewis </div>
+                                    </div>
+                                </a>
+                                
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Martin Gray </div>
+                                    </div>
+                                </a>
+                                <a href="#" class="block">
+                                    <div class="flex items-center gap-3.5 rounded-lg p-2 hover:bg-secondery dark:hover:bg-white/10">
+                                        <img src="{% static 'images/avatars/avatar-6.webp' %}" alt="" class="w-7 rounded-full">
+                                        <div> Alexa stella </div>
+                                    </div>
+                                </a>
+                                
+                                
+                            </div>
+                            
+                        </div>
+            
+            
+                    </div>
+                    
+                    <div class="w-3.5 h-3.5 absolute -bottom-2 right-5 bg-white rotate-45 dark:bg-dark3"></div>
+                </div>
+            </div>
         </main>
 
     </div>
@@ -708,7 +946,6 @@
     <!-- Ion icon -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-
 
 </body>
 </html>
