@@ -1,4 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
+from django.db import IntegrityError
+from .mongo import get_db
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+import os
+import uuid
 
 
 # Authentication forms
@@ -6,6 +13,70 @@ def login_page(request):
     return render(request, 'login.html')
 
 def register_page(request):
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+        date_of_birth = request.POST.get('date_of_birth', '').strip()
+        profile_image = request.FILES.get('profile_image')
+
+        errors = []
+        if not first_name or not last_name:
+            errors.append('First name and last name are required.')
+        if not email:
+            errors.append('Email is required.')
+        if password1 != password2 or not password1:
+            errors.append('Passwords must match and not be empty.')
+
+        if errors:
+            return render(request, 'register.html', {
+                'errors': errors,
+                'form': {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email,
+                    'date_of_birth': date_of_birth,
+                }
+            })
+
+        username = email  # use email as username
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password1,
+                                            first_name=first_name, last_name=last_name)
+        except IntegrityError:
+            return render(request, 'register.html', {
+                'errors': ['A user with that email already exists.'],
+                'form': {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email,
+                }
+            })
+
+        # Save profile image to MEDIA_ROOT if provided
+        profile_image_path = None
+        if profile_image:
+            fs = FileSystemStorage(location=settings.MEDIA_ROOT, base_url=settings.MEDIA_URL)
+            name, ext = os.path.splitext(profile_image.name)
+            unique_name = f"profiles/{uuid.uuid4().hex}{ext}"
+            saved_name = fs.save(unique_name, profile_image)
+            profile_image_path = saved_name  # relative path within MEDIA_ROOT
+
+        # Save profile to MongoDB
+        db = get_db()
+        db.profiles.insert_one({
+            'user_id': user.id,
+            'email': email,
+            'first_name': first_name,
+            'last_name': last_name,
+            'date_of_birth': date_of_birth or None,
+            'profile_image': profile_image_path,
+        })
+
+        return redirect('login_page')
+
     return render(request, 'register.html')
 
 # Timeline pages

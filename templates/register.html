@@ -31,9 +31,9 @@
   <div class="sm:flex">
 
     <div
-      class="relative lg:w-[580px] md:w-96 w-full p-10 min-h-screen bg-white shadow-xl flex items-center pt-10 dark:bg-slate-900 z-10">
+      class="relative lg:w-1/2 md:w-1/2 w-full p-10 min-h-screen flex items-center pt-10 z-10">
 
-      <div class="w-full lg:max-w-sm mx-auto space-y-10"
+      <div class="w-full lg:max-w-lg mx-auto space-y-8 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl shadow-2xl p-8"
         uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
 
         <!-- logo image-->
@@ -49,77 +49,129 @@
 
         <!-- title -->
         <div>
-          <h2 class="text-2xl font-semibold mb-1.5"> Sign up to get started </h2>
-          <p class="text-sm text-gray-700 font-normal">If you already have an account, <a href="form-login.html"
-              class="text-blue-700">Login here!</a></p>
+          <h2 class="text-3xl font-semibold tracking-tight"> Sign up to get started </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300">If you already have an account, <a href="{% url 'login_page' %}"
+              class="text-primary hover:underline">Login here!</a></p>
         </div>
 
 
         <!-- form -->
-        <form method="#" action="#" class="space-y-7 text-sm text-black font-medium dark:text-white"
+        {% if errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3">
+          <ul class="list-disc pl-5">
+            {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'register_page' %}" enctype="multipart/form-data" class="space-y-7 text-sm text-black font-medium dark:text-white"
           uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+          {% csrf_token %}
 
           <div class="grid grid-cols-2 gap-4 gap-y-7">
 
             <!-- first name -->
             <div>
-              <label for="email" class="">First name</label>
+              <label for="first_name" class="">First name</label>
               <div class="mt-2.5">
-                <input id="text" name="text" type="text" autofocus="" placeholder="First name" required=""
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
+                <input id="first_name" name="first_name" type="text" autofocus="" placeholder="First name" required=""
+                  value="{{ form.first_name|default:'' }}"
+                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
               </div>
             </div>
 
             <!-- Last name -->
             <div>
-              <label for="email" class="">Last name</label>
+              <label for="last_name" class="">Last name</label>
               <div class="mt-2.5">
-                <input id="text" name="text" type="text" placeholder="Last name" required=""
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
+                <input id="last_name" name="last_name" type="text" placeholder="Last name" required=""
+                  value="{{ form.last_name|default:'' }}"
+                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
               </div>
             </div>
 
             <!-- email -->
             <div class="col-span-2">
               <label for="email" class="">Email address</label>
-              <div class="mt-2.5">
+              <div class="mt-2.5 relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <ion-icon name="mail-outline"></ion-icon>
+                </span>
                 <input id="email" name="email" type="email" placeholder="Email" required=""
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
+                  value="{{ form.email|default:'' }}"
+                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pl-9 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+              </div>
+            </div>
+
+            <!-- date of birth -->
+            <div>
+              <label for="date_of_birth" class="">Date of birth</label>
+              <div class="mt-2.5">
+                <input id="date_of_birth" name="date_of_birth" type="date"
+                  value="{{ form.date_of_birth|default:'' }}"
+                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+              </div>
+            </div>
+
+            <!-- profile image -->
+            <div>
+              <label for="profile_image" class="">Profile image</label>
+              <div class="mt-2.5 flex items-center gap-4">
+                <div class="h-12 w-12 rounded-full bg-slate-100 overflow-hidden ring-1 ring-slate-200 dark:bg-white/5 dark:ring-slate-700">
+                  <img id="profile_preview" alt="Preview" class="h-full w-full object-cover hidden" />
+                </div>
+                <div class="flex-1">
+                  <input id="profile_image" name="profile_image" type="file" accept="image/*"
+                    class="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-soft" />
+                  <p class="text-xs text-slate-500 mt-1">PNG, JPG, WEBP • Taille recommandée ≥ 256x256</p>
+                </div>
               </div>
             </div>
 
             <!-- password -->
             <div>
-              <label for="email" class="">Password</label>
-              <div class="mt-2.5">
-                <input id="password" name="password" type="password" placeholder="***"
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
+              <label for="password1" class="">Password</label>
+              <div class="mt-2.5 relative">
+                <input id="password1" name="password1" type="password" placeholder="***" required
+                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pr-10 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <button type="button" data-toggle-password="password1" aria-label="Show password"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                  <ion-icon name="eye-outline"></ion-icon>
+                </button>
               </div>
             </div>
 
             <!-- Confirm Password -->
             <div>
-              <label for="email" class="">Confirm Password</label>
-              <div class="mt-2.5">
-                <input id="password" name="password" type="password" placeholder="***"
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
+              <label for="password2" class="">Confirm Password</label>
+              <div class="mt-2.5 relative">
+                <input id="password2" name="password2" type="password" placeholder="***" required
+                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pr-10 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <button type="button" data-toggle-password="password2" aria-label="Show password"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                  <ion-icon name="eye-outline"></ion-icon>
+                </button>
               </div>
             </div>
 
             <div class="col-span-2">
-
-              <label class="inline-flex items-center" id="rememberme">
-                <input type="checkbox" id="accept-terms" class="!rounded-md accent-red-800" />
-                <span class="ml-2">you agree to our <a href="#" class="text-blue-700 hover:underline">terms of use </a>
+              <label class="inline-flex items-center select-none text-slate-600 dark:text-slate-300" id="rememberme">
+                <input type="checkbox" id="accept-terms" class="!rounded-md accent-primary" />
+                <span class="ml-2">You agree to our <a href="#" class="text-primary hover:underline">terms of use</a>
                 </span>
               </label>
-
             </div>
 
 
             <!-- submit button -->
             <div class="col-span-2">
-              <button type="submit" class="button bg-primary text-white w-full">Get Started</button>
+              <button id="submit_btn" type="submit" class="button w-full flex items-center justify-center gap-2 text-white bg-gradient-to-r from-primary to-blue-600 hover:from-primary-soft hover:to-blue-500 transition-colors">
+                <svg id="submit_spinner" class="animate-spin h-4 w-4 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                <span id="submit_text">Get Started</span>
+              </button>
             </div>
 
           </div>
@@ -131,13 +183,19 @@
           </div>
 
           <!-- social login -->
-          <div class="flex gap-2" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 400 ;repeat: true">
-            <a href="#" class="button flex-1 flex items-center gap-2 bg-primary text-white text-sm"> <ion-icon
-                name="logo-facebook" class="text-lg"></ion-icon> facebook </a>
-            <a href="#" class="button flex-1 flex items-center gap-2 bg-sky-600 text-white text-sm"> <ion-icon
-                name="logo-twitter"></ion-icon> twitter </a>
-            <a href="#" class="button flex-1 flex items-center gap-2 bg-black text-white text-sm"> <ion-icon
-                name="logo-github"></ion-icon> github </a>
+          <div class="grid grid-cols-3 gap-3" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 400 ;repeat: true">
+            <a href="#" class="inline-flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-sm font-medium bg-[#1877F2] text-white hover:brightness-110 transition">
+              <ion-icon name="logo-facebook" class="text-lg"></ion-icon>
+              <span>Facebook</span>
+            </a>
+            <a href="#" class="inline-flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-sm font-medium bg-[#1DA1F2] text-white hover:brightness-110 transition">
+              <ion-icon name="logo-twitter" class="text-lg"></ion-icon>
+              <span>Twitter</span>
+            </a>
+            <a href="#" class="inline-flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-sm font-medium bg-black text-white hover:brightness-110 transition">
+              <ion-icon name="logo-github" class="text-lg"></ion-icon>
+              <span>Github</span>
+            </a>
           </div>
 
         </form>
@@ -148,7 +206,7 @@
     </div>
 
     <!-- image slider -->
-    <div class="flex-1 relative bg-primary max-md:hidden">
+    <div class="relative lg:w-1/2 md:w-1/2 bg-primary max-md:hidden">
 
 
       <div class="relative w-full h-full" tabindex="-1" uk-slideshow="animation: slide; autoplay: true">
@@ -227,6 +285,48 @@
 
     // Whenever the user explicitly chooses to respect the OS preference
     localStorage.removeItem('theme')
+  </script>
+
+  <script>
+    // Profile image preview
+    const fileInput = document.getElementById('profile_image');
+    const previewImg = document.getElementById('profile_preview');
+    if (fileInput && previewImg) {
+      fileInput.addEventListener('change', (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) { previewImg.classList.add('hidden'); return; }
+        const reader = new FileReader();
+        reader.onload = (ev) => { previewImg.src = ev.target.result; previewImg.classList.remove('hidden'); };
+        reader.readAsDataURL(f);
+      });
+    }
+
+    // Password visibility toggles
+    document.querySelectorAll('[data-toggle-password]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-toggle-password');
+        const input = document.getElementById(id);
+        if (!input) return;
+        const toType = input.type === 'password' ? 'text' : 'password';
+        input.type = toType;
+        const icon = btn.querySelector('ion-icon');
+        if (icon) icon.setAttribute('name', toType === 'password' ? 'eye-outline' : 'eye-off-outline');
+      });
+    });
+
+    // Submit loading state
+    const form = document.querySelector('form[action*="register"]');
+    const submitBtn = document.getElementById('submit_btn');
+    const spinner = document.getElementById('submit_spinner');
+    const submitText = document.getElementById('submit_text');
+    if (form && submitBtn && spinner && submitText) {
+      form.addEventListener('submit', () => {
+        spinner.classList.remove('hidden');
+        submitText.textContent = 'Creating account...';
+        submitBtn.setAttribute('disabled', 'disabled');
+        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+      });
+    }
   </script>
 
 </body>
