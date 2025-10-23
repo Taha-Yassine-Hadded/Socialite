@@ -425,10 +425,10 @@
                                 
                                 <a href="{% url 'timeline' %}">
                                     <div class="p-4 py-5 flex items-center gap-4">
-                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-10 h-10 rounded-full shadow">
+                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-10 h-10 rounded-full shadow" data-profile-img>
                                         <div class="flex-1">
-                                            <h4 class="text-sm font-medium text-black">Stell johnson</h4>
-                                            <div class="text-sm mt-1 text-blue-600 font-light dark:text-white/70">@mohnson</div>
+                                            <h4 class="text-sm font-medium text-black" data-profile-name>Loading...</h4>
+                                            <div class="text-sm mt-1 text-blue-600 font-light dark:text-white/70" data-profile-handle>@loading</div>
                                         </div>
                                     </div>
                                 </a>
@@ -469,11 +469,21 @@
                                             My Account
                                         </div>
                                     </a>
+                                    <!-- MENU ADMIN - AUTO HIDE -->
+<a href="/admin/" class="dropdown-link" data-admin-menu style="display: none;">
+    <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10">
+        <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        🛠️ Dashboard Admin
+    </div>
+</a>
                                     <hr class="-mx-2 my-2 dark:border-gray-600/60">
-                                    <a href="{% url 'login_page' %}">
-                                        <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10"> 
+                                    <a href="#" id="logoutBtn">
+                                        <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10 cursor-pointer"> 
                                             <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 01-3 3H6a3 3 01-3-3V7a3 3 013-3h4a3 3 013 3v1"></path>
                                             </svg>
                                             Log Out 
                                         </div>
@@ -939,6 +949,80 @@
     </div>
 
     <!-- JavaScript -->
+
+    <!-- LOGOUT JAVASCRIPT -->
+<!-- AUTH JAVASCRIPT - SEUL TOKEN -->
+<script>
+    async function loadUserInfo() {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        
+        try {
+            const response = await fetch('/api/user/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const user = data.user;
+                
+                // PROFIL
+                const profileName = document.querySelector('[data-profile-name]');
+                const profileHandle = document.querySelector('[data-profile-handle]');
+                const profileImg = document.querySelector('[data-profile-img]');
+                
+                if (profileName) profileName.textContent = `${user.first_name} ${user.last_name}`;
+                if (profileHandle) profileHandle.textContent = `@${user.email.split('@')[0]}`;
+                if (profileImg && user.profile_image) profileImg.src = `/media/${user.profile_image}`;
+                
+                // ✅ ADMIN MENU : SHOW/HIDE AUTO
+                const adminMenu = document.querySelector('[data-admin-menu]');
+                if (adminMenu) {
+                    adminMenu.style.display = user.is_staff ? 'block' : 'none';
+                }
+                
+                return user;
+            }
+        } catch (error) {
+            console.error('Failed to load user info');
+        }
+        return null;
+    }
+    
+    // LOGOUT DIRECT
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        localStorage.removeItem('token');
+        try {
+            await fetch('/logout/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+            });
+        } catch (error) {}
+        window.location.href = '/login/';
+    });
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // CHARGER AU DEMARRAGE
+    if (localStorage.getItem('token')) {
+        loadUserInfo();
+    }
+    </script>
+
     <script src="{% static 'js/uikit.min.js' %}"></script>
     <script src="{% static 'js/simplebar.js' %}"></script>
     <script src="{% static 'js/script.js' %}"></script>

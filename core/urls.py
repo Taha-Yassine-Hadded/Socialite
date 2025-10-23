@@ -6,9 +6,10 @@ urlpatterns = [
     path('', views.feed, name='feed'),
     
     # Authentication
+    path('api/user/', views.user_info, name='user_info'),  # ← NOUVELLE ROUTE user connecté chabeb
     path('login/', views.login_page, name='login_page'),
-    path('register/', views.register_page, name='register_page'),
-    
+    path('register/',  views.register_page, name='register_page'),
+    path('logout/', views.logout_view, name='logout'),  # ← AJOUTEZ CETTE LIGNE
     # Timeline pages
     path('timeline/', views.timeline, name='timeline'),
     path('timeline-event/', views.timeline_event, name='timeline_event'),
