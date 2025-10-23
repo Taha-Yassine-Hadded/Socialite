@@ -11,16 +11,15 @@
   <link href="{% static 'images/favicon.webp' %}" rel="icon" type="image/png">
 
   <!-- Title and description -->
-  <title>{% block title %}Socialite - Login{% endblock %}</title>
-  <meta name="description" content="{% block description %}Socialite - Social sharing network{% endblock %}">
+  <title>Socialite - Login</title>
+  <meta name="description" content="Socialite - Social sharing network">
 
   <!-- CSS files -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
   <!-- Google font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Extra head content -->
   {% block extra_head %}{% endblock %}
@@ -30,109 +29,105 @@
 
   <div class="sm:flex">
 
-    <div
-      class="relative lg:w-[580px] md:w-96 w-full p-10 min-h-screen bg-white shadow-xl flex items-center pt-10 dark:bg-slate-900 z-10">
+    <div class="relative lg:w-[580px] md:w-96 w-full p-10 min-h-screen bg-white shadow-xl flex items-center pt-10 dark:bg-slate-900 z-10">
 
-      <div class="w-full lg:max-w-sm mx-auto space-y-10"
-        uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+      <div class="w-full lg:max-w-sm mx-auto space-y-10" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
 
         <!-- logo image-->
-        <a href="#"> <img src="{% static 'images/logo.webp' %}" class="w-28 absolute top-10 left-10 dark:hidden"
-            alt=""></a>
-        <a href="#"> <img src="{% static 'images/logo-light.webp' %}"
-            class="w-28 absolute top-10 left-10 hidden dark:!block" alt=""></a>
-
-        <!-- logo icon optional -->
-        <div class="hidden">
-          <img class="w-12" src="https://tailwindui.com/img/logos/mark.svg?color=indigo&amp;shade=600"
-            alt="Socialite html template">
-        </div>
+        <a href="#"> 
+          <img src="{% static 'images/logo.webp' %}" class="w-28 absolute top-10 left-10 dark:hidden" alt="">
+          <img src="{% static 'images/logo-light.webp' %}" class="w-28 absolute top-10 left-10 hidden dark:!block" alt="">
+        </a>
 
         <!-- title -->
         <div>
           <h2 class="text-2xl font-semibold mb-1.5"> Sign in to your account </h2>
-          <p class="text-sm text-gray-700 font-normal">If you haven’t signed up yet. <a href="form-register.html"
-              class="text-blue-700">Register here!</a></p>
+          <p class="text-sm text-gray-700 font-normal">If you haven't signed up yet. <a href="/register/" class="text-blue-700">Register here!</a></p>
         </div>
 
+        <!-- ALERT SUCCESS/ERROR -->
+        <div id="alert" class="hidden p-3 rounded mb-4"></div>
 
-        <!-- form -->
-        <form method="#" action="#" class="space-y-7 text-sm text-black font-medium dark:text-white"
-          uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
-
-          <!-- email -->
+        <!-- FORMULAIRE LOGIN -->
+        <form id="loginForm" class="space-y-7 text-sm text-black font-medium dark:text-white" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+          
+          <!-- EMAIL -->
           <div>
             <label for="email" class="">Email address</label>
             <div class="mt-2.5">
-              <input id="email" name="email" type="email" autofocus="" placeholder="Email" required=""
+              <input id="email" name="email" type="email" autofocus placeholder="Email" required
                 class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
             </div>
           </div>
-          <!-- password -->
+
+          <!-- PASSWORD -->
           <div>
-            <label for="email" class="">Password</label>
+            <label for="password" class="">Password</label>
             <div class="mt-2.5">
               <input id="password" name="password" type="password" placeholder="***"
                 class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
             </div>
           </div>
 
+          <!-- REMEMBER ME + FORGOT -->
           <div class="flex items-center justify-between">
-
             <div class="flex items-center gap-2.5">
               <input id="rememberme" name="rememberme" type="checkbox">
               <label for="rememberme" class="font-normal">Remember me</label>
             </div>
-            <a href="#" class="text-blue-700">Forgot password </a>
+            <a href="#" class="text-blue-700">Forgot password</a>
           </div>
 
-          <!-- submit button -->
+          <!-- SUBMIT BUTTON -->
           <div>
-            <button type="submit" class="button bg-primary text-white w-full">Sign in</button>
+            <button type="submit" id="loginBtn" class="button bg-primary text-white w-full">
+              Sign in
+            </button>
           </div>
 
+          <!-- SEPARATOR -->
           <div class="text-center flex items-center gap-6">
             <hr class="flex-1 border-slate-200 dark:border-slate-800">
             Or continue with
             <hr class="flex-1 border-slate-200 dark:border-slate-800">
           </div>
 
-          <!-- social login -->
+          <!-- SOCIAL LOGIN -->
           <div class="flex gap-2" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 400 ;repeat: true">
-            <a href="#" class="button flex-1 flex items-center gap-2 bg-primary text-white text-sm"> <ion-icon
-                name="logo-facebook" class="text-lg"></ion-icon> facebook </a>
-            <a href="#" class="button flex-1 flex items-center gap-2 bg-sky-600 text-white text-sm"> <ion-icon
-                name="logo-twitter"></ion-icon> twitter </a>
-            <a href="#" class="button flex-1 flex items-center gap-2 bg-black text-white text-sm"> <ion-icon
-                name="logo-github"></ion-icon> github </a>
+            <a href="#" class="button flex-1 flex items-center gap-2 bg-primary text-white text-sm">
+              <ion-icon name="logo-facebook" class="text-lg"></ion-icon> 
+              Facebook
+            </a>
+            <a href="#" class="button flex-1 flex items-center gap-2 bg-sky-600 text-white text-sm">
+              <ion-icon name="logo-twitter"></ion-icon> 
+              Twitter
+            </a>
+            <a href="#" class="button flex-1 flex items-center gap-2 bg-black text-white text-sm">
+              <ion-icon name="logo-github"></ion-icon> 
+              Github
+            </a>
           </div>
 
         </form>
-
 
       </div>
 
     </div>
 
-    <!-- image slider -->
+    <!-- IMAGE SLIDER -->
     <div class="flex-1 relative bg-primary max-md:hidden">
-
-
       <div class="relative w-full h-full" tabindex="-1" uk-slideshow="animation: slide; autoplay: true">
-
         <ul class="uk-slideshow-items w-full h-full">
           <li class="w-full">
             <img src="{% static 'images/post/img-3.webp' %}" alt=""
               class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
-            <div class="absolute bottom-0 w-full uk-tr ansition-slide-bottom-small z-10">
-              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative"
-                uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+            <div class="absolute bottom-0 w-full uk-transition-slide-bottom-small z-10">
+              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
                 <img class="w-12" src="{% static 'images/logo-icon.webp' %}" alt="Socialite html template">
-                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 600,0,0"> Connect With
-                  Friends </h4>
-                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> This phrase is more
-                  casual and playful. It suggests that you are keeping your friends updated on what’s happening in your
-                  life.</p>
+                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 600,0,0"> Connect With Friends </h4>
+                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;">
+                  This phrase is more casual and playful. It suggests that you are keeping your friends updated on what's happening in your life.
+                </p>
               </div>
             </div>
             <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
@@ -140,15 +135,13 @@
           <li class="w-full">
             <img src="{% static 'images/post/img-2.webp' %}" alt=""
               class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
-            <div class="absolute bottom-0 w-full uk-tr ansition-slide-bottom-small z-10">
-              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative"
-                uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+            <div class="absolute bottom-0 w-full uk-transition-slide-bottom-small z-10">
+              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
                 <img class="w-12" src="{% static 'images/logo-icon.webp' %}" alt="Socialite html template">
-                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Connect With
-                  Friends </h4>
-                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> This phrase is more
-                  casual and playful. It suggests that you are keeping your friends updated on what’s happening in your
-                  life.</p>
+                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Connect With Friends </h4>
+                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;">
+                  This phrase is more casual and playful. It suggests that you are keeping your friends updated on what's happening in your life.
+                </p>
               </div>
             </div>
             <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
@@ -157,19 +150,15 @@
 
         <!-- slide nav -->
         <div class="flex justify-center">
-          <ul class="inline-flex flex-wrap justify-center  absolute bottom-8 gap-1.5 uk-dotnav uk-slideshow-nav"> </ul>
+          <ul class="inline-flex flex-wrap justify-center absolute bottom-8 gap-1.5 uk-dotnav uk-slideshow-nav"></ul>
         </div>
 
-
       </div>
-
-
     </div>
 
   </div>
 
-
-  <!-- Uikit js you can use cdn  https://getuikit.com/docs/installation  or fine the latest  https://getuikit.com/docs/installation -->
+  <!-- SCRIPTS -->
   <script src="{% static 'js/uikit.min.js' %}"></script>
   <script src="{% static 'js/script.js' %}"></script>
 
@@ -177,25 +166,99 @@
   <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 
+<!-- LOGIN JAVASCRIPT + JWT -->
+<!-- LOGIN JAVASCRIPT - SEUL TOKEN -->
+<script>
+  function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+  }
+  
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      const alertDiv = document.getElementById('alert');
+      
+      if (!email || !password) {
+          showAlert('Please fill all fields', 'error');
+          return;
+      }
+      
+      btn.innerHTML = 'Signing in...';
+      btn.disabled = true;
+      alertDiv.classList.add('hidden');
+      
+      try {
+          const response = await fetch('/login/', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'X-CSRFToken': getCookie('csrftoken')
+              },
+              body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+              // ✅ NETTOYER TOUT LOCALSTORAGE
+              localStorage.clear();
+              
+              // ✅ SEUL TOKEN - AUCUN USER !
+              localStorage.setItem('token', data.token);
+              
+              showAlert('Login successful! Redirecting...', 'success');
+              setTimeout(() => {
+                  window.location.href = '/timeline/';
+              }, 1000);
+          } else {
+              showAlert(data.message, 'error');
+          }
+      } catch (error) {
+          showAlert('Network error. Please try again.', 'error');
+      }
+      
+      btn.innerHTML = 'Sign in';
+      btn.disabled = false;
+  });
+  
+  function showAlert(message, type) {
+      const alertDiv = document.getElementById('alert');
+      alertDiv.textContent = message;
+      alertDiv.className = `p-3 rounded mb-4 ${
+          type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 
+          'bg-red-100 text-red-800 border border-red-300'
+      }`;
+      alertDiv.classList.remove('hidden');
+  }
+  
+  // CHECK IF ALREADY LOGGED IN
+  if (localStorage.getItem('token')) {
+      window.location.href = '/timeline/';
+  }
+  </script>
+
   <!-- Dark mode -->
   <script>
-    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark')
+      document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.classList.remove('dark')
+      document.documentElement.classList.remove('dark');
     }
-
-    // Whenever the user explicitly chooses light mode
-    localStorage.theme = 'light'
-
-    // Whenever the user explicitly chooses dark mode
-    localStorage.theme = 'dark'
-
-    // Whenever the user explicitly chooses to respect the OS preference
-    localStorage.removeItem('theme')
   </script>
 
 </body>
-
 </html>
