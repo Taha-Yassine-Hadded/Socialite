@@ -220,9 +220,10 @@
               // ✅ SEUL TOKEN - AUCUN USER !
               localStorage.setItem('token', data.token);
               
-              showAlert('Login successful! Redirecting...', 'success');
+              showAlert('Connexion réussie ! Redirection vers votre profil...', 'success');
               setTimeout(() => {
-                  window.location.href = '/timeline/';
+                  // Redirection vers le profil de l'utilisateur
+                  window.location.href = `/profile/${data.user.username}/`;
               }, 1000);
           } else {
               showAlert(data.message, 'error');
@@ -247,7 +248,8 @@
   
   // CHECK IF ALREADY LOGGED IN
   if (localStorage.getItem('token')) {
-      window.location.href = '/timeline/';
+      // Rediriger vers feed qui redirigera vers le profil
+      window.location.href = '/feed/';
   }
   </script>
 

@@ -13,6 +13,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.decorators import login_required 
+from django.contrib import messages
+from .forms import UserEditForm, ProfileEditForm, CustomPasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
 
 # Liste des intérêts pour le formulaire
 INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation']
@@ -190,6 +193,7 @@ def login_page(request):
                 'user': {
                     'id': user.id,
                     'email': user.email,
+                    'username': user.username,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
                 }
@@ -526,3 +530,104 @@ def upgrade(request):
 @login_required(login_url='/login/')
 def single(request):
     return render(request, 'single.html')
+@login_required
+def profile_view(request, username=None):
+    """Affiche le profil d'un utilisateur"""
+    if username:
+        user = User.objects.get(username=username)
+    else:
+        user = request.user
+    
+    context = {
+        'user': user,
+        'profile': user.profile
+    }
+    return render(request, 'profile.html', context)
+@login_required
+def edit_profile(request):
+    """Édite le profil de l'utilisateur connecté"""
+    db = get_db()
+    mongo_profile = db.profiles.find_one({'user_id': request.user.id})
+    
+    if request.method == 'POST':
+        user_form = UserEditForm(request.POST, instance=request.user)
+        profile_form = ProfileEditForm(
+            request.POST, 
+            request.FILES,
+            instance=request.user.profile
+        )
+        
+        if user_form.is_valid() and profile_form.is_valid():
+            try:
+                user_form.save()
+                profile_form.save()
+                
+                # Mettre à jour les données MongoDB
+                mongo_updates = {
+                    'travel_type': request.POST.getlist('travel_type'),
+                    'travel_budget': request.POST.get('travel_budget', ''),
+                    'gender': request.POST.get('gender', ''),
+                    'languages': request.POST.getlist('languages'),
+                    'nationality': request.POST.get('nationality', ''),
+                    'interests': request.POST.getlist('interests'),
+                }
+                
+                db.profiles.update_one(
+                    {'user_id': request.user.id},
+                    {'$set': mongo_updates}
+                )
+                
+                messages.success(request, '✅ Votre profil a été mis à jour avec succès ! Toutes vos modifications ont été enregistrées.')
+                return redirect('profile', username=request.user.username)
+            except Exception as e:
+                messages.error(request, f'❌ Une erreur est survenue lors de la sauvegarde : {str(e)}')
+        else:
+            if user_form.errors or profile_form.errors:
+                error_messages = []
+                for field, errors in user_form.errors.items():
+                    for error in errors:
+                        error_messages.append(f'{user_form.fields[field].label}: {error}')
+                for field, errors in profile_form.errors.items():
+                    for error in errors:
+                        error_messages.append(f'{profile_form.fields[field].label}: {error}')
+                if error_messages:
+                    messages.error(request, '❌ Veuillez corriger les erreurs suivantes :')
+                    for error_msg in error_messages[:3]:
+                        messages.error(request, f'  • {error_msg}')
+    else:
+        user_form = UserEditForm(instance=request.user)
+        profile_form = ProfileEditForm(instance=request.user.profile)
+    
+    context = {
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'mongo_profile': mongo_profile or {},
+        'interests_list': INTERESTS,
+        'travel_types': TRAVEL_TYPES,
+        'languages_list': LANGUAGES,
+        'countries_list': COUNTRIES,
+    }
+    return render(request, 'edit_profile.html', context)
+
+@login_required
+def change_password(request):
+    """Change le mot de passe de l'utilisateur connecté"""
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Importante : garder l'utilisateur connecté après le changement de mot de passe
+            update_session_auth_hash(request, user)
+            messages.success(request, '🔒 Votre mot de passe a été modifié avec succès !')
+            return redirect('edit_profile')
+        else:
+            for error in form.non_field_errors():
+                messages.error(request, f'❌ {error}')
+            for field, errors in form.errors.items():
+                if field != '__all__':
+                    for error in errors:
+                        messages.error(request, f'❌ {form.fields[field].label}: {error}')
+    else:
+        form = CustomPasswordChangeForm(user=request.user)
+    
+    return render(request, 'change_password.html', {'form': form})

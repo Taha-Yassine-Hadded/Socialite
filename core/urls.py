@@ -62,4 +62,8 @@ urlpatterns = [
     
     # Single page
     path('single/', views.single, name='single'),
+     # Profile
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('profile/change-password/', views.change_password, name='change_password'),
+    path('profile/<str:username>/', views.profile_view, name='profile'),
 ]

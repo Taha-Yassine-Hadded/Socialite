@@ -16,8 +16,13 @@
             <div class="relative md:w-20 md:h-20 w-12 h-12 shrink-0">
 
                 <label for="file" class="cursor-pointer">
-                    <img id="img" src="{% static 'images/avatars/avatar-3.webp' %}"
-                        class="object-cover w-full h-full rounded-full" alt="" />
+                    {% if request.user.profile.avatar %}
+                        <img id="img" src="{{ request.user.profile.avatar.url }}"
+                            class="object-cover w-full h-full rounded-full" alt="" />
+                    {% else %}
+                        <img id="img" src="{% static 'images/avatars/avatar-3.webp' %}"
+                            class="object-cover w-full h-full rounded-full" alt="" />
+                    {% endif %}
                     <input type="file" id="file" class="hidden" />
                 </label>
 
@@ -39,8 +44,14 @@
             </div>
 
             <div class="flex-1">
-                <h3 class="md:text-xl text-base font-semibold text-black dark:text-white"> Monroe Parker </h3>
-                <p class="text-sm text-blue-600 mt-1 font-normal">@Monroe</p>
+                <h3 class="md:text-xl text-base font-semibold text-black dark:text-white">
+                    {% if request.user.first_name %}
+                        {{ request.user.first_name }} {{ request.user.last_name }}
+                    {% else %}
+                        {{ request.user.username }}
+                    {% endif %}
+                </h3>
+                <p class="text-sm text-blue-600 mt-1 font-normal">@{{ request.user.username }}</p>
             </div>
 
             <button
@@ -97,21 +108,21 @@
                         <div class="md:flex items-center gap-10">
                             <label class="md:w-32 text-right"> Username </label>
                             <div class="flex-1 max-md:mt-4">
-                                <input type="text" placeholder="Monroe" class="lg:w-1/2 w-full">
+                                <input type="text" value="{{ request.user.username }}" class="lg:w-1/2 w-full" readonly>
                             </div>
                         </div>
 
                         <div class="md:flex items-center gap-10">
                             <label class="md:w-32 text-right"> Email </label>
                             <div class="flex-1 max-md:mt-4">
-                                <input type="text" placeholder="info@mydomain.com" class="w-full">
+                                <input type="text" value="{{ request.user.email }}" class="w-full">
                             </div>
                         </div>
 
                         <div class="md:flex items-start gap-10">
                             <label class="md:w-32 text-right"> Bio </label>
                             <div class="flex-1 max-md:mt-4">
-                                <textarea class="w-full" rows="5" placeholder="Inter your Bio"></textarea>
+                                <textarea class="w-full" rows="5" placeholder="Entrez votre bio">{{ request.user.profile.bio|default:"" }}</textarea>
                             </div>
                         </div>
 
@@ -141,8 +152,13 @@
                         <div class="md:flex items-start gap-10 " hidden>
                             <label class="md:w-32 text-right"> Avatar </label>
                             <div class="flex-1 flex items-center gap-5 max-md:mt-4">
-                                <img src="{% static 'images/avatars/avatar-3.webp' %}" alt=""
-                                    class="w-10 h-10 rounded-full">
+                                {% if request.user.profile.avatar %}
+                                    <img src="{{ request.user.profile.avatar.url }}" alt=""
+                                        class="w-10 h-10 rounded-full">
+                                {% else %}
+                                    <img src="{% static 'images/avatars/avatar-3.webp' %}" alt=""
+                                        class="w-10 h-10 rounded-full">
+                                {% endif %}
                                 <button type="submit"
                                     class="px-4 py-1 rounded-full bg-slate-100/60 border dark:bg-slate-700 dark:border-slate-600 dark:text-white">
                                     Change</button>
@@ -182,7 +198,7 @@
                                     <ion-icon name="logo-facebook" class="text-2xl text-blue-600"></ion-icon>
                                 </div>
                                 <div class="flex-1">
-                                    <input type="text" class="w-full" placeholder="http://www.facebook.com/myname">
+                                    <input type="text" class="w-full" placeholder="http://www.facebook.com/myname" value="{{ request.user.profile.facebook|default:'' }}">
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
@@ -190,7 +206,7 @@
                                     <ion-icon name="logo-instagram" class="text-2xl text-pink-600"></ion-icon>
                                 </div>
                                 <div class="flex-1">
-                                    <input type="text" class="w-full" placeholder="http://www.instagram.com/myname">
+                                    <input type="text" class="w-full" placeholder="http://www.instagram.com/myname" value="{{ request.user.profile.instagram|default:'' }}">
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
@@ -198,7 +214,7 @@
                                     <ion-icon name="logo-twitter" class="text-2xl text-sky-600"></ion-icon>
                                 </div>
                                 <div class="flex-1">
-                                    <input type="text" class="w-full" placeholder="http://www.twitter.com/myname">
+                                    <input type="text" class="w-full" placeholder="http://www.twitter.com/myname" value="{{ request.user.profile.twitter|default:'' }}">
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
@@ -206,7 +222,7 @@
                                     <ion-icon name="logo-youtube" class="text-2xl text-red-600"></ion-icon>
                                 </div>
                                 <div class="flex-1">
-                                    <input type="text" class="w-full" placeholder="http://www.youtube.com/myname">
+                                    <input type="text" class="w-full" placeholder="http://www.youtube.com/myname" value="">
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
@@ -214,7 +230,7 @@
                                     <ion-icon name="logo-github" class="text-2xl text-black"></ion-icon>
                                 </div>
                                 <div class="flex-1">
-                                    <input type="text" class="w-full" placeholder="http://www.github.com/myname">
+                                    <input type="text" class="w-full" placeholder="http://www.github.com/myname" value="{{ request.user.profile.website|default:'' }}">
                                 </div>
                             </div>
 
