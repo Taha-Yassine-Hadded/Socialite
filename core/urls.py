@@ -11,6 +11,8 @@ urlpatterns = [
     path('register/',  views.register_page, name='register_page'),
     path('logout/', views.logout_view, name='logout'),  # ← AJOUTEZ CETTE LIGNE
     # Timeline pages
+    path('follow-unfollow/', views.follow_unfollow, name='follow_unfollow'),
+
     path('timeline/', views.timeline, name='timeline'),
     path('timeline-event/', views.timeline_event, name='timeline_event'),
     path('timeline-funding/', views.timeline_funding, name='timeline_funding'),
