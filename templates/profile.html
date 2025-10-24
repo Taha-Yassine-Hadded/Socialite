@@ -43,40 +43,40 @@
                             {% endif %}
                         </h1>
                         <p class="text-xl font-medium text-gray-700 mb-3">@{{ user.first_name|lower }}{% if user.last_name %}.{{ user.last_name|lower }}{% endif %}</p>
-                        
-                        {% if user.profile.location %}
+                
+                {% if user.profile.location %}
                         <p class="text-gray-700 mb-3 flex items-center text-lg">
                             <svg class="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                             </svg>
                             {{ user.profile.location }}
                         </p>
-                        {% endif %}
-                        
-                        {% if user.profile.bio %}
+                {% endif %}
+                
+                {% if user.profile.bio %}
                         <div class="mt-4">
                             <p class="text-gray-800 leading-relaxed text-base">{{ user.profile.bio }}</p>
                         </div>
-                        {% endif %}
-                    </div>
-                    
+                {% endif %}
+            </div>
+            
                     <!-- Bouton d'action -->
                     <div class="flex-shrink-0">
-                        {% if request.user == user %}
+            {% if request.user == user %}
                         <a href="{% url 'edit_profile' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
                             Éditer le profil
-                        </a>
-                        {% else %}
+            </a>
+            {% else %}
                         <button class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                             </svg>
                             Suivre
-                        </button>
-                        {% endif %}
+            </button>
+            {% endif %}
                     </div>
                 </div>
             </div>
@@ -88,7 +88,7 @@
             <div class="pt-6 border-t border-gray-200">
                 <div class="grid grid-cols-3 gap-4">
                     <div class="text-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-                        <p class="text-2xl font-bold text-gray-800">0</p>
+                        <p class="text-2xl font-bold text-gray-800">{{ posts_count }}</p>
                         <p class="text-sm text-gray-600 font-medium">Publications</p>
                     </div>
                     <div class="text-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
@@ -98,8 +98,8 @@
                     <div class="text-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
                         <p class="text-2xl font-bold text-gray-800">0</p>
                         <p class="text-sm text-gray-600 font-medium">Abonnements</p>
-                    </div>
-                </div>
+            </div>
+            </div>
             </div>
         </div>
         
@@ -107,7 +107,7 @@
         {% if user.profile.travel_style or user.profile.favorite_destinations %}
         <div class="px-6 pb-6">
             <div class="pt-6 border-t border-gray-200">
-                <h2 class="text-xl font-semibold mb-4">🌍 Préférences de voyage</h2>
+            <h2 class="text-xl font-semibold mb-4">🌍 Préférences de voyage</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {% if user.profile.travel_style %}
                 <div>
@@ -131,7 +131,7 @@
         {% if user.profile.website or user.profile.facebook or user.profile.instagram or user.profile.twitter %}
         <div class="px-6 pb-6">
             <div class="pt-6 border-t border-gray-200">
-                <h2 class="text-xl font-semibold mb-4">🔗 Liens</h2>
+            <h2 class="text-xl font-semibold mb-4">🔗 Liens</h2>
             <div class="flex gap-4">
                 {% if user.profile.website %}
                 <a href="{{ user.profile.website }}" target="_blank" class="text-blue-500 hover:underline">
@@ -161,19 +161,566 @@
         </div>
         {% endif %}
         
-        <!-- Section des publications (à venir) -->
+        <!-- Section des publications -->
         <div class="px-6 pb-6">
             <div class="pt-6 border-t border-gray-200">
-                <h2 class="text-2xl font-semibold mb-4">📸 Publications</h2>
-                <div class="text-center text-gray-500 py-12 bg-gray-50 rounded-lg">
-                    <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                    <p class="font-medium">Aucune publication pour le moment</p>
-                </div>
+                <h2 class="text-2xl font-semibold mb-4">📸 Publications ({{ posts_count }})</h2>
+                
+                {% if user_posts %}
+                    <div class="space-y-6">
+                        {% for post in user_posts %}
+                        <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition" data-post-id="{{ post.id }}">
+                            
+                            <!-- En-tête du post -->
+                            <div class="p-4 flex items-center justify-between border-b">
+                                <div class="flex items-center gap-3">
+                                    {% if post.user.profile.avatar %}
+                                        <img src="{{ post.user.profile.avatar.url }}" alt="{{ post.user.username }}" class="w-10 h-10 rounded-full object-cover">
+                                    {% else %}
+                                        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                                            {{ post.user.first_name.0|upper }}
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <span class="font-semibold text-gray-900">{{ post.user.first_name }} {{ post.user.last_name }}</span>
+                                        <div class="text-sm text-gray-500">
+                                            {{ post.created_at|timesince }} ago
+                                            {% if post.location %}
+                                                • 📍 {{ post.location }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Menu suppression (si c'est notre post) -->
+                                {% if post.user == request.user %}
+                                <div class="relative">
+                                    <button onclick="toggleMenu('menu-{{ post.id }}')" class="text-gray-500 hover:bg-gray-100 p-2 rounded-full">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                                        </svg>
+                                    </button>
+                                    <div id="menu-{{ post.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10">
+                                        <button onclick="startEditPost({{ post.id }})" class="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                            ✏️ Modifier
+                                        </button>
+                                        <button onclick="deletePost({{ post.id }})" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
+                                            🗑️ Supprimer
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Contenu texte -->
+                            {% if post.content %}
+                            <div class="p-4">
+                                <p id="post-content-{{ post.id }}" class="text-gray-800 whitespace-pre-line">{{ post.content }}</p>
+                                <!-- Zone d'édition (masquée par défaut) -->
+                                <div id="post-edit-{{ post.id }}" class="hidden">
+                                    <textarea id="post-edit-input-{{ post.id }}" class="w-full px-4 py-2 border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" rows="3">{{ post.content }}</textarea>
+                                    <div class="flex gap-2 mt-2">
+                                        <button onclick="savePostEdit({{ post.id }})" class="bg-blue-600 text-white px-4 py-1 rounded-lg hover:bg-blue-700 transition">
+                                            ✅ Enregistrer
+                                        </button>
+                                        <button onclick="cancelPostEdit({{ post.id }})" class="bg-gray-300 text-gray-700 px-4 py-1 rounded-lg hover:bg-gray-400 transition">
+                                            ❌ Annuler
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Image -->
+                            {% if post.image %}
+                            <div class="w-full">
+                                <img src="{{ post.image.url }}" alt="Post image" class="w-full object-cover max-h-[500px]">
+                            </div>
+                            {% endif %}
+
+                            <!-- Vidéo -->
+                            {% if post.video %}
+                            <div class="w-full bg-black">
+                                <video controls class="w-full max-h-[500px]">
+                                    <source src="{{ post.video.url }}" type="video/mp4">
+                                    Votre navigateur ne supporte pas la vidéo.
+                                </video>
+                            </div>
+                            {% endif %}
+
+                            <!-- Note vocale -->
+                            {% if post.voice_note %}
+                            <div class="p-4">
+                                <div class="bg-gray-100 rounded-lg p-4">
+                                    <div class="flex items-center gap-3">
+                                        <svg class="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <audio controls class="flex-1">
+                                            <source src="{{ post.voice_note.url }}">
+                                        </audio>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Statistiques -->
+                            <div class="px-4 py-2 flex justify-between items-center border-t border-gray-200">
+                                <div class="text-sm text-gray-600">
+                                    <span class="likes-count-{{ post.id }}">
+                                        {% if post.likes_count > 0 %}
+                                            <span class="flex items-center gap-1">
+                                                <span class="text-blue-500">👍</span>
+                                                {{ post.likes_count }}
+                                            </span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-4 text-sm text-gray-600">
+                                    <span>{{ post.comments_count }} commentaires</span>
+                                    <span>{{ post.shares_count }} partages</span>
+                                </div>
+                            </div>
+
+                            <!-- Actions (Like, Comment, Share) - INTERACTIVES -->
+                            <div class="px-4 py-2 flex justify-around border-t border-gray-200">
+                                <!-- Bouton Like avec sélecteur de réactions -->
+                                <div class="flex-1 relative reaction-container-{{ post.id }}">
+                                    <button onclick="quickReact({{ post.id }}, 'like')" 
+                                            onmouseenter="showReactionPicker({{ post.id }})"
+                                            class="w-full flex items-center justify-center gap-1 py-2 rounded-lg hover:bg-gray-100 transition
+                                                   {% if post.user_reaction %}text-blue-600 font-semibold{% else %}text-gray-500{% endif %}"
+                                            id="like-btn-{{ post.id }}"
+                                            data-current-reaction="{{ post.user_reaction.reaction_type|default:'' }}">
+                                        <span id="reaction-text-{{ post.id }}" class="text-base">
+                                            {% if post.user_reaction %}
+                                                {{ post.user_reaction.get_reaction_type_display }}
+                                            {% else %}
+                                                👍 J'aime
+                                            {% endif %}
+                                        </span>
+                                    </button>
+                                    <!-- Sélecteur de réactions (popup au survol - VERS LE HAUT) -->
+                                    <div id="post-reactions-{{ post.id }}" 
+                                         style="position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 10px;"
+                                         class="hidden bg-white rounded-full shadow-2xl border-2 border-gray-200 px-3 py-2 flex gap-2 z-50"
+                                         onmouseenter="keepPickerOpen({{ post.id }})"
+                                         onmouseleave="hideReactionPicker({{ post.id }})">
+                                        <button onclick="reactToPost({{ post.id }}, 'like')" class="text-3xl hover:scale-125 transition" title="J'aime">👍</button>
+                                        <button onclick="reactToPost({{ post.id }}, 'love')" class="text-3xl hover:scale-125 transition" title="J'adore">❤️</button>
+                                        <button onclick="reactToPost({{ post.id }}, 'haha')" class="text-3xl hover:scale-125 transition" title="Haha">😂</button>
+                                        <button onclick="reactToPost({{ post.id }}, 'wow')" class="text-3xl hover:scale-125 transition" title="Wow">😮</button>
+                                        <button onclick="reactToPost({{ post.id }}, 'sad')" class="text-3xl hover:scale-125 transition" title="Triste">😢</button>
+                                        <button onclick="reactToPost({{ post.id }}, 'angry')" class="text-3xl hover:scale-125 transition" title="Grrr">😠</button>
+                                    </div>
+                                </div>
+
+                                <!-- Bouton Commentaire -->
+                                <button onclick="toggleComments('comments-{{ post.id }}')" class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-600 rounded-lg hover:bg-gray-100 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                    </svg>
+                                    <span>Commenter</span>
+                                </button>
+
+                                <!-- Bouton Partager -->
+                                <button onclick="sharePost({{ post.id }})" class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-600 rounded-lg hover:bg-gray-100 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                    </svg>
+                                    <span>Partager</span>
+                                </button>
+                            </div>
+
+                            <!-- Section Commentaires (masquée par défaut) -->
+                            <div id="comments-{{ post.id }}" class="hidden border-t border-gray-200">
+                                <!-- Formulaire ajout commentaire -->
+                                <div class="p-4">
+                                    <form onsubmit="addComment(event, {{ post.id }})" class="flex gap-3" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        {% if request.user.profile.avatar %}
+                                            <img src="{{ request.user.profile.avatar.url }}" alt="" class="w-10 h-10 rounded-full object-cover">
+                                        {% else %}
+                                            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                                                {{ request.user.first_name.0|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="flex-1">
+                                            <input type="text" name="content" placeholder="Écrivez un commentaire..." 
+                                                   class="w-full bg-gray-100 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <button type="submit" class="hidden">Envoyer</button>
+                                        </div>
+                                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition">
+                                            Envoyer
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Liste des commentaires -->
+                                <div id="comments-list-{{ post.id }}" class="px-4 pb-4 space-y-3">
+                                    {% for comment in post.comments.all %}
+                                        {% if not comment.parent %}
+                                        <div class="flex gap-3">
+                                            {% if comment.user.profile.avatar %}
+                                                <img src="{{ comment.user.profile.avatar.url }}" alt="" class="w-8 h-8 rounded-full object-cover">
+                                            {% else %}
+                                                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                                                    {{ comment.user.first_name.0|upper }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="flex-1">
+                                                <div class="bg-gray-100 rounded-lg px-4 py-2">
+                                                    <a href="{% url 'profile' comment.user.profile.slug %}" class="font-semibold text-sm hover:underline">
+                                                        {{ comment.user.first_name }} {{ comment.user.last_name }}
+                                                    </a>
+                                                    <p class="text-gray-800">{{ comment.content }}</p>
+                                                    {% if comment.image %}
+                                                    <div class="mt-2">
+                                                        <img src="{{ comment.image.url }}" alt="Comment image" class="rounded-lg max-h-48 object-cover">
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="flex items-center gap-4 mt-1 text-xs text-gray-500 px-4">
+                                                    <span>{{ comment.created_at|timesince }} ago</span>
+                                                    <button onclick="reactToComment({{ comment.id }})" class="hover:underline">J'aime</button>
+                                                    {% if comment.user == request.user %}
+                                                        <button onclick="deleteComment({{ comment.id }}, {{ post.id }})" class="hover:underline text-red-600">🗑️ Supprimer</button>
+                                                    {% endif %}
+                                                    {% if comment.likes_count > 0 %}
+                                                        <span class="text-blue-600">👍 {{ comment.likes_count }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- Message si aucun post -->
+                    <div class="text-center text-gray-500 py-12 bg-gray-50 rounded-lg">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <p class="font-medium">Aucune publication pour le moment</p>
+                        {% if user == request.user %}
+                            <a href="{% url 'create_post' %}" class="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                                Créer votre première publication
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
         </div>
+        
+        <!-- JavaScript pour toutes les interactions -->
+        <script>
+        // CSRF Token
+        function getCsrfToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            return csrfInput ? csrfInput.value : '';
+        }
+
+        // Toggle menu
+        function toggleMenu(menuId) {
+            const menu = document.getElementById(menuId);
+            menu.classList.toggle('hidden');
+        }
+
+        // Toggle commentaires
+        function toggleComments(commentsId) {
+            const commentsSection = document.getElementById(commentsId);
+            commentsSection.classList.toggle('hidden');
+        }
+
+        // Afficher/masquer sélecteur de réactions
+        let hideTimeout = null;
+
+        function showReactionPicker(postId) {
+            clearTimeout(hideTimeout);
+            document.querySelectorAll('[id^="post-reactions-"]').forEach(p => {
+                if (p.id !== `post-reactions-${postId}`) {
+                    p.classList.add('hidden');
+                }
+            });
+            const picker = document.getElementById(`post-reactions-${postId}`);
+            if (picker) {
+                picker.classList.remove('hidden');
+            }
+        }
+
+        function keepPickerOpen(postId) {
+            clearTimeout(hideTimeout);
+        }
+
+        function hideReactionPicker(postId) {
+            hideTimeout = setTimeout(() => {
+                const picker = document.getElementById(`post-reactions-${postId}`);
+                if (picker) {
+                    picker.classList.add('hidden');
+                }
+            }, 200);
+        }
+
+        // Réaction rapide
+        function quickReact(postId, defaultReaction = 'like') {
+            const button = document.getElementById(`like-btn-${postId}`);
+            const currentReaction = button.getAttribute('data-current-reaction');
+            
+            if (currentReaction === defaultReaction) {
+                reactToPost(postId, defaultReaction);
+            } else {
+                reactToPost(postId, defaultReaction);
+            }
+        }
+
+        // Réagir à un post
+        async function reactToPost(postId, reactionType) {
+            const reactionEmojis = {
+                'like': '👍 J\'aime',
+                'love': '❤️ J\'adore',
+                'haha': '😂 Haha',
+                'wow': '😮 Wow',
+                'sad': '😢 Triste',
+                'angry': '😠 Grrr'
+            };
+            
+            try {
+                const response = await fetch(`/posts/${postId}/react/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: `reaction_type=${reactionType}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const likeBtn = document.getElementById(`like-btn-${postId}`);
+                    const reactionText = document.getElementById(`reaction-text-${postId}`);
+                    const likesCount = document.querySelector(`.likes-count-${postId}`);
+                    
+                    document.getElementById(`post-reactions-${postId}`).classList.add('hidden');
+                    
+                    if (data.action === 'added' || data.action === 'updated') {
+                        likeBtn.classList.remove('text-gray-500');
+                        likeBtn.classList.add('text-blue-600', 'font-semibold');
+                        reactionText.textContent = reactionEmojis[data.reaction_type] || '👍 J\'aime';
+                        likeBtn.setAttribute('data-current-reaction', data.reaction_type);
+                    } else {
+                        likeBtn.classList.remove('text-blue-600', 'font-semibold');
+                        likeBtn.classList.add('text-gray-500');
+                        reactionText.textContent = '👍 J\'aime';
+                        likeBtn.setAttribute('data-current-reaction', '');
+                    }
+                    
+                    if (data.likes_count > 0) {
+                        likesCount.innerHTML = `<span class="flex items-center gap-1"><span class="text-blue-500">👍</span> ${data.likes_count}</span>`;
+                    } else {
+                        likesCount.innerHTML = '';
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Ajouter un commentaire
+        async function addComment(event, postId) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            try {
+                const response = await fetch(`/posts/${postId}/comments/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Réagir à un commentaire
+        async function reactToComment(commentId) {
+            try {
+                const response = await fetch(`/comments/${commentId}/react/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: 'reaction_type=like'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Supprimer un commentaire
+        async function deleteComment(commentId, postId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/comments/${commentId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Partager un post
+        async function sharePost(postId) {
+            const message = prompt('Ajoutez un message à votre partage (optionnel):');
+            
+            if (message === null) return;
+            
+            try {
+                const response = await fetch(`/posts/${postId}/share/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: `message=${encodeURIComponent(message)}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ Post partagé avec succès !');
+                    location.reload();
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Modifier un post
+        function startEditPost(postId) {
+            // Masquer le contenu original
+            document.getElementById(`post-content-${postId}`).classList.add('hidden');
+            // Afficher la zone d'édition
+            document.getElementById(`post-edit-${postId}`).classList.remove('hidden');
+            // Fermer le menu
+            toggleMenu(`menu-${postId}`);
+        }
+
+        function cancelPostEdit(postId) {
+            // Afficher le contenu original
+            document.getElementById(`post-content-${postId}`).classList.remove('hidden');
+            // Masquer la zone d'édition
+            document.getElementById(`post-edit-${postId}`).classList.add('hidden');
+        }
+
+        async function savePostEdit(postId) {
+            const newContent = document.getElementById(`post-edit-input-${postId}`).value.trim();
+            
+            if (!newContent) {
+                alert('❌ Le post ne peut pas être vide !');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/posts/${postId}/edit/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: `content=${encodeURIComponent(newContent)}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Mettre à jour le contenu affiché
+                    document.getElementById(`post-content-${postId}`).textContent = data.post.content;
+                    // Masquer la zone d'édition
+                    cancelPostEdit(postId);
+                    // Message de succès
+                    alert('✅ Post modifié avec succès !');
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('❌ Erreur de connexion');
+            }
+        }
+
+        // Supprimer un post
+        async function deletePost(postId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/posts/${postId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken()
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+                    postElement.remove();
+                    alert('✅ Post supprimé avec succès');
+                    location.reload();
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('❌ Erreur de connexion');
+            }
+        }
+        </script>
     </div>
 </div>
 {% endblock %}

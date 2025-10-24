@@ -62,8 +62,36 @@ urlpatterns = [
     
     # Single page
     path('single/', views.single, name='single'),
-     # Profile
+    
+    # Profile
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change-password/', views.change_password, name='change_password'),
-    path('profile/<str:username>/', views.profile_view, name='profile'),
+    path('profile/<slug:slug>/', views.profile_view, name='profile'),
+    
+    # ============================================
+    # POSTS : Système de publications
+    # ============================================
+    path('posts/create/', views.create_post, name='create_post'),
+    path('posts/', views.list_posts, name='list_posts'),
+    path('posts/<int:post_id>/', views.get_post_detail, name='get_post_detail'),
+    path('posts/<int:post_id>/edit/', views.edit_post, name='edit_post'),
+    path('posts/<int:post_id>/delete/', views.delete_post, name='delete_post'),
+    
+    # ============================================
+    # COMMENTS : Commentaires
+    # ============================================
+    path('posts/<int:post_id>/comments/', views.add_comment, name='add_comment'),
+    path('comments/<int:comment_id>/edit/', views.edit_comment, name='edit_comment'),
+    path('comments/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
+    
+    # ============================================
+    # REACTIONS : Likes et réactions
+    # ============================================
+    path('posts/<int:post_id>/react/', views.add_reaction, name='add_reaction'),
+    path('comments/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
+    
+    # ============================================
+    # SHARE : Partage de posts
+    # ============================================
+    path('posts/<int:post_id>/share/', views.share_post, name='share_post'),
 ]

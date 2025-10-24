@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Créer une publication{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto mt-8 px-4">
+    <!-- En-tête -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">📝 Créer une publication</h1>
+        <p class="text-gray-600">Partagez vos moments avec vos amis</p>
+    </div>
+
+    <!-- Formulaire de création -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <form id="createPostForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Avatar et input texte -->
+            <div class="flex gap-4 mb-4">
+                <div class="flex-shrink-0">
+                    {% if request.user.profile.avatar %}
+                        <img src="{{ request.user.profile.avatar.url }}" alt="Avatar" class="w-12 h-12 rounded-full object-cover">
+                    {% else %}
+                        <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                            {{ request.user.first_name.0|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Zone de texte -->
+                <div class="flex-1">
+                    <textarea 
+                        name="content" 
+                        id="postContent" 
+                        rows="4" 
+                        class="w-full border-2 border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        placeholder="Quoi de neuf, {{ request.user.first_name }} ?"></textarea>
+                    <p class="text-sm text-gray-500 mt-1">
+                        <span id="charCount">0</span> caractères
+                    </p>
+                </div>
+            </div>
+
+            <!-- Options de fichiers -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <!-- Upload Image -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition cursor-pointer" onclick="document.getElementById('imageInput').click()">
+                    <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <p class="text-sm text-gray-600">📷 Photo</p>
+                    <input type="file" id="imageInput" name="image" accept="image/*" class="hidden" onchange="previewFile(this, 'imagePreview')">
+                </div>
+
+                <!-- Upload Vidéo -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition cursor-pointer" onclick="document.getElementById('videoInput').click()">
+                    <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    <p class="text-sm text-gray-600">🎥 Vidéo</p>
+                    <input type="file" id="videoInput" name="video" accept="video/*" class="hidden" onchange="previewFile(this, 'videoPreview')">
+                </div>
+
+                <!-- Upload Note vocale -->
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition cursor-pointer" onclick="document.getElementById('voiceInput').click()">
+                    <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                    <p class="text-sm text-gray-600">🎤 Note vocale</p>
+                    <input type="file" id="voiceInput" name="voice_note" accept="audio/*" class="hidden" onchange="previewFile(this, 'voicePreview')">
+                </div>
+            </div>
+
+            <!-- Prévisualisations des fichiers -->
+            <div id="imagePreview" class="hidden mb-4">
+                <div class="relative">
+                    <img src="" alt="Preview" class="w-full rounded-lg max-h-96 object-cover">
+                    <button type="button" onclick="removePreview('imageInput', 'imagePreview')" class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="videoPreview" class="hidden mb-4">
+                <div class="relative">
+                    <video src="" controls class="w-full rounded-lg max-h-96"></video>
+                    <button type="button" onclick="removePreview('videoInput', 'videoPreview')" class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="voicePreview" class="hidden mb-4">
+                <div class="bg-gray-100 rounded-lg p-4">
+                    <audio src="" controls class="w-full"></audio>
+                    <button type="button" onclick="removePreview('voiceInput', 'voicePreview')" class="mt-2 text-red-500 hover:text-red-700">
+                        Supprimer la note vocale
+                    </button>
+                </div>
+            </div>
+
+            <!-- Localisation -->
+            <div class="mb-4">
+                <label class="flex items-center gap-2 text-gray-700 mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    📍 Ajouter une localisation
+                </label>
+                <input type="text" name="location" id="location" class="w-full border-2 border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500" placeholder="Où êtes-vous ?">
+            </div>
+
+            <!-- Visibilité -->
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-2">👁️ Visibilité</label>
+                <select name="visibility" class="w-full border-2 border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500">
+                    <option value="public">🌍 Public - Tout le monde peut voir</option>
+                    <option value="friends">👥 Amis seulement</option>
+                    <option value="private">🔒 Privé - Seulement moi</option>
+                </select>
+            </div>
+
+            <!-- Messages de retour -->
+            <div id="messageContainer" class="mb-4 hidden">
+                <div id="messageContent" class="p-4 rounded-lg"></div>
+            </div>
+
+            <!-- Boutons -->
+            <div class="flex gap-4">
+                <button type="submit" id="submitBtn" class="flex-1 bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition">
+                    📤 Publier
+                </button>
+                <a href="{% url 'list_posts' %}" class="flex-1 bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 transition text-center">
+                    ❌ Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// ============================================
+// COMPTEUR DE CARACTÈRES
+// ============================================
+document.getElementById('postContent').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length;
+});
+
+// ============================================
+// PRÉVISUALISATION DES FICHIERS
+// ============================================
+function previewFile(input, previewId) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        const previewDiv = document.getElementById(previewId);
+        
+        reader.onload = function(e) {
+            const mediaElement = previewDiv.querySelector('img, video, audio');
+            if (mediaElement) {
+                mediaElement.src = e.target.result;
+            }
+            previewDiv.classList.remove('hidden');
+        };
+        
+        reader.readAsDataURL(file);
+    }
+}
+
+// ============================================
+// SUPPRIMER LA PRÉVISUALISATION
+// ============================================
+function removePreview(inputId, previewId) {
+    document.getElementById(inputId).value = '';
+    document.getElementById(previewId).classList.add('hidden');
+}
+
+// ============================================
+// SOUMISSION DU FORMULAIRE (AJAX)
+// ============================================
+document.getElementById('createPostForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const messageContainer = document.getElementById('messageContainer');
+    const messageContent = document.getElementById('messageContent');
+    
+    // Désactiver le bouton
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ Publication en cours...';
+    
+    // Créer FormData
+    const formData = new FormData(this);
+    
+    try {
+        // Envoyer la requête
+        const response = await fetch('{% url "create_post" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Succès
+            messageContainer.classList.remove('hidden');
+            messageContent.className = 'p-4 rounded-lg bg-green-100 text-green-700';
+            messageContent.textContent = '✅ ' + data.message;
+            
+            // Rediriger après 2 secondes
+            setTimeout(() => {
+                window.location.href = '{% url "list_posts" %}';
+            }, 2000);
+        } else {
+            // Erreur
+            messageContainer.classList.remove('hidden');
+            messageContent.className = 'p-4 rounded-lg bg-red-100 text-red-700';
+            messageContent.textContent = '❌ ' + data.error;
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = '📤 Publier';
+        }
+    } catch (error) {
+        messageContainer.classList.remove('hidden');
+        messageContent.className = 'p-4 rounded-lg bg-red-100 text-red-700';
+        messageContent.textContent = '❌ Erreur de connexion';
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = '📤 Publier';
+    }
+});
+</script>
+{% endblock %}

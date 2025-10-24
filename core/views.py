@@ -16,6 +16,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import UserEditForm, ProfileEditForm, CustomPasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.db.models import Q
+from .models import Post, Comment, Reaction, Share, UserProfile
+import json
 
 # Liste des intérêts pour le formulaire
 INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation']
@@ -411,7 +417,35 @@ def timeline_page(request):
 # Feed
 @login_required(login_url='/login/')
 def feed(request):
-    return redirect('timeline')
+    """
+    Vue pour afficher le fil d'actualité (feed).
+    Affiche tous les posts publics + posts de l'utilisateur.
+    """
+    # Récupérer tous les posts publics + posts de l'utilisateur
+    posts = Post.objects.filter(
+        Q(visibility='public') | Q(user=request.user)
+    ).select_related('user', 'user__profile').prefetch_related(
+        'comments', 'comments__user', 'comments__user__profile', 
+        'comments__reactions', 'reactions', 'post_shares'
+    ).order_by('-created_at')
+    
+    # Pour chaque post, vérifier si l'utilisateur a déjà réagi
+    for post in posts:
+        # Est-ce que l'utilisateur a liké ce post ?
+        post.user_reaction = post.reactions.filter(user=request.user).first()
+        
+        # Calculer les statistiques
+        post.total_reactions = post.reactions.count()
+        post.total_comments = post.comments.filter(parent=None).count()  # Seulement les commentaires principaux
+        
+        # Pour chaque commentaire, vérifier si l'utilisateur a réagi
+        for comment in post.comments.all():
+            comment.user_reaction = comment.reactions.filter(user=request.user).first()
+    
+    context = {
+        'posts': posts,
+    }
+    return render(request, 'feed.html', context)
 
 # Groups pages
 @login_required(login_url='/login/')
@@ -531,23 +565,57 @@ def upgrade(request):
 def single(request):
     return render(request, 'single.html')
 @login_required
-def profile_view(request, username=None):
-    """Affiche le profil d'un utilisateur"""
-    if username:
-        user = User.objects.get(username=username)
+def profile_view(request, slug=None):
+    """Affiche le profil d'un utilisateur avec ses posts (via son slug unique)"""
+    if slug:
+        # Récupérer le profil par son slug, puis l'utilisateur
+        profile = UserProfile.objects.select_related('user').get(slug=slug)
+        user = profile.user
     else:
         user = request.user
     
+    # Récupérer tous les posts de cet utilisateur
+    user_posts = Post.objects.filter(user=user).select_related(
+        'user', 'user__profile'
+    ).prefetch_related(
+        'comments', 'comments__user', 'comments__user__profile',
+        'comments__reactions', 'reactions', 'post_shares'
+    ).order_by('-created_at')
+    
+    # Pour chaque post, ajouter les infos de réaction de l'utilisateur connecté
+    if request.user.is_authenticated:
+        for post in user_posts:
+            post.user_reaction = post.reactions.filter(user=request.user).first()
+            post.total_reactions = post.reactions.count()
+            post.total_comments = post.comments.filter(parent=None).count()
+            
+            # Pour chaque commentaire, vérifier si l'utilisateur a réagi
+            for comment in post.comments.all():
+                comment.user_reaction = comment.reactions.filter(user=request.user).first()
+    
     context = {
         'user': user,
-        'profile': user.profile
+        'profile': user.profile,
+        'user_posts': user_posts,
+        'posts_count': user_posts.count(),
     }
     return render(request, 'profile.html', context)
+def get_country_flag(country_code):
+    """Convertir un code pays (ex: 'FR') en emoji drapeau (ex: '🇫🇷')"""
+    OFFSET = 127397
+    return ''.join(chr(ord(char) + OFFSET) for char in country_code)
+
 @login_required
 def edit_profile(request):
     """Édite le profil de l'utilisateur connecté"""
     db = get_db()
     mongo_profile = db.profiles.find_one({'user_id': request.user.id})
+    
+    # Initialiser visited_countries si elle n'existe pas
+    if mongo_profile is None:
+        mongo_profile = {}
+    if 'visited_countries' not in mongo_profile:
+        mongo_profile['visited_countries'] = []
     
     if request.method == 'POST':
         user_form = UserEditForm(request.POST, instance=request.user)
@@ -570,6 +638,7 @@ def edit_profile(request):
                     'languages': request.POST.getlist('languages'),
                     'nationality': request.POST.get('nationality', ''),
                     'interests': request.POST.getlist('interests'),
+                    'visited_countries': request.POST.getlist('visited_countries'),
                 }
                 
                 db.profiles.update_one(
@@ -578,7 +647,7 @@ def edit_profile(request):
                 )
                 
                 messages.success(request, '✅ Votre profil a été mis à jour avec succès ! Toutes vos modifications ont été enregistrées.')
-                return redirect('profile', username=request.user.username)
+                return redirect('profile', slug=request.user.profile.slug)
             except Exception as e:
                 messages.error(request, f'❌ Une erreur est survenue lors de la sauvegarde : {str(e)}')
         else:
@@ -598,6 +667,16 @@ def edit_profile(request):
         user_form = UserEditForm(instance=request.user)
         profile_form = ProfileEditForm(instance=request.user.profile)
     
+    # Transformer la liste de pays en liste de dictionnaires avec drapeaux
+    countries_with_flags = [
+        {
+            'code': code,
+            'name': name,
+            'flag': get_country_flag(code)
+        }
+        for code, name in COUNTRIES
+    ]
+    
     context = {
         'user_form': user_form,
         'profile_form': profile_form,
@@ -605,7 +684,7 @@ def edit_profile(request):
         'interests_list': INTERESTS,
         'travel_types': TRAVEL_TYPES,
         'languages_list': LANGUAGES,
-        'countries_list': COUNTRIES,
+        'countries_list': countries_with_flags,
     }
     return render(request, 'edit_profile.html', context)
 
@@ -631,3 +710,516 @@ def change_password(request):
         form = CustomPasswordChangeForm(user=request.user)
     
     return render(request, 'change_password.html', {'form': form})
+    # ============================================
+# VUE : CRÉER UN POST
+# ============================================
+@login_required
+def create_post(request):
+    """
+    Vue pour créer un nouveau post.
+    Supporte : texte, image, vidéo, note vocale, localisation
+    """
+    if request.method == 'POST':
+        # Récupérer les données du formulaire
+        content = request.POST.get('content', '').strip()
+        location = request.POST.get('location', '').strip()
+        visibility = request.POST.get('visibility', 'public')
+        
+        # Récupérer les fichiers uploadés
+        image = request.FILES.get('image')
+        video = request.FILES.get('video')
+        voice_note = request.FILES.get('voice_note')
+        
+        # Validation : Au moins un contenu doit être présent
+        if not content and not image and not video and not voice_note:
+            return JsonResponse({
+                'success': False,
+                'error': 'Veuillez ajouter du contenu, une image, une vidéo ou une note vocale.'
+            }, status=400)
+        
+        # Créer le post
+        post = Post.objects.create(
+            user=request.user,
+            content=content,
+            image=image,
+            video=video,
+            voice_note=voice_note,
+            location=location,
+            visibility=visibility
+        )
+        
+        # Retourner une réponse JSON (succès)
+        return JsonResponse({
+            'success': True,
+            'message': 'Post créé avec succès !',
+            'post_id': post.id
+        })
+    
+    # Si GET : afficher le formulaire de création
+    return render(request, 'create_post.html')
+    # ============================================
+# VUE : AFFICHER LE FIL D'ACTUALITÉ
+# ============================================
+@login_required
+def list_posts(request):
+    """
+    Vue pour afficher le fil d'actualité (feed).
+    Affiche tous les posts publics + posts d'amis.
+    """
+    # Récupérer tous les posts publics (on peut filtrer par amis plus tard)
+    posts = Post.objects.filter(
+        Q(visibility='public') | Q(user=request.user)
+    ).select_related('user', 'user__profile').prefetch_related(
+        'comments', 'reactions', 'post_shares'
+    ).order_by('-created_at')
+    
+    # Pour chaque post, vérifier si l'utilisateur a déjà réagi
+    for post in posts:
+        # Est-ce que l'utilisateur a liké ce post ?
+        post.user_reaction = post.reactions.filter(user=request.user).first()
+        
+        # Calculer les statistiques
+        post.total_reactions = post.reactions.count()
+        post.total_comments = post.comments.filter(parent=None).count()  # Seulement les commentaires principaux
+    
+    context = {
+        'posts': posts,
+    }
+    return render(request, 'feed.html', context)
+# ============================================
+# VUE : SUPPRIMER UN POST
+# ============================================
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def delete_post(request, post_id):
+    """
+    Vue pour supprimer un post.
+    Seul le créateur du post peut le supprimer.
+    """
+    # Récupérer le post (ou 404 si n'existe pas)
+    post = get_object_or_404(Post, id=post_id)
+    
+    # Vérifier que l'utilisateur est bien le créateur du post
+    if post.user != request.user:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas la permission de supprimer ce post.'
+        }, status=403)
+    
+    # Supprimer le post
+    post.delete()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Post supprimé avec succès !'
+    })
+
+# ============================================
+# VUE : MODIFIER UN POST
+# ============================================
+@login_required
+@require_http_methods(["POST"])
+def edit_post(request, post_id):
+    """
+    Vue pour modifier le contenu d'un post.
+    Seul le créateur du post peut le modifier.
+    """
+    # Récupérer le post (ou 404 si n'existe pas)
+    post = get_object_or_404(Post, id=post_id)
+    
+    # Vérifier que l'utilisateur est bien le créateur du post
+    if post.user != request.user:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas la permission de modifier ce post.'
+        }, status=403)
+    
+    # Récupérer le nouveau contenu
+    new_content = request.POST.get('content', '').strip()
+    
+    # Vérifier que le contenu n'est pas vide
+    if not new_content:
+        return JsonResponse({
+            'success': False,
+            'error': 'Le post ne peut pas être vide.'
+        }, status=400)
+    
+    # Mettre à jour le contenu du post
+    post.content = new_content
+    post.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Post modifié avec succès !',
+        'post': {
+            'id': post.id,
+            'content': post.content,
+            'updated_at': post.updated_at.strftime('%d/%m/%Y %H:%M')
+        }
+    })
+
+# ============================================
+# VUE : AJOUTER UN COMMENTAIRE
+# ============================================
+@login_required
+@require_http_methods(["POST"])
+def add_comment(request, post_id):
+    """
+    Vue pour ajouter un commentaire sur un post.
+    Supporte : texte, image, emojis, commentaires imbriqués (réponses).
+    """
+    # Récupérer le post
+    post = get_object_or_404(Post, id=post_id)
+    
+    # Récupérer les données
+    content = request.POST.get('content', '').strip()
+    parent_id = request.POST.get('parent_id')  # Si c'est une réponse à un autre commentaire
+    image = request.FILES.get('image')
+    
+    # Validation : Au moins du contenu OU une image
+    if not content and not image:
+        return JsonResponse({
+            'success': False,
+            'error': 'Le commentaire doit contenir du texte ou une image.'
+        }, status=400)
+    
+    # Créer le commentaire
+    comment = Comment.objects.create(
+        post=post,
+        user=request.user,
+        content=content,
+        image=image,
+        parent_id=parent_id if parent_id else None
+    )
+    
+    # Incrémenter le compteur de commentaires du post
+    post.comments_count += 1
+    post.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Commentaire ajouté avec succès !',
+        'comment': {
+            'id': comment.id,
+            'content': comment.content,
+            'image': comment.image.url if comment.image else None,
+            'user': comment.user.username,
+            'user_avatar': comment.user.profile.avatar.url if comment.user.profile.avatar else None,
+            'created_at': comment.created_at.strftime('%d/%m/%Y %H:%M')
+        }
+    })
+    # ============================================
+# VUE : AJOUTER/MODIFIER UNE RÉACTION
+# ============================================
+@login_required
+@require_http_methods(["POST"])
+def add_reaction(request, post_id):
+    """
+    Vue pour ajouter ou modifier une réaction sur un post.
+    Si l'utilisateur a déjà réagi, on met à jour sa réaction.
+    Si c'est la même réaction, on la supprime (toggle).
+    """
+    # Récupérer le post
+    post = get_object_or_404(Post, id=post_id)
+    
+    # Récupérer le type de réaction (like, love, haha, wow, sad, angry)
+    reaction_type = request.POST.get('reaction_type', 'like')
+    
+    # Vérifier si l'utilisateur a déjà réagi à ce post
+    existing_reaction = Reaction.objects.filter(user=request.user, post=post).first()
+    
+    if existing_reaction:
+        # Si c'est la même réaction → SUPPRIMER (toggle off)
+        if existing_reaction.reaction_type == reaction_type:
+            existing_reaction.delete()
+            
+            # Décrémenter le compteur
+            post.likes_count = max(0, post.likes_count - 1)
+            post.save()
+            
+            return JsonResponse({
+                'success': True,
+                'action': 'removed',
+                'message': 'Réaction supprimée',
+                'likes_count': post.likes_count
+            })
+        else:
+            # Si c'est une réaction différente → MODIFIER
+            existing_reaction.reaction_type = reaction_type
+            existing_reaction.save()
+            
+            return JsonResponse({
+                'success': True,
+                'action': 'updated',
+                'message': 'Réaction modifiée',
+                'reaction_type': reaction_type,
+                'likes_count': post.likes_count
+            })
+    else:
+        # Créer une nouvelle réaction
+        Reaction.objects.create(
+            user=request.user,
+            post=post,
+            reaction_type=reaction_type
+        )
+        
+        # Incrémenter le compteur
+        post.likes_count += 1
+        post.save()
+        
+        return JsonResponse({
+            'success': True,
+            'action': 'added',
+            'message': 'Réaction ajoutée',
+            'reaction_type': reaction_type,
+            'likes_count': post.likes_count
+        })
+        # ============================================
+# VUE : RÉAGIR À UN COMMENTAIRE
+# ============================================
+@login_required
+@require_http_methods(["POST"])
+def react_to_comment(request, comment_id):
+    """
+    Vue pour ajouter/supprimer une réaction sur un commentaire.
+    Fonctionne comme la réaction sur un post.
+    """
+    # Récupérer le commentaire
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Récupérer le type de réaction
+    reaction_type = request.POST.get('reaction_type', 'like')
+    
+    # Vérifier si l'utilisateur a déjà réagi
+    existing_reaction = Reaction.objects.filter(user=request.user, comment=comment).first()
+    
+    if existing_reaction:
+        # Toggle : supprimer si même réaction
+        if existing_reaction.reaction_type == reaction_type:
+            existing_reaction.delete()
+            comment.likes_count = max(0, comment.likes_count - 1)
+            comment.save()
+            
+            return JsonResponse({
+                'success': True,
+                'action': 'removed',
+                'likes_count': comment.likes_count
+            })
+        else:
+            # Modifier la réaction
+            existing_reaction.reaction_type = reaction_type
+            existing_reaction.save()
+            
+            return JsonResponse({
+                'success': True,
+                'action': 'updated',
+                'reaction_type': reaction_type,
+                'likes_count': comment.likes_count
+            })
+    else:
+        # Créer une nouvelle réaction
+        Reaction.objects.create(
+            user=request.user,
+            comment=comment,
+            reaction_type=reaction_type
+        )
+        
+        comment.likes_count += 1
+        comment.save()
+        
+        return JsonResponse({
+            'success': True,
+            'action': 'added',
+            'reaction_type': reaction_type,
+            'likes_count': comment.likes_count
+        })
+        # ============================================
+# VUE : PARTAGER UN POST
+# ============================================
+@login_required
+@require_http_methods(["POST"])
+def share_post(request, post_id):
+    """
+    Vue pour partager un post.
+    Crée un nouveau post qui référence le post original.
+    """
+    # Récupérer le post original
+    original_post = get_object_or_404(Post, id=post_id)
+    
+    # Récupérer le message optionnel
+    message = request.POST.get('message', '').strip()
+    
+    # Vérifier que l'utilisateur ne partage pas son propre post
+    # (optionnel : vous pouvez autoriser cela si vous voulez)
+    if original_post.user == request.user:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous ne pouvez pas partager votre propre post.'
+        }, status=400)
+    
+    # Créer un enregistrement de partage
+    share = Share.objects.create(
+        user=request.user,
+        original_post=original_post,
+        message=message
+    )
+    
+    # Créer un nouveau post qui référence le post partagé
+    shared_post = Post.objects.create(
+        user=request.user,
+        content=message,
+        shared_post=original_post,
+        visibility='public'  # Ou selon vos besoins
+    )
+    
+    # Incrémenter le compteur de partages
+    original_post.shares_count += 1
+    original_post.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Post partagé avec succès !',
+        'share_id': share.id,
+        'shared_post_id': shared_post.id,
+        'shares_count': original_post.shares_count
+    })
+    # ============================================
+# VUE : OBTENIR LES DÉTAILS D'UN POST (API)
+# ============================================
+@login_required
+def get_post_detail(request, post_id):
+    """
+    Vue API pour récupérer les détails d'un post avec tous ses commentaires et réactions.
+    Utile pour l'affichage modal ou la page de détail.
+    """
+    # Récupérer le post
+    post = get_object_or_404(Post, id=post_id)
+    
+    # Vérifier la visibilité
+    if post.visibility == 'private' and post.user != request.user:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas accès à ce post.'
+        }, status=403)
+    
+    # Récupérer les commentaires (seulement les commentaires principaux, pas les réponses)
+    comments = post.comments.filter(parent=None).select_related('user', 'user__profile').order_by('-created_at')
+    
+    # Construire la réponse JSON
+    post_data = {
+        'id': post.id,
+        'user': {
+            'id': post.user.id,
+            'username': post.user.username,
+            'full_name': f"{post.user.first_name} {post.user.last_name}".strip(),
+            'avatar': post.user.profile.avatar.url if post.user.profile.avatar else None
+        },
+        'content': post.content,
+        'image': post.image.url if post.image else None,
+        'video': post.video.url if post.video else None,
+        'voice_note': post.voice_note.url if post.voice_note else None,
+        'location': post.location,
+        'likes_count': post.likes_count,
+        'comments_count': post.comments_count,
+        'shares_count': post.shares_count,
+        'created_at': post.created_at.strftime('%d/%m/%Y %H:%M'),
+        'user_has_liked': post.reactions.filter(user=request.user).exists(),
+        'comments': [
+            {
+                'id': comment.id,
+                'user': comment.user.username,
+                'user_avatar': comment.user.profile.avatar.url if comment.user.profile.avatar else None,
+                'content': comment.content,
+                'likes_count': comment.likes_count,
+                'created_at': comment.created_at.strftime('%d/%m/%Y %H:%M')
+            }
+            for comment in comments[:10]  # Limiter à 10 commentaires
+        ]
+    }
+    
+    return JsonResponse({
+        'success': True,
+        'post': post_data
+    })
+
+
+# ============================================
+# VUE : MODIFIER UN COMMENTAIRE
+# ============================================
+@login_required
+@require_http_methods(["POST"])
+def edit_comment(request, comment_id):
+    """
+    Vue pour modifier un commentaire existant.
+    Seul le créateur du commentaire peut le modifier.
+    """
+    # Récupérer le commentaire
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Vérifier que l'utilisateur est bien le créateur du commentaire
+    if comment.user != request.user:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas la permission de modifier ce commentaire.'
+        }, status=403)
+    
+    # Récupérer le nouveau contenu
+    new_content = request.POST.get('content', '').strip()
+    
+    # Validation
+    if not new_content:
+        return JsonResponse({
+            'success': False,
+            'error': 'Le commentaire ne peut pas être vide.'
+        }, status=400)
+    
+    # Mettre à jour le commentaire
+    comment.content = new_content
+    comment.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Commentaire modifié avec succès !',
+        'comment': {
+            'id': comment.id,
+            'content': comment.content,
+            'updated_at': comment.updated_at.strftime('%d/%m/%Y %H:%M')
+        }
+    })
+
+
+# ============================================
+# VUE : SUPPRIMER UN COMMENTAIRE
+# ============================================
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def delete_comment(request, comment_id):
+    """
+    Vue pour supprimer un commentaire.
+    Seul le créateur du commentaire peut le supprimer.
+    """
+    # Récupérer le commentaire
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    # Vérifier que l'utilisateur est bien le créateur
+    if comment.user != request.user:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas la permission de supprimer ce commentaire.'
+        }, status=403)
+    
+    # Récupérer le post pour mettre à jour le compteur
+    post = comment.post
+    
+    # Supprimer le commentaire
+    comment.delete()
+    
+    # Décrémenter le compteur
+    post.comments_count = max(0, post.comments_count - 1)
+    post.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Commentaire supprimé avec succès !',
+        'comments_count': post.comments_count
+    })
