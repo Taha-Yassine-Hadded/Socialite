@@ -417,18 +417,32 @@
                             </div>
         
                             <!-- profile -->
-                            <div class="rounded-full relative bg-secondery cursor-pointer shrink-0">
-                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0"> 
-                            </div>
+                            <a href="{% url 'profile' request.user.username %}" class="rounded-full relative bg-secondery cursor-pointer shrink-0">
+                                {% if request.user.profile.avatar %}
+                                    <img src="{{ request.user.profile.avatar.url }}" alt="" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0 object-cover">
+                                {% else %}
+                                    <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0"> 
+                                {% endif %}
+                            </a>
                             <div class="hidden bg-white rounded-lg drop-shadow-xl dark:bg-slate-700 w-64 border2"
                                 uk-drop="offset:6;pos: bottom-right;animate-out: true; animation: uk-animation-scale-up uk-transform-origin-top-right ">
                                 
-                                <a href="{% url 'timeline' %}">
+                                <a href="{% url 'profile' request.user.username %}">
                                     <div class="p-4 py-5 flex items-center gap-4">
-                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-10 h-10 rounded-full shadow" data-profile-img>
+                                        {% if request.user.profile.avatar %}
+                                            <img src="{{ request.user.profile.avatar.url }}" alt="" class="w-10 h-10 rounded-full shadow object-cover" data-profile-img>
+                                        {% else %}
+                                            <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="" class="w-10 h-10 rounded-full shadow" data-profile-img>
+                                        {% endif %}
                                         <div class="flex-1">
-                                            <h4 class="text-sm font-medium text-black" data-profile-name>Loading...</h4>
-                                            <div class="text-sm mt-1 text-blue-600 font-light dark:text-white/70" data-profile-handle>@loading</div>
+                                            <h4 class="text-sm font-medium text-black" data-profile-name>
+                                                {% if request.user.first_name %}
+                                                    {{ request.user.first_name }} {{ request.user.last_name }}
+                                                {% else %}
+                                                    {{ request.user.username }}
+                                                {% endif %}
+                                            </h4>
+                                            <div class="text-sm mt-1 text-blue-600 font-light dark:text-white/70" data-profile-handle">@{{ request.user.first_name|lower }}{% if request.user.last_name %}.{{ request.user.last_name|lower }}{% endif %}</div>
                                         </div>
                                     </div>
                                 </a>
@@ -972,7 +986,7 @@
                 const profileImg = document.querySelector('[data-profile-img]');
                 
                 if (profileName) profileName.textContent = `${user.first_name} ${user.last_name}`;
-                if (profileHandle) profileHandle.textContent = `@${user.email.split('@')[0]}`;
+                if (profileHandle) profileHandle.textContent = `@${user.first_name.toLowerCase()}${user.last_name ? '.' + user.last_name.toLowerCase() : ''}`;
                 if (profileImg && user.profile_image) profileImg.src = `/media/${user.profile_image}`;
                 
                 // ✅ ADMIN MENU : SHOW/HIDE AUTO
