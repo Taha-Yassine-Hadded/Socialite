@@ -6,56 +6,73 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Favicon -->
   <link href="{% static 'images/favicon.webp' %}" rel="icon" type="image/png">
-
-  <!-- Title and description -->
   <title>{% block title %}Socialite - Register{% endblock %}</title>
   <meta name="description" content="{% block description %}Socialite - Social sharing network{% endblock %}">
-
-  <!-- CSS files -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
-
-  <!-- Google font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&display=swap"
-    rel="stylesheet">
-
-  <!-- Extra head content -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Choices.js pour une meilleure UI de sélection multiple -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+  <style>
+    select, select option {
+      background-color: #1f2937 !important; /* Fond sombre */
+      color: #ffffff !important; /* Texte blanc */
+    }
+    select:focus {
+      background-color: #374151 !important; /* Fond légèrement plus clair au focus */
+    }
+    #profile_preview {
+      display: block; /* Assure que l'image est visible */
+      object-fit: cover; /* Éviter la distorsion */
+      width: 100%;
+      height: 100%;
+    }
+    .choices__inner {
+      background-color: #1f2937 !important;
+      border: 1px solid #4b5563 !important;
+      color: #ffffff !important;
+      border-radius: 0.5rem !important;
+      padding: 0.5rem !important;
+    }
+    .choices__list--multiple .choices__item {
+      background-color: #3b82f6 !important;
+      border: none !important;
+      color: #ffffff !important;
+    }
+    .choices__list--dropdown {
+      background-color: #1f2937 !important;
+      border: 1px solid #4b5563 !important;
+      color: #ffffff !important;
+    }
+    .choices__list--dropdown .choices__item--selectable.is-highlighted {
+      background-color: #374151 !important;
+    }
+    .choices__input {
+      background-color: #1f2937 !important;
+      color: #ffffff !important;
+    }
+    select[multiple] {
+      height: 150px; /* Hauteur fixe pour le scroll */
+      overflow-y: auto; /* Scroll fluide */
+    }
+  </style>
   {% block extra_head %}{% endblock %}
 </head>
 
 <body>
-
   <div class="sm:flex">
-
-    <div
-      class="relative lg:w-1/2 md:w-1/2 w-full p-10 min-h-screen flex items-center pt-10 z-10">
-
-      <div class="w-full lg:max-w-lg mx-auto space-y-8 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl shadow-2xl p-8"
-        uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
-
-        <!-- logo image-->
-        <a href="#"> <img src="{% static 'images/logo.webp' %}" class="w-28 absolute top-10 left-10 dark:hidden"
-            alt=""></a>
-        <a href="#"> <img src="{% static 'images/logo-light.webp' %}"
-            class="w-28 absolute top-10 left-10 hidden dark:!block" alt=""></a>
-
-        <!-- logo icon optional -->
+    <div class="relative lg:w-1/2 md:w-1/2 w-full p-10 min-h-screen flex items-center pt-10 z-10">
+      <div class="w-full lg:max-w-lg mx-auto space-y-8 bg-white/70 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl shadow-2xl p-8" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+        <a href="#"> <img src="{% static 'images/logo.webp' %}" class="w-28 absolute top-10 left-10 dark:hidden" alt=""></a>
+        <a href="#"> <img src="{% static 'images/logo-light.webp' %}" class="w-28 absolute top-10 left-10 hidden dark:!block" alt=""></a>
         <div class="hidden">
           <img class="w-12" src="{% static 'images/logo-icon.webp' %}" alt="Socialite html template">
         </div>
-
-        <!-- title -->
         <div>
           <h2 class="text-3xl font-semibold tracking-tight"> Sign up to get started </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-300">If you already have an account, <a href="{% url 'login_page' %}"
-              class="text-primary hover:underline">Login here!</a></p>
+          <p class="text-sm text-gray-600 dark:text-gray-300">If you already have an account, <a href="{% url 'login_page' %}" class="text-primary hover:underline">Login here!</a></p>
         </div>
-
-
-        <!-- form -->
         {% if errors %}
         <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3">
           <ul class="list-disc pl-5">
@@ -63,33 +80,23 @@
           </ul>
         </div>
         {% endif %}
-
-        <form method="post" action="{% url 'register_page' %}" enctype="multipart/form-data" class="space-y-7 text-sm text-black font-medium dark:text-white"
-          uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+        <form method="post" action="{% url 'register_page' %}" enctype="multipart/form-data" class="space-y-7 text-sm text-black font-medium dark:text-white" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
           {% csrf_token %}
-
           <div class="grid grid-cols-2 gap-4 gap-y-7">
-
             <!-- first name -->
             <div>
               <label for="first_name" class="">First name</label>
               <div class="mt-2.5">
-                <input id="first_name" name="first_name" type="text" autofocus="" placeholder="First name" required=""
-                  value="{{ form.first_name|default:'' }}"
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <input id="first_name" name="first_name" type="text" autofocus="" placeholder="First name" required="" value="{{ form.first_name|default:'' }}" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
               </div>
             </div>
-
             <!-- Last name -->
             <div>
               <label for="last_name" class="">Last name</label>
               <div class="mt-2.5">
-                <input id="last_name" name="last_name" type="text" placeholder="Last name" required=""
-                  value="{{ form.last_name|default:'' }}"
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <input id="last_name" name="last_name" type="text" placeholder="Last name" required="" value="{{ form.last_name|default:'' }}" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
               </div>
             </div>
-
             <!-- email -->
             <div class="col-span-2">
               <label for="email" class="">Email address</label>
@@ -97,72 +104,127 @@
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                   <ion-icon name="mail-outline"></ion-icon>
                 </span>
-                <input id="email" name="email" type="email" placeholder="Email" required=""
-                  value="{{ form.email|default:'' }}"
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pl-9 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <input id="email" name="email" type="email" placeholder="Email" required="" value="{{ form.email|default:'' }}" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pl-9 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
               </div>
             </div>
-
             <!-- date of birth -->
             <div>
               <label for="date_of_birth" class="">Date of birth</label>
               <div class="mt-2.5">
-                <input id="date_of_birth" name="date_of_birth" type="date"
-                  value="{{ form.date_of_birth|default:'' }}"
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <input id="date_of_birth" name="date_of_birth" type="date" value="{{ form.date_of_birth|default:'' }}" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
               </div>
             </div>
-
             <!-- profile image -->
             <div>
               <label for="profile_image" class="">Profile image</label>
               <div class="mt-2.5 flex items-center gap-4">
                 <div class="h-12 w-12 rounded-full bg-slate-100 overflow-hidden ring-1 ring-slate-200 dark:bg-white/5 dark:ring-slate-700">
-                  <img id="profile_preview" alt="Preview" class="h-full w-full object-cover hidden" />
+                  <img id="profile_preview" alt="Preview" class="h-full w-full object-cover" src="{% static 'images/placeholder.webp' %}" />
                 </div>
                 <div class="flex-1">
-                  <input id="profile_image" name="profile_image" type="file" accept="image/*"
-                    class="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-soft" />
-                  <p class="text-xs text-slate-500 mt-1">PNG, JPG, WEBP • Taille recommandée ≥ 256x256</p>
+                  <input id="profile_image" name="profile_image" type="file" accept="image/*" class="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary-soft" />
+                  <p class="text-xs text-slate-500 mt-1">PNG, JPG, WEBP • Recommended size ≥ 256x256</p>
                 </div>
               </div>
             </div>
-
+            <!-- travel type -->
+            <div class="col-span-2">
+              <label for="travel_type" class="">Preferred travel type</label>
+              <div class="mt-2.5">
+                <select id="travel_type" name="travel_type" multiple required="" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                  {% for value, label in travel_types %}
+                  <option value="{{ value }}" {% if value in form.travel_type %}selected{% endif %}>{{ label|capfirst }}</option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-slate-500 mt-1">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</p>
+              </div>
+            </div>
+            <!-- travel budget -->
+            <div class="col-span-2">
+              <label for="travel_budget" class="">Usual travel budget</label>
+              <div class="mt-2.5">
+                <select id="travel_budget" name="travel_budget" required="" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                  <option value="" {% if not form.travel_budget %}selected{% endif %}>Select a budget</option>
+                  <option value="economic" {% if form.travel_budget == 'economic' %}selected{% endif %}>Economic</option>
+                  <option value="medium" {% if form.travel_budget == 'medium' %}selected{% endif %}>Medium</option>
+                  <option value="comfort" {% if form.travel_budget == 'comfort' %}selected{% endif %}>Comfort</option>
+                  <option value="luxury" {% if form.travel_budget == 'luxury' %}selected{% endif %}>Luxury</option>
+                </select>
+              </div>
+            </div>
+            <!-- gender -->
+            <div>
+              <label for="gender" class="">Gender</label>
+              <div class="mt-2.5">
+                <select id="gender" name="gender" required="" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                  <option value="" {% if not form.gender %}selected{% endif %}>Select a gender</option>
+                  <option value="male" {% if form.gender == 'male' %}selected{% endif %}>Male</option>
+                  <option value="female" {% if form.gender == 'female' %}selected{% endif %}>Female</option>
+                </select>
+              </div>
+            </div>
+            <!-- languages -->
+            <div>
+              <label for="languages" class="">Spoken languages</label>
+              <div class="mt-2.5">
+                <select id="languages" name="languages" multiple required="" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                  {% for value, label in languages_list %}
+                  <option value="{{ value }}" {% if value in form.languages %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <p class="text-xs text-slate-500 mt-1">Hold Ctrl (Windows) or Cmd (Mac) to select multiple</p>
+              </div>
+            </div>
+            <!-- country of origin -->
+            <div class="col-span-2">
+              <label for="nationality" class="">Pays d'origine</label>
+              <div class="mt-2.5">
+                <select id="nationality" name="nationality" required="" class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                  <option value="" {% if not form.nationality %}selected{% endif %}>Select a country</option>
+                  {% for value, label in countries_list %}
+                  <option value="{{ value }}" {% if value == form.nationality %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <!-- interests -->
+            <div class="col-span-2">
+              <label class="">Travel interests</label>
+              <div class="mt-2.5 grid grid-cols-2 gap-2">
+                {% for interest_value in interests_list %}
+                <label class="inline-flex items-center">
+                  <input type="checkbox" name="interests" value="{{ interest_value }}" {% if interest_value in form.interests %}checked{% endif %} class="!rounded-md accent-primary">
+                  <span class="ml-2 capitalize">{{ interest_value }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
             <!-- password -->
             <div>
               <label for="password1" class="">Password</label>
               <div class="mt-2.5 relative">
-                <input id="password1" name="password1" type="password" placeholder="***" required
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pr-10 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
-                <button type="button" data-toggle-password="password1" aria-label="Show password"
-                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                <input id="password1" name="password1" type="password" placeholder="***" required class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pr-10 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <button type="button" data-toggle-password="password1" aria-label="Show password" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400">
                   <ion-icon name="eye-outline"></ion-icon>
                 </button>
               </div>
             </div>
-
             <!-- Confirm Password -->
             <div>
               <label for="password2" class="">Confirm Password</label>
               <div class="mt-2.5 relative">
-                <input id="password2" name="password2" type="password" placeholder="***" required
-                  class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pr-10 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
-                <button type="button" data-toggle-password="password2" aria-label="Show password"
-                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                <input id="password2" name="password2" type="password" placeholder="***" required class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 pr-10 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+                <button type="button" data-toggle-password="password2" aria-label="Show password" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400">
                   <ion-icon name="eye-outline"></ion-icon>
                 </button>
               </div>
             </div>
-
             <div class="col-span-2">
               <label class="inline-flex items-center select-none text-slate-600 dark:text-slate-300" id="rememberme">
                 <input type="checkbox" id="accept-terms" class="!rounded-md accent-primary" />
-                <span class="ml-2">You agree to our <a href="#" class="text-primary hover:underline">terms of use</a>
-                </span>
+                <span class="ml-2">You agree to our <a href="#" class="text-primary hover:underline">terms of use</a></span>
               </label>
             </div>
-
-
             <!-- submit button -->
             <div class="col-span-2">
               <button id="submit_btn" type="submit" class="button w-full flex items-center justify-center gap-2 text-white bg-gradient-to-r from-primary to-blue-600 hover:from-primary-soft hover:to-blue-500 transition-colors">
@@ -173,15 +235,12 @@
                 <span id="submit_text">Get Started</span>
               </button>
             </div>
-
           </div>
-
           <div class="text-center flex items-center gap-6">
             <hr class="flex-1 border-slate-200 dark:border-slate-800">
             Or continue with
             <hr class="flex-1 border-slate-200 dark:border-slate-800">
           </div>
-
           <!-- social login -->
           <div class="grid grid-cols-3 gap-3" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 400 ;repeat: true">
             <a href="#" class="inline-flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-sm font-medium bg-[#1877F2] text-white hover:brightness-110 transition">
@@ -197,111 +256,101 @@
               <span>Github</span>
             </a>
           </div>
-
         </form>
-
-
       </div>
-
     </div>
-
-    <!-- image slider -->
     <div class="relative lg:w-1/2 md:w-1/2 bg-primary max-md:hidden">
-
-
       <div class="relative w-full h-full" tabindex="-1" uk-slideshow="animation: slide; autoplay: true">
-
         <ul class="uk-slideshow-items w-full h-full">
           <li class="w-full">
-            <img src="{% static 'images/post/img-3.webp' %}" alt=""
-              class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
-            <div class="absolute bottom-0 w-full uk-tr ansition-slide-bottom-small z-10">
-              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative"
-                uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+            <img src="{% static 'images/post/img-3.webp' %}" alt="" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
+            <div class="absolute bottom-0 w-full uk-transition-slide-bottom-small z-10">
+              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
                 <img class="w-12" src="{% static 'images/logo-icon.webp' %}" alt="Socialite html template">
-                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 600,0,0"> Connect With
-                  Friends </h4>
-                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> This phrase is more
-                  casual and playful. It suggests that you are keeping your friends updated on what’s happening in your
-                  life.</p>
+                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 600,0,0"> Connect With Friends </h4>
+                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> This phrase is more casual and playful. It suggests that you are keeping your friends updated on what’s happening in your life.</p>
               </div>
             </div>
             <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
           </li>
           <li class="w-full">
-            <img src="{% static 'images/post/img-2.webp' %}" alt=""
-              class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
-            <div class="absolute bottom-0 w-full uk-tr ansition-slide-bottom-small z-10">
-              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative"
-                uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+            <img src="{% static 'images/post/img-2.webp' %}" alt="" class="w-full h-full object-cover uk-animation-kenburns uk-animation-reverse uk-transform-origin-center-left">
+            <div class="absolute bottom-0 w-full uk-transition-slide-bottom-small z-10">
+              <div class="max-w-xl w-full mx-auto pb-32 px-5 z-30 relative" uk-scrollspy="target: > *; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
                 <img class="w-12" src="{% static 'images/logo-icon.webp' %}" alt="Socialite html template">
-                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Connect With
-                  Friends </h4>
-                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> This phrase is more
-                  casual and playful. It suggests that you are keeping your friends updated on what’s happening in your
-                  life.</p>
+                <h4 class="!text-white text-2xl font-semibold mt-7" uk-slideshow-parallax="y: 800,0,0"> Connect With Friends </h4>
+                <p class="!text-white text-lg mt-7 leading-8" uk-slideshow-parallax="y: 800,0,0;"> This phrase is more casual and playful. It suggests that you are keeping your friends updated on what’s happening in your life.</p>
               </div>
             </div>
             <div class="w-full h-96 bg-gradient-to-t from-black absolute bottom-0 left-0"></div>
           </li>
         </ul>
-
-        <!-- slide nav -->
         <div class="flex justify-center">
-          <ul class="inline-flex flex-wrap justify-center  absolute bottom-8 gap-1.5 uk-dotnav uk-slideshow-nav"> </ul>
+          <ul class="inline-flex flex-wrap justify-center absolute bottom-8 gap-1.5 uk-dotnav uk-slideshow-nav"> </ul>
         </div>
-
-
       </div>
-
-
     </div>
-
   </div>
-
-
-  <!-- Uikit js you can use cdn  https://getuikit.com/docs/installation  or fine the latest  https://getuikit.com/docs/installation -->
   <script src="{% static 'js/uikit.min.js' %}"></script>
   <script src="{% static 'js/script.js' %}"></script>
-
-  <!-- Ion icon -->
   <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
   <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
-
-  <!-- Dark mode -->
+  <!-- Choices.js pour améliorer l'UI des selects multiples -->
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <script>
-    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark')
     } else {
       document.documentElement.classList.remove('dark')
     }
-
-    // Whenever the user explicitly chooses light mode
     localStorage.theme = 'light'
-
-    // Whenever the user explicitly chooses dark mode
     localStorage.theme = 'dark'
-
-    // Whenever the user explicitly chooses to respect the OS preference
     localStorage.removeItem('theme')
   </script>
-
   <script>
-    // Profile image preview
+    // Initialiser Choices.js pour les champs select multiples
+    document.addEventListener('DOMContentLoaded', () => {
+      new Choices('#travel_type', {
+        removeItemButton: true,
+        placeholderValue: 'Select travel types',
+        searchEnabled: false,
+        itemSelectText: ''
+      });
+      new Choices('#languages', {
+        removeItemButton: true,
+        placeholderValue: 'Select languages',
+        searchEnabled: true,
+        searchPlaceholderValue: 'Search languages...',
+        itemSelectText: ''
+      });
+      new Choices('#nationality', {
+        removeItemButton: false,
+        placeholderValue: 'Select a country',
+        searchEnabled: true,
+        searchPlaceholderValue: 'Search country...',
+        itemSelectText: ''
+      });
+    });
+
+    // Gestion de l'image de profil
     const fileInput = document.getElementById('profile_image');
     const previewImg = document.getElementById('profile_preview');
     if (fileInput && previewImg) {
       fileInput.addEventListener('change', (e) => {
         const f = e.target.files && e.target.files[0];
-        if (!f) { previewImg.classList.add('hidden'); return; }
+        if (!f) { 
+          previewImg.src = "{% static 'images/placeholder.webp' %}"; 
+          return; 
+        }
         const reader = new FileReader();
-        reader.onload = (ev) => { previewImg.src = ev.target.result; previewImg.classList.remove('hidden'); };
+        reader.onload = (ev) => { 
+          previewImg.src = ev.target.result; 
+        };
         reader.readAsDataURL(f);
       });
     }
 
-    // Password visibility toggles
+    // Gestion de l'affichage des mots de passe
     document.querySelectorAll('[data-toggle-password]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-toggle-password');
@@ -314,7 +363,7 @@
       });
     });
 
-    // Submit loading state
+    // Gestion de l'état du bouton submit
     const form = document.querySelector('form[action*="register"]');
     const submitBtn = document.getElementById('submit_btn');
     const spinner = document.getElementById('submit_spinner');
@@ -328,7 +377,5 @@
       });
     }
   </script>
-
 </body>
-
 </html>
