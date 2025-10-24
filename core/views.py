@@ -19,7 +19,6 @@ INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxatio
 
 # Liste des types de voyage
 TRAVEL_TYPES = [
-    ('all', 'All'),
     ('solo', 'Solo'),
     ('group', 'Group'),
     ('couple', 'Couple'),
@@ -426,42 +425,35 @@ def pages(request):
     user = request.user
     user_profile = db.profiles.find_one({'user_id': user.id})
     
-    # Vérifier si le profil de l'utilisateur existe
-    if not user_profile:
-        return render(request, 'pages.html', {
-            'suggested_users': [],
-            'error_message': 'Votre profil est incomplet. Veuillez le configurer pour voir les suggestions.'
-        })
-    
     # Récupérer tous les profils sauf celui de l'utilisateur actuel
     profiles = list(db.profiles.find({'user_id': {'$ne': user.id}}))
     
-    # Calculer les scores de similarité et trier
+    # Calculer les scores de similarité
     suggested_users = []
     for profile in profiles:
         if profile:  # Vérifier que le profil n'est pas None
-            score = calculate_similarity(user_profile, profile) if user_profile.get('interests') else 0
-            if not user_profile.get('interests') or score > 0:  # Inclure utilisateurs sans intérêts ou avec score > 0
-                suggested_users.append({
-                    'user_id': profile['user_id'],
-                    'first_name': profile['first_name'],
-                    'last_name': profile['last_name'],
-                    'profile_image': profile.get('profile_image', '/static/images/avatars/avatar-default.webp'),
-                    'follower_count': format_follower_count(profile.get('follower_count', 0)),
-                    'is_following': profile['user_id'] in user_profile.get('following', []),
-                    'score': score  # Ajouter le score pour le tri
-                })
+            score = calculate_similarity(user_profile, profile) if user_profile else 0
+            suggested_users.append({
+                'user_id': profile['user_id'],
+                'first_name': profile['first_name'],
+                'last_name': profile['last_name'],
+                'profile_image': profile.get('profile_image', '/static/images/avatars/avatar-default.webp'),
+                'follower_count': format_follower_count(profile.get('follower_count', 0)),
+                'is_following': user_profile and profile['user_id'] in user_profile.get('following', []),
+                'score': score
+            })
     
-    # Trier par score de similarité (décroissant), mais inclure utilisateurs sans score
+    # Trier par score de similarité (décroissant)
     suggested_users.sort(key=lambda x: x.get('score', 0), reverse=True)
     
-    # Filtrer pour n'afficher que les utilisateurs non suivis dans la section Suggestions
+    # Filtrer pour n'afficher que les utilisateurs non suivis
     suggested_users = [user for user in suggested_users if not user['is_following']]
     
     return render(request, 'pages.html', {
-        'suggested_users': suggested_users[:6],  # Limiter à 6 suggestions
+        'suggested_users': suggested_users,  # Afficher tous les utilisateurs
     })
 
+    
 # Messages
 @login_required(login_url='/login/')
 def messages_view(request):
