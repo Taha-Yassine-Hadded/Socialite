@@ -485,11 +485,11 @@
                                 class="w-full border-0 outline-none px-4 py-3 rounded-lg font-bold bg-white"
                                 style="background: white !important; color: #111827 !important; font-size: 16px;">
                             <option value="" style="color: #6b7280; font-weight: normal;">-- Sélectionnez votre pays --</option>
-                            {% for code, country in countries_list %}
-                            <option value="{{ code }}" 
-                                    {% if mongo_profile.nationality == code %}selected{% endif %}
-                                    style="{% if mongo_profile.nationality == code %}background-color: #d1fae5; color: #065f46; font-weight: bold;{% else %}color: #1f2937; font-weight: normal;{% endif %} padding: 12px;">
-                                {% if mongo_profile.nationality == code %}🌟 {% endif %}{{ country }}
+                            {% for country in countries_list %}
+                            <option value="{{ country.code }}" 
+                                    {% if mongo_profile.nationality == country.code %}selected{% endif %}
+                                    style="{% if mongo_profile.nationality == country.code %}background-color: #d1fae5; color: #065f46; font-weight: bold;{% else %}color: #1f2937; font-weight: normal;{% endif %} padding: 12px;">
+                                {% if mongo_profile.nationality == country.code %}{{ country.flag }} 🌟 {% else %}{{ country.flag }} {% endif %}{{ country.name }}
                             </option>
                             {% endfor %}
                         </select>
@@ -512,6 +512,72 @@
                                    class="w-5 h-5 rounded border-2 border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 mr-3"
                                    onchange="this.parentElement.classList.toggle('border-green-500'); this.parentElement.classList.toggle('bg-green-50'); this.parentElement.classList.toggle('border-gray-200');">
                             <span class="capitalize font-medium {% if interest in mongo_profile.interests %}text-green-700{% else %}text-gray-700{% endif %}">{{ interest }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pays visités -->
+        <div class="bg-gradient-to-br from-white to-green-50 p-6 rounded-lg shadow-md border-2 border-green-200">
+            <div class="flex items-center mb-6">
+                <div class="bg-green-600 text-white rounded-full p-3 mr-3">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">🗺️ Mes destinations visitées</h2>
+                    <p class="text-sm text-gray-600">Partagez les pays que vous avez déjà explorés</p>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-lg font-bold text-gray-800 mb-3">
+                    ✈️ Pays que vous avez déjà visités
+                </label>
+                <p class="text-sm font-medium text-green-700 mb-3">
+                    ✅ <strong>Cochez simplement les pays que vous avez visités !</strong>
+                </p>
+                
+                <!-- Barre de recherche -->
+                <div class="mb-4">
+                    <input type="text" 
+                           id="country-search" 
+                           placeholder="🔍 Rechercher un pays..." 
+                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-medium"
+                           onkeyup="filterCountries()">
+                </div>
+                
+                <!-- Compteur en haut -->
+                <div class="mb-3 bg-green-100 border-2 border-green-400 rounded-lg p-3">
+                    <p class="text-base font-bold text-green-700">
+                        🌟 Pays sélectionnés : <span id="visited-countries-count" class="text-2xl text-green-600">{{ mongo_profile.visited_countries|length|default:"0" }}</span>
+                    </p>
+                </div>
+                
+                <!-- Grille de checkboxes -->
+                <div class="max-h-96 overflow-y-auto border-3 border-green-300 rounded-lg p-4 bg-white shadow-inner">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2" id="countries-grid">
+                        {% for country in countries_list %}
+                        <label class="flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all hover:bg-green-50 hover:border-green-400 country-item
+                                      {% if country.code in mongo_profile.visited_countries %}
+                                      bg-green-100 border-green-500
+                                      {% else %}
+                                      border-gray-200 bg-white
+                                      {% endif %}"
+                               data-country-name="{{ country.name|lower }}">
+                            <input type="checkbox" 
+                                   name="visited_countries" 
+                                   value="{{ country.code }}" 
+                                   {% if country.code in mongo_profile.visited_countries %}checked{% endif %}
+                                   class="w-5 h-5 rounded border-2 border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 mr-3"
+                                   onchange="updateCountrySelection(this); updateVisitedCountriesCount();">
+                            <span class="font-medium text-gray-800 flex items-center">
+                                <span class="text-2xl mr-2">{{ country.flag }}</span>
+                                <span>{{ country.name }}</span>
+                            </span>
                         </label>
                         {% endfor %}
                     </div>
@@ -550,16 +616,17 @@
             <button type="submit" class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium shadow-md hover:shadow-lg">
                 💾 Enregistrer les modifications
             </button>
-            <a href="{% url 'profile' request.user.username %}" class="flex-1 text-center bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-medium">
+            <a href="{% url 'profile' request.user.profile.slug %}" class="flex-1 text-center bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-medium">
                 ❌ Annuler
             </a>
         </div>
     </form>
 </div>
 
-<!-- Script pour le compteur de caractères de la bio -->
+<!-- Scripts pour les compteurs et interactions -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Compteur de caractères pour la bio
         const bioTextarea = document.querySelector('textarea[name="bio"]');
         const bioCounter = document.getElementById('bio-counter');
         
@@ -585,6 +652,49 @@
                 }
             });
         }
+        
     });
+    
+    // ============================================
+    // GESTION DES PAYS VISITÉS (CHECKBOXES)
+    // ============================================
+    
+    // Mettre à jour le compteur de pays sélectionnés
+    function updateVisitedCountriesCount() {
+        const checkboxes = document.querySelectorAll('input[name="visited_countries"]:checked');
+        const count = checkboxes.length;
+        const countElement = document.getElementById('visited-countries-count');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+    }
+    
+    // Mettre à jour le style de la checkbox parent quand on coche/décoche
+    function updateCountrySelection(checkbox) {
+        const label = checkbox.closest('label');
+        if (checkbox.checked) {
+            label.classList.remove('bg-white', 'border-gray-200');
+            label.classList.add('bg-green-100', 'border-green-500');
+        } else {
+            label.classList.remove('bg-green-100', 'border-green-500');
+            label.classList.add('bg-white', 'border-gray-200');
+        }
+    }
+    
+    // Filtrer les pays par recherche
+    function filterCountries() {
+        const searchInput = document.getElementById('country-search');
+        const filter = searchInput.value.toLowerCase();
+        const countryItems = document.querySelectorAll('.country-item');
+        
+        countryItems.forEach(item => {
+            const countryName = item.getAttribute('data-country-name');
+            if (countryName.includes(filter)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
 </script>
 {% endblock %}
