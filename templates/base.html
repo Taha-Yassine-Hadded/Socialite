@@ -987,7 +987,7 @@
                 
                 if (profileName) profileName.textContent = `${user.first_name} ${user.last_name}`;
                 if (profileHandle) profileHandle.textContent = `@${user.first_name.toLowerCase()}${user.last_name ? '.' + user.last_name.toLowerCase() : ''}`;
-                if (profileImg && user.profile_image) profileImg.src = `/media/${user.profile_image}`;
+                if (profileImg && user.profile_image) profileImg.src = `${user.profile_image}`;
                 
                 // ✅ ADMIN MENU : SHOW/HIDE AUTO
                 const adminMenu = document.querySelector('[data-admin-menu]');
