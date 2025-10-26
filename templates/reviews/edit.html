@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-6">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-white/90">Modifier mon avis — {{ profile.user.first_name }} {{ profile.user.last_name }}</h1>
+      <p class="text-sm text-white/50 mt-1">Mettez à jour votre retour d'expérience</p>
+    </div>
+    <div class="flex gap-2">
+      <a class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition" href="{% url 'reviews_list' slug=profile.slug %}">Voir les avis</a>
+      <a class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition" href="{% url 'profile' slug=profile.slug %}">Retour au profil</a>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg">
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+
+      <!-- Note générale (étoiles) -->
+      <div>
+        <div class="flex items-center justify-between">
+          <label class="text-white/80 font-medium">Note générale</label>
+          <span id="noteValue" class="text-white/60 text-sm">{{ avis.note }} / 5</span>
+        </div>
+        <div class="mt-2 flex items-center gap-2" id="starGroup">
+          {% for n in "54321" %}
+            {% with v=n|slice:':1' %}
+            <input type="radio" name="note" value="{{ v }}" id="star{{ v }}" class="hidden peer" {% if avis.note == v|add:""|int %}checked{% endif %} required>
+            <label for="star{{ v }}" class="cursor-pointer">
+              <svg class="w-8 h-8 {% if avis.note >= v|add:""|int %}text-yellow-400{% else %}text-white/20{% endif %} peer-checked:text-yellow-400 hover:text-yellow-300 transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.802-2.034a1 1 0 00-1.175 0l-2.802 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.88 8.72c-.783-.57-.38-1.81.588-1.81H6.93a1 1 0 00.95-.69l1.07-3.292z"/>
+              </svg>
+            </label>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 grid-cols-1 gap-4">
+        <div>
+          <div class="flex items-center justify-between">
+            <label class="text-white/80 font-medium">Communication</label>
+            <span id="commValue" class="text-white/60 text-sm">{{ avis.communication }}</span>
+          </div>
+          <input type="range" name="communication" min="1" max="5" value="{{ avis.communication }}" class="w-full accent-cyan-400" oninput="commValue.textContent=this.value" required>
+        </div>
+        <div>
+          <div class="flex items-center justify-between">
+            <label class="text-white/80 font-medium">Fiabilité</label>
+            <span id="fiabValue" class="text-white/60 text-sm">{{ avis.fiabilite }}</span>
+          </div>
+          <input type="range" name="fiabilite" min="1" max="5" value="{{ avis.fiabilite }}" class="w-full accent-emerald-400" oninput="fiabValue.textContent=this.value" required>
+        </div>
+        <div>
+          <div class="flex items-center justify-between">
+            <label class="text-white/80 font-medium">Sympathie</label>
+            <span id="sympValue" class="text-white/60 text-sm">{{ avis.sympathie }}</span>
+          </div>
+          <input type="range" name="sympathie" min="1" max="5" value="{{ avis.sympathie }}" class="w-full accent-rose-400" oninput="sympValue.textContent=this.value" required>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-white/80 font-medium">Commentaire (optionnel)</label>
+        <textarea name="commentaire" rows="4" class="mt-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Partagez votre expérience...">{{ avis.commentaire }}</textarea>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="submit" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow transition">Enregistrer</button>
+        <a href="{% url 'reviews_list' slug=profile.slug %}" class="px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const starInputs = Array.from(document.querySelectorAll('#starGroup input[type="radio"]'));
+  const noteValue = document.getElementById('noteValue');
+  function updateStars(val){
+    noteValue.textContent = val ? `${val} / 5` : '—';
+    starInputs.forEach(inp => {
+      const label = document.querySelector(`label[for="${inp.id}"] svg`);
+      const v = parseInt(inp.value, 10);
+      label.classList.toggle('text-yellow-400', v <= val);
+      label.classList.toggle('text-white/20', v > val);
+    });
+  }
+  starInputs.forEach(inp => {
+    inp.addEventListener('change', e => updateStars(parseInt(e.target.value,10)));
+    const lbl = document.querySelector(`label[for="${inp.id}"]`);
+    lbl.addEventListener('mouseenter', () => updateStars(parseInt(inp.value,10)));
+  });
+</script>
+{% endblock %}
