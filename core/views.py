@@ -760,7 +760,8 @@ def create_post(request):
     # ============================================
 # VUE : AFFICHER LE FIL D'ACTUALITÉ
 # ============================================
-@login_required
+@login_required(login_url='/login/')
+
 def list_posts(request):
     """
     Vue pour afficher le fil d'actualité (feed).
@@ -789,7 +790,7 @@ def list_posts(request):
 # ============================================
 # VUE : SUPPRIMER UN POST
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST", "DELETE"])
 def delete_post(request, post_id):
     """
@@ -817,7 +818,7 @@ def delete_post(request, post_id):
 # ============================================
 # VUE : MODIFIER UN POST
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def edit_post(request, post_id):
     """
@@ -861,7 +862,7 @@ def edit_post(request, post_id):
 # ============================================
 # VUE : AJOUTER UN COMMENTAIRE
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def add_comment(request, post_id):
     """
@@ -911,7 +912,7 @@ def add_comment(request, post_id):
     # ============================================
 # VUE : AJOUTER/MODIFIER UNE RÉACTION
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def add_reaction(request, post_id):
     """
@@ -977,7 +978,7 @@ def add_reaction(request, post_id):
         # ============================================
 # VUE : RÉAGIR À UN COMMENTAIRE
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def react_to_comment(request, comment_id):
     """
@@ -1036,7 +1037,7 @@ def react_to_comment(request, comment_id):
         # ============================================
 # VUE : PARTAGER UN POST
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def share_post(request, post_id):
     """
@@ -1086,7 +1087,7 @@ def share_post(request, post_id):
     # ============================================
 # VUE : OBTENIR LES DÉTAILS D'UN POST (API)
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 def get_post_detail(request, post_id):
     """
     Vue API pour récupérer les détails d'un post avec tous ses commentaires et réactions.
@@ -1146,7 +1147,8 @@ def get_post_detail(request, post_id):
 # ============================================
 # VUE : MODIFIER UN COMMENTAIRE
 # ============================================
-@login_required
+@login_required(login_url='/login/')
+
 @require_http_methods(["POST"])
 def edit_comment(request, comment_id):
     """

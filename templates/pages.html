@@ -171,7 +171,8 @@
                     <div class="card">
                         <a href="{% url 'timeline_page' %}?user_id={{ user.user_id }}">
                             <div class="card-media sm:aspect-[2/1.7] h-40">
-                                <img src=" /media/{{ user.profile_image }}"
+                                <img src=" /media/{{ user.profile_image }}"||"{{ user.profile_image }}"
+                                
                                      alt="{{ user.first_name }} {{ user.last_name }}"
                                      class="object-cover w-full h-full rounded-t-lg">
                                 <div class="card-overly"></div>
