@@ -16,43 +16,61 @@ localStorage.removeItem('theme')
 
 
 
-// add post upload image 
-document.getElementById('addPostUrl').addEventListener('change', function(){
-if (this.files[0] ) {
-    var picture = new FileReader();
-    picture.readAsDataURL(this.files[0]);
-    picture.addEventListener('load', function(event) {
-    document.getElementById('addPostImage').setAttribute('src', event.target.result);
-    document.getElementById('addPostImage').style.display = 'block';
-    });
+// add post upload image (guard for pages without this input)
+const addPostUrlEl = document.getElementById('addPostUrl');
+if (addPostUrlEl) {
+  addPostUrlEl.addEventListener('change', function(){
+    if (this.files && this.files[0]) {
+      var picture = new FileReader();
+      picture.readAsDataURL(this.files[0]);
+      picture.addEventListener('load', function(event) {
+        const img = document.getElementById('addPostImage');
+        if (img) {
+          img.setAttribute('src', event.target.result);
+          img.style.display = 'block';
+        }
+      });
+    }
+  });
 }
-});
 
 
-// Create Status upload image 
-document.getElementById('createStatusUrl').addEventListener('change', function(){
-if (this.files[0] ) {
-    var picture = new FileReader();
-    picture.readAsDataURL(this.files[0]);
-    picture.addEventListener('load', function(event) {
-    document.getElementById('createStatusImage').setAttribute('src', event.target.result);
-    document.getElementById('createStatusImage').style.display = 'block';
-    });
+// Create Status upload image (guard)
+const createStatusUrlEl = document.getElementById('createStatusUrl');
+if (createStatusUrlEl) {
+  createStatusUrlEl.addEventListener('change', function(){
+    if (this.files && this.files[0]) {
+      var picture = new FileReader();
+      picture.readAsDataURL(this.files[0]);
+      picture.addEventListener('load', function(event) {
+        const img = document.getElementById('createStatusImage');
+        if (img) {
+          img.setAttribute('src', event.target.result);
+          img.style.display = 'block';
+        }
+      });
+    }
+  });
 }
-});
 
 
-// create product upload image
-document.getElementById('createProductUrl').addEventListener('change', function(){
-if (this.files[0] ) {
-    var picture = new FileReader();
-    picture.readAsDataURL(this.files[0]);
-    picture.addEventListener('load', function(event) {
-    document.getElementById('createProductImage').setAttribute('src', event.target.result);
-    document.getElementById('createProductImage').style.display = 'block';
-    });
+// create product upload image (guard)
+const createProductUrlEl = document.getElementById('createProductUrl');
+if (createProductUrlEl) {
+  createProductUrlEl.addEventListener('change', function(){
+    if (this.files && this.files[0]) {
+      var picture = new FileReader();
+      picture.readAsDataURL(this.files[0]);
+      picture.addEventListener('load', function(event) {
+        const img = document.getElementById('createProductImage');
+        if (img) {
+          img.setAttribute('src', event.target.result);
+          img.style.display = 'block';
+        }
+      });
+    }
+  });
 }
-});
 
 
 

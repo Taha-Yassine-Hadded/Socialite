@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-white/90">Avis reçus — {{ profile.user.first_name }} {{ profile.user.last_name }}</h1>
+      <p class="text-sm text-white/50 mt-1">Réputation et retours d’expérience</p>
+    </div>
+    <div class="flex gap-2 items-center">
+      <!-- Filters / Sorting -->
+      <form method="get" class="hidden md:flex items-center gap-2 mr-2">
+        <select name="sort" class="px-3 py-2 rounded-lg bg-white/5 text-white text-sm">
+          <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Plus récents</option>
+          <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Plus anciens</option>
+          <option value="note_desc" {% if sort == 'note_desc' %}selected{% endif %}>Note ↓</option>
+          <option value="note_asc" {% if sort == 'note_asc' %}selected{% endif %}>Note ↑</option>
+          <option value="comm_desc" {% if sort == 'comm_desc' %}selected{% endif %}>Communication ↓</option>
+          <option value="fiab_desc" {% if sort == 'fiab_desc' %}selected{% endif %}>Fiabilité ↓</option>
+          <option value="symp_desc" {% if sort == 'symp_desc' %}selected{% endif %}>Sympathie ↓</option>
+        </select>
+        <select name="min_note" class="px-3 py-2 rounded-lg bg-white/5 text-white text-sm">
+          <option value="">Note ≥</option>
+          {% for i in "12345" %}
+            <option value="{{ forloop.counter }}" {% if min_note == forloop.counter %}selected{% endif %}>{{ forloop.counter }}</option>
+          {% endfor %}
+        </select>
+        <select name="min_comm" class="px-3 py-2 rounded-lg bg-white/5 text-white text-sm">
+          <option value="">Comm ≥</option>
+          {% for i in "12345" %}
+            <option value="{{ forloop.counter }}" {% if min_comm == forloop.counter %}selected{% endif %}>{{ forloop.counter }}</option>
+          {% endfor %}
+        </select>
+        <select name="min_fiab" class="px-3 py-2 rounded-lg bg-white/5 text-white text-sm">
+          <option value="">Fiab ≥</option>
+          {% for i in "12345" %}
+            <option value="{{ forloop.counter }}" {% if min_fiab == forloop.counter %}selected{% endif %}>{{ forloop.counter }}</option>
+          {% endfor %}
+        </select>
+        <select name="min_symp" class="px-3 py-2 rounded-lg bg-white/5 text-white text-sm">
+          <option value="">Symp ≥</option>
+          {% for i in "12345" %}
+            <option value="{{ forloop.counter }}" {% if min_symp == forloop.counter %}selected{% endif %}>{{ forloop.counter }}</option>
+          {% endfor %}
+        </select>
+        <button class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm">Filtrer</button>
+      </form>
+      <a class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition" href="{% url 'profile' slug=profile.slug %}">Retour au profil</a>
+      {% if can_review %}
+        <a class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow transition" href="{% url 'review_create' slug=profile.slug %}">Laisser un avis</a>
+      {% elif existing_by_me %}
+        <button class="px-4 py-2 rounded-lg bg-gray-500/40 text-white/70 cursor-not-allowed">Déjà noté</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid md:grid-cols-4 grid-cols-1 gap-4 mb-6">
+    <div class="p-4 rounded-xl bg-gradient-to-br from-slate-700/60 to-slate-800/60 border border-white/10">
+      <div class="text-white/60 text-sm">Nombre d'avis</div>
+      <div class="text-3xl font-bold text-white mt-1">{{ avis_count }}</div>
+    </div>
+    <div class="p-4 rounded-xl bg-gradient-to-br from-indigo-700/50 to-purple-700/50 border border-white/10">
+      <div class="text-white/70 text-sm">Note moyenne</div>
+      <div class="flex items-end gap-2 mt-1">
+        <div class="text-3xl font-bold text-white">{% if avg_note %}{{ avg_note }}{% else %}-{% endif %}</div>
+        <div class="text-white/60">/ 5</div>
+      </div>
+      <div class="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-white/70 rounded-full transition-all duration-700" style="width: {{ avg_note_pct }}%;"></div>
+      </div>
+    </div>
+    <div class="p-4 rounded-xl bg-gradient-to-br from-cyan-700/50 to-blue-700/50 border border-white/10">
+      <div class="text-white/70 text-sm">Communication</div>
+      <div class="flex items-end gap-2 mt-1">
+        <div class="text-2xl font-semibold text-white">{% if avg_comm %}{{ avg_comm }}{% else %}-{% endif %}</div>
+        <div class="text-white/60">/ 5</div>
+      </div>
+      <div class="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-white/70 rounded-full transition-[width] duration-700" style="width: {{ avg_comm_pct }}%;"></div>
+      </div>
+    </div>
+    <div class="p-4 rounded-xl bg-gradient-to-br from-emerald-700/50 to-teal-700/50 border border-white/10">
+      <div class="text-white/70 text-sm">Fiabilité</div>
+      <div class="flex items-end gap-2 mt-1">
+        <div class="text-2xl font-semibold text-white">{% if avg_fiab %}{{ avg_fiab }}{% else %}-{% endif %}</div>
+        <div class="text-white/60">/ 5</div>
+      </div>
+      <div class="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-white/70 rounded-full transition-[width] duration-700" style="width: {{ avg_fiab_pct }}%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Second row stats -->
+  <div class="grid md:grid-cols-4 grid-cols-1 gap-4 mb-8">
+    <div class="p-4 rounded-xl bg-gradient-to-br from-pink-700/50 to-rose-700/50 border border-white/10 md:col-span-1">
+      <div class="text-white/70 text-sm">Sympathie</div>
+      <div class="flex items-end gap-2 mt-1">
+        <div class="text-2xl font-semibold text-white">{% if avg_symp %}{{ avg_symp }}{% else %}-{% endif %}</div>
+        <div class="text-white/60">/ 5</div>
+      </div>
+      <div class="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div class="h-full bg-white/70 rounded-full transition-[width] duration-700" style="width: {{ avg_symp_pct }}%;"></div>
+      </div>
+    </div>
+    <div class="md:col-span-3 hidden md:block"></div>
+  </div>
+
+  {% if avis_page and avis_page.object_list %}
+    <div class="space-y-4">
+      {% for a in avis_page.object_list %}
+      <div class="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition shadow-sm hover:shadow p-4 animate-[fadeIn_.4s_ease]">
+        <div class="flex items-start gap-3">
+          {% if a.reviewer.profile.avatar %}
+          <img src="{{ a.reviewer.profile.avatar.url }}" class="rounded-full w-12 h-12 object-cover" alt="avatar"/>
+          {% else %}
+          <img src="{% static 'images/avatars/avatar-default.webp' %}" class="rounded-full w-12 h-12 object-cover" alt="avatar"/>
+          {% endif %}
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <div>
+                <a href="{% url 'profile' slug=a.reviewer.profile.slug %}" class="font-semibold text-white hover:underline">{{ a.reviewer.first_name }} {{ a.reviewer.last_name }}</a>
+                <div class="text-xs text-white/50">{{ a.created_at|date:'d/m/Y H:i' }}</div>
+              </div>
+              <!-- Stars -->
+              <div class="flex items-center gap-1">
+                {% for i in '12345' %}
+                  {% if forloop.counter <= a.note %}
+                    <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.802-2.034a1 1 0 00-1.175 0l-2.802 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.88 8.72c-.783-.57-.38-1.81.588-1.81H6.93a1 1 0 00.95-.69l1.07-3.292z"/></svg>
+                  {% else %}
+                    <svg class="w-5 h-5 text-white/20" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.802-2.034a1 1 0 00-1.175 0l-2.802 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.88 8.72c-.783-.57-.38-1.81.588-1.81H6.93a1 1 0 00.95-.69l1.07-3.292z"/></svg>
+                  {% endif %}
+                {% endfor %}
+              </div>
+              {% if request.user.id == a.reviewer_id %}
+              <div class="flex items-center gap-2">
+                <a href="{% url 'review_edit' slug=profile.slug review_id=a.id %}" class="px-3 py-1 rounded bg-white/10 text-white text-xs hover:bg-white/20">Modifier</a>
+                <a href="{% url 'review_delete' slug=profile.slug review_id=a.id %}" class="px-3 py-1 rounded bg-rose-600/80 text-white text-xs hover:bg-rose-600">Supprimer</a>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2 text-xs">
+              <span class="px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-200">Note {{ a.note }}/5</span>
+              <span class="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-200">Comm {{ a.communication }}/5</span>
+              <span class="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-200">Fiab {{ a.fiabilite }}/5</span>
+              <span class="px-2 py-1 rounded-full bg-rose-500/20 text-rose-200">Symp {{ a.sympathie }}/5</span>
+            </div>
+
+            {% if a.commentaire %}
+              <p class="mt-3 text-white/90 leading-relaxed">{{ a.commentaire }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <!-- Pagination -->
+    <div class="flex items-center justify-center gap-2 mt-6">
+      {% if page_obj.has_previous %}
+        <a class="px-3 py-1 rounded bg-white/10 text-white" href="?sort={{sort}}{% if min_note %}&min_note={{min_note}}{% endif %}{% if min_comm %}&min_comm={{min_comm}}{% endif %}{% if min_fiab %}&min_fiab={{min_fiab}}{% endif %}{% if min_symp %}&min_symp={{min_symp}}{% endif %}&page={{ page_obj.previous_page_number }}">Précédent</a>
+      {% endif %}
+      <span class="text-white/70 text-sm">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="px-3 py-1 rounded bg-white/10 text-white" href="?sort={{sort}}{% if min_note %}&min_note={{min_note}}{% endif %}{% if min_comm %}&min_comm={{min_comm}}{% endif %}{% if min_fiab %}&min_fiab={{min_fiab}}{% endif %}{% if min_symp %}&min_symp={{min_symp}}{% endif %}&page={{ page_obj.next_page_number }}">Suivante</a>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/70">
+      <div class="text-4xl mb-2">💬</div>
+      <div class="font-semibold mb-1">Aucun avis pour le moment</div>
+      {% if can_review %}
+        <a href="{% url 'review_create' slug=profile.slug %}" class="inline-block mt-3 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition">Soyez le premier à laisser un avis</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
+</style>
+{% endblock %}

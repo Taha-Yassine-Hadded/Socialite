@@ -24,6 +24,18 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    {% if messages %}
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] space-y-2">
+        {% for message in messages %}
+        <div class="px-4 py-2 rounded shadow text-sm text-white {% if message.tags == 'success' %}bg-green-600{% elif message.tags == 'error' %}bg-red-600{% elif message.tags == 'warning' %}bg-yellow-600{% else %}bg-gray-800{% endif %}" data-toast>
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        setTimeout(() => { document.querySelectorAll('[data-toast]').forEach(e => e.remove()); }, 3000);
+    </script>
+    {% endif %}
  
     <div id="wrapper">
 
@@ -45,10 +57,10 @@
                         </button>
                         <div id="logo">
                             <a href="{% url 'feed' %}"> 
-                                <img src="{% static 'images/logo.webp' %}" alt="" class="w-28 md:block hidden dark:!hidden">
+                                <img src="{% static 'images/logo.png' %}" alt="" class="w-28 md:block hidden dark:!hidden">
                                 <img src="{% static 'images/logo-light.webp' %}" alt="" class="dark:md:block hidden">
-                                <img src="{% static 'images/logo-mobile.webp' %}" class="hidden max-md:block w-20 dark:!hidden" alt="">
-                                <img src="{% static 'images/logo-mobile-light.webp' %}" class="hidden dark:max-md:block w-20" alt="">
+                                <img src="{% static 'images/logo-mobile.png' %}" class="hidden max-md:block w-20 dark:!hidden" alt="">
+                                <img src="{% static 'images/logo-mobile-light.png' %}" class="hidden dark:max-md:block w-20" alt="">
                             </a>
                         </div>
                          

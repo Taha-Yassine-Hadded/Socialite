@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Favicon -->
-  <link href="{% static 'images/favicon.webp' %}" rel="icon" type="image/png">
+  <link href="{% static 'images/favicon.png' %}" rel="icon" type="image/png">
 
   <!-- Title and description -->
   <title>Socialite - Login</title>
@@ -35,7 +35,7 @@
 
         <!-- logo image-->
         <a href="#"> 
-          <img src="{% static 'images/logo.webp' %}" class="w-28 absolute top-10 left-10 dark:hidden" alt="">
+          <img src="{% static 'images/logo.png' %}" class="w-28 absolute top-10 left-10 dark:hidden" alt="">
           <img src="{% static 'images/logo-light.webp' %}" class="w-28 absolute top-10 left-10 hidden dark:!block" alt="">
         </a>
 
@@ -55,7 +55,7 @@
           <div>
             <label for="email" class="">Email address</label>
             <div class="mt-2.5">
-              <input id="email" name="email" type="email" autofocus placeholder="Email" required
+              <input id="email" name="email" type="email" autofocus placeholder="Email" required autocomplete="email"
                 class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
             </div>
           </div>
@@ -64,7 +64,7 @@
           <div>
             <label for="password" class="">Password</label>
             <div class="mt-2.5">
-              <input id="password" name="password" type="password" placeholder="***"
+              <input id="password" name="password" type="password" placeholder="***" autocomplete="current-password"
                 class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 dark:!border-slate-800 dark:!bg-white/5">
             </div>
           </div>
@@ -214,16 +214,16 @@
           const data = await response.json();
           
           if (data.success) {
-              // ✅ NETTOYER TOUT LOCALSTORAGE
+              // NETTOYER TOUT LOCALSTORAGE
               localStorage.clear();
               
-              // ✅ SEUL TOKEN - AUCUN USER !
+              // SEUL TOKEN - AUCUN USER !
               localStorage.setItem('token', data.token);
               
               showAlert('Connexion réussie ! Redirection vers votre profil...', 'success');
               setTimeout(() => {
-                  // Redirection vers le profil de l'utilisateur
-                  window.location.href = `/profile/${data.user.username}/`;
+                  const slug = data?.user?.slug;
+                  window.location.href = slug ? `/profile/${slug}/` : `/profile/`;
               }, 1000);
           } else {
               showAlert(data.message, 'error');
@@ -246,11 +246,6 @@
       alertDiv.classList.remove('hidden');
   }
   
-  // CHECK IF ALREADY LOGGED IN
-  if (localStorage.getItem('token')) {
-      // Rediriger vers feed qui redirigera vers le profil
-      window.location.href = '/feed/';
-  }
   </script>
 
   <!-- Dark mode -->
