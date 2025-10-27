@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class UserProfile(models.Model):
     # Lien avec l'utilisateur Django
@@ -238,3 +240,47 @@ class Share(models.Model):
     
     def __str__(self):
         return f"{self.user.username} a partagé le post #{self.original_post.id}"
+
+
+# ============================================
+# AVIS (REVIEWS)
+# ============================================
+class Avis(models.Model):
+    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='avis_left')
+    reviewee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='avis_received')
+    note = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    communication = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    fiabilite = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    sympathie = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    commentaire = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['reviewer', 'reviewee']
+        ordering = ['-created_at']
+
+    def clean(self):
+        # No self-review
+        if self.reviewer_id == self.reviewee_id:
+            raise ValidationError('Vous ne pouvez pas laisser un avis sur vous-même.')
+
+        # Check mutual follow via MongoDB
+        try:
+            from .mongo import get_db
+            db = get_db()
+            prof_reviewer = db.profiles.find_one({'user_id': self.reviewer_id}) or {}
+            prof_reviewee = db.profiles.find_one({'user_id': self.reviewee_id}) or {}
+            following_r = set(prof_reviewer.get('following', []))
+            following_e = set(prof_reviewee.get('following', []))
+            if (self.reviewee_id not in following_r) or (self.reviewer_id not in following_e):
+                raise ValidationError("Un suivi mutuel est requis pour laisser un avis.")
+        except Exception:
+            # If mongo unavailable, be conservative: block review
+            raise ValidationError("Impossible de vérifier le suivi mutuel pour le moment.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Avis {self.reviewer.username} → {self.reviewee.username} ({self.note}/5)"

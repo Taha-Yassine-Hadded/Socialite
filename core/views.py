@@ -19,8 +19,8 @@ from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.db.models import Q
-from .models import Post, Comment, Reaction, Share, UserProfile
+from django.db.models import Q, Avg, Count
+from .models import Post, Comment, Reaction, Share, UserProfile, Avis
 import json
 
 # Liste des intérêts pour le formulaire
@@ -191,6 +191,16 @@ def login_page(request):
             login(request, user)
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
+            # Ensure a profile exists and has a slug for clean URLs
+            try:
+                profile = user.profile
+            except Exception:
+                from .models import UserProfile
+                profile = UserProfile.objects.create(user=user)
+            if not getattr(profile, 'slug', None):
+                # Trigger slug generation in model's save()
+                profile.save()
+            profile_slug = getattr(profile, 'slug', None)
             
             return JsonResponse({
                 'success': True,
@@ -565,10 +575,22 @@ def upgrade(request):
 @login_required(login_url='/login/')
 def single(request):
     return render(request, 'single.html')
-@login_required
+@login_required(login_url='/login/')
 def profile_view(request, slug=None):
     """Affiche le profil d'un utilisateur avec ses posts (via son slug unique)"""
     if slug:
+        # Si l'URL contient un email par erreur, rediriger vers le bon slug
+        if '@' in slug:
+            # Essayer de retrouver l'utilisateur par username/email
+            try:
+                usr = User.objects.get(username=slug)
+            except User.DoesNotExist:
+                try:
+                    usr = User.objects.get(email=slug)
+                except User.DoesNotExist:
+                    usr = None
+            if usr and hasattr(usr, 'profile') and usr.profile.slug:
+                return redirect('profile', slug=usr.profile.slug)
         # Récupérer le profil par son slug, puis l'utilisateur
         profile = UserProfile.objects.select_related('user').get(slug=slug)
         user = profile.user
@@ -594,11 +616,22 @@ def profile_view(request, slug=None):
             for comment in post.comments.all():
                 comment.user_reaction = comment.reactions.filter(user=request.user).first()
     
+    # Avis stats for profile badge
+    avis_qs = Avis.objects.filter(reviewee=user)
+    stats = avis_qs.aggregate(
+        avg_note=Avg('note'),
+        avg_comm=Avg('communication'),
+        avg_fiab=Avg('fiabilite'),
+        avg_symp=Avg('sympathie'),
+        reviews_count=Count('id')
+    )
     context = {
         'user': user,
         'profile': user.profile,
         'user_posts': user_posts,
         'posts_count': user_posts.count(),
+        'avg_review_note': round(stats['avg_note'] or 0, 2),
+        'reviews_count': stats['reviews_count'] or 0,
     }
     return render(request, 'profile.html', context)
 def get_country_flag(country_code):
@@ -631,8 +664,12 @@ def edit_profile(request):
                 user_form.save()
                 profile_form.save()
                 
-                # Mettre à jour les données MongoDB
+                # Mettre à jour les données MongoDB (avec upsert pour créer si n'existe pas)
                 mongo_updates = {
+                    'user_id': request.user.id,  # Ajout de l'user_id pour la création
+                    'email': request.user.email,
+                    'first_name': request.user.first_name,
+                    'last_name': request.user.last_name,
                     'travel_type': request.POST.getlist('travel_type'),
                     'travel_budget': request.POST.get('travel_budget', ''),
                     'gender': request.POST.get('gender', ''),
@@ -642,9 +679,11 @@ def edit_profile(request):
                     'visited_countries': request.POST.getlist('visited_countries'),
                 }
                 
+                # upsert=True : crée le document s'il n'existe pas, sinon le met à jour
                 db.profiles.update_one(
                     {'user_id': request.user.id},
-                    {'$set': mongo_updates}
+                    {'$set': mongo_updates},
+                    upsert=True
                 )
                 
                 messages.success(request, '✅ Votre profil a été mis à jour avec succès ! Toutes vos modifications ont été enregistrées.')
@@ -711,6 +750,155 @@ def change_password(request):
         form = CustomPasswordChangeForm(user=request.user)
     
     return render(request, 'change_password.html', {'form': form})
+
+# ============================================
+# REVIEWS
+# ============================================
+@login_required(login_url='/login/')
+def reviews_list(request, slug):
+    # target user by slug
+    target_profile = UserProfile.objects.select_related('user').get(slug=slug)
+    target_user = target_profile.user
+    # Ensure profile has a slug
+    if not target_profile.slug:
+        target_profile.save()
+
+    qs = Avis.objects.filter(reviewee=target_user)
+
+    # filters
+    def clamp_int(param):
+        try:
+            v = int(request.GET.get(param, 0))
+            return min(5, max(0, v))
+        except (TypeError, ValueError):
+            return 0
+    min_note = clamp_int('min_note')
+    min_comm = clamp_int('min_comm')
+    min_fiab = clamp_int('min_fiab')
+    min_symp = clamp_int('min_symp')
+    if min_note:
+        qs = qs.filter(note__gte=min_note)
+    if min_comm:
+        qs = qs.filter(communication__gte=min_comm)
+    if min_fiab:
+        qs = qs.filter(fiabilite__gte=min_fiab)
+    if min_symp:
+        qs = qs.filter(sympathie__gte=min_symp)
+
+    # sort
+    sort = request.GET.get('sort', 'recent')
+    order_map = {
+        'recent': '-created_at',
+        'oldest': 'created_at',
+        'note_desc': '-note',
+        'note_asc': 'note',
+        'comm_desc': '-communication',
+        'fiab_desc': '-fiabilite',
+        'symp_desc': '-sympathie',
+    }
+    qs = qs.order_by(order_map.get(sort, '-created_at'))
+
+    # stats
+    stats = Avis.objects.filter(reviewee=target_user).aggregate(
+        avg_note=Avg('note'),
+        avg_comm=Avg('communication'),
+        avg_fiab=Avg('fiabilite'),
+        avg_symp=Avg('sympathie'),
+        reviews_count=Count('id')
+    )
+    def pct(v):
+        return int(round(((v or 0) / 5) * 100))
+
+    # pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 6)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    # flags: can_review and existing_by_me
+    existing_by_me = None
+    can_review = False
+    if request.user.is_authenticated and request.user != target_user:
+        existing_by_me = Avis.objects.filter(reviewer=request.user, reviewee=target_user).first()
+        # mutual follow check via mongo
+        try:
+            db = get_db()
+            me = db.profiles.find_one({'user_id': request.user.id}) or {}
+            him = db.profiles.find_one({'user_id': target_user.id}) or {}
+            can_review = (
+                (target_user.id in (me.get('following', []))) and
+                (request.user.id in (him.get('following', []))) and
+                (existing_by_me is None)
+            )
+        except Exception:
+            can_review = False
+
+    context = {
+        'target_user': target_user,
+        'target_profile': target_profile,
+        'profile': target_profile,
+        'slug': target_profile.slug,
+        'page_obj': page_obj,
+        'avis_page': page_obj,
+        'sort': sort,
+        'min_note': min_note,
+        'min_comm': min_comm,
+        'min_fiab': min_fiab,
+        'min_symp': min_symp,
+        'avg_note': round(stats['avg_note'] or 0, 2),
+        'avg_comm': round(stats['avg_comm'] or 0, 2),
+        'avg_fiab': round(stats['avg_fiab'] or 0, 2),
+        'avg_symp': round(stats['avg_symp'] or 0, 2),
+        'avg_note_pct': pct(stats['avg_note']),
+        'avg_comm_pct': pct(stats['avg_comm']),
+        'avg_fiab_pct': pct(stats['avg_fiab']),
+        'avg_symp_pct': pct(stats['avg_symp']),
+        'reviews_count': stats['reviews_count'] or 0,
+        'avis_count': stats['reviews_count'] or 0,
+        'can_review': can_review,
+        'existing_by_me': existing_by_me,
+    }
+    return render(request, 'reviews/list.html', context)
+
+@login_required(login_url='/login/')
+def review_create(request, slug):
+    target_profile = UserProfile.objects.select_related('user').get(slug=slug)
+    target_user = target_profile.user
+    if not target_profile.slug:
+        target_profile.save()
+    if request.method == 'POST':
+        try:
+            note = int(request.POST.get('note'))
+            communication = int(request.POST.get('communication'))
+            fiabilite = int(request.POST.get('fiabilite'))
+            sympathie = int(request.POST.get('sympathie'))
+        except (TypeError, ValueError):
+            messages.error(request, 'Notes invalides.')
+            return redirect('review_create', slug=slug)
+        commentaire = request.POST.get('commentaire', '').strip()
+
+        avis = Avis(
+            reviewer=request.user,
+            reviewee=target_user,
+            note=note,
+            communication=communication,
+            fiabilite=fiabilite,
+            sympathie=sympathie,
+            commentaire=commentaire or None,
+        )
+        try:
+            avis.save()
+            messages.success(request, 'Votre avis a été enregistré.')
+            return redirect('reviews_list', slug=slug)
+        except Exception as e:
+            messages.error(request, str(e))
+            return redirect('review_create', slug=slug)
+
+    return render(request, 'reviews/create.html', {
+        'target_user': target_user,
+        'target_profile': target_profile,
+        'profile': target_profile,
+        'slug': target_profile.slug,
+    })
     # ============================================
 # VUE : CRÉER UN POST
 # ============================================
@@ -761,7 +949,8 @@ def create_post(request):
     # ============================================
 # VUE : AFFICHER LE FIL D'ACTUALITÉ
 # ============================================
-@login_required
+@login_required(login_url='/login/')
+
 def list_posts(request):
     """
     Vue pour afficher le fil d'actualité (feed).
@@ -790,7 +979,7 @@ def list_posts(request):
 # ============================================
 # VUE : SUPPRIMER UN POST
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST", "DELETE"])
 def delete_post(request, post_id):
     """
@@ -818,7 +1007,7 @@ def delete_post(request, post_id):
 # ============================================
 # VUE : MODIFIER UN POST
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def edit_post(request, post_id):
     """
@@ -862,7 +1051,7 @@ def edit_post(request, post_id):
 # ============================================
 # VUE : AJOUTER UN COMMENTAIRE
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def add_comment(request, post_id):
     """
@@ -912,7 +1101,7 @@ def add_comment(request, post_id):
     # ============================================
 # VUE : AJOUTER/MODIFIER UNE RÉACTION
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def add_reaction(request, post_id):
     """
@@ -978,7 +1167,7 @@ def add_reaction(request, post_id):
         # ============================================
 # VUE : RÉAGIR À UN COMMENTAIRE
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def react_to_comment(request, comment_id):
     """
@@ -1037,7 +1226,7 @@ def react_to_comment(request, comment_id):
         # ============================================
 # VUE : PARTAGER UN POST
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 @require_http_methods(["POST"])
 def share_post(request, post_id):
     """
@@ -1087,7 +1276,7 @@ def share_post(request, post_id):
     # ============================================
 # VUE : OBTENIR LES DÉTAILS D'UN POST (API)
 # ============================================
-@login_required
+@login_required(login_url='/login/')
 def get_post_detail(request, post_id):
     """
     Vue API pour récupérer les détails d'un post avec tous ses commentaires et réactions.
@@ -1147,7 +1336,8 @@ def get_post_detail(request, post_id):
 # ============================================
 # VUE : MODIFIER UN COMMENTAIRE
 # ============================================
-@login_required
+@login_required(login_url='/login/')
+
 @require_http_methods(["POST"])
 def edit_comment(request, comment_id):
     """

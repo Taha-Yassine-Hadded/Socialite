@@ -64,9 +64,14 @@ urlpatterns = [
     path('single/', views.single, name='single'),
     
     # Profile
+    path('profile/', views.profile_view, name='profile_me'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change-password/', views.change_password, name='change_password'),
     path('profile/<slug:slug>/', views.profile_view, name='profile'),
+
+    # Reviews
+    path('profile/<slug:slug>/reviews/', views.reviews_list, name='reviews_list'),
+    path('profile/<slug:slug>/reviews/new/', views.review_create, name='review_create'),
     
     # ============================================
     # POSTS : Système de publications
