@@ -212,7 +212,7 @@ def login_page(request):
                     'username': user.username,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'slug': profile_slug,
+                    'profile_slug': user.profile.slug,  # Ajout du slug pour redirection
                 }
             })
         else:
@@ -664,8 +664,12 @@ def edit_profile(request):
                 user_form.save()
                 profile_form.save()
                 
-                # Mettre à jour les données MongoDB
+                # Mettre à jour les données MongoDB (avec upsert pour créer si n'existe pas)
                 mongo_updates = {
+                    'user_id': request.user.id,  # Ajout de l'user_id pour la création
+                    'email': request.user.email,
+                    'first_name': request.user.first_name,
+                    'last_name': request.user.last_name,
                     'travel_type': request.POST.getlist('travel_type'),
                     'travel_budget': request.POST.get('travel_budget', ''),
                     'gender': request.POST.get('gender', ''),
@@ -675,9 +679,11 @@ def edit_profile(request):
                     'visited_countries': request.POST.getlist('visited_countries'),
                 }
                 
+                # upsert=True : crée le document s'il n'existe pas, sinon le met à jour
                 db.profiles.update_one(
                     {'user_id': request.user.id},
-                    {'$set': mongo_updates}
+                    {'$set': mongo_updates},
+                    upsert=True
                 )
                 
                 messages.success(request, '✅ Votre profil a été mis à jour avec succès ! Toutes vos modifications ont été enregistrées.')
