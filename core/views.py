@@ -202,6 +202,7 @@ def login_page(request):
                     'username': user.username,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
+                    'profile_slug': user.profile.slug,  # Ajout du slug pour redirection
                 }
             })
         else:

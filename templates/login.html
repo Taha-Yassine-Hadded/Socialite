@@ -6,6 +6,11 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Force browser to reload (no cache) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
   <!-- Favicon -->
   <link href="{% static 'images/favicon.webp' %}" rel="icon" type="image/png">
@@ -222,8 +227,8 @@
               
               showAlert('Connexion réussie ! Redirection vers votre profil...', 'success');
               setTimeout(() => {
-                  // Redirection vers le profil de l'utilisateur
-                  window.location.href = `/profile/${data.user.username}/`;
+                  // Redirection vers le profil de l'utilisateur (utilisation du slug)
+                  window.location.href = `/profile/${data.user.profile_slug}/`;
               }, 1000);
           } else {
               showAlert(data.message, 'error');
