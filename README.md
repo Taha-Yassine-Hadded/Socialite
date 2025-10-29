@@ -45,6 +45,7 @@ Socialite is a Django-based social platform that inspires users to explore the w
 - 💬 Use real-time chat for discussions.
 - 🔧 Admins can manage content via Django Admin.
 
+
 ---
 
 ## 🤖 Quickstart IA (Dataset + Modèle)
@@ -100,3 +101,13 @@ python manage.py runserver
 - Métadonnées du modèle: `models/travel_classifier_metadata.json` (classes, accuracy, version).
 
 ---
+
+##NEW FEATURES FOR PREMIUM/BUSINESS/FREEMIUM
+- **🔒 Premium Features**: Exclusive content, ad-free experience.
+- **📈 Analytics**: Track community growth and engagement.
+- **🔒 Content Moderation**: Moderate posts and comments
+commands to run:
+
+pip install python-dateutil
+python manage.py makemigrations
+python manage.py migrate
