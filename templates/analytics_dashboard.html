@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="uk-container uk-margin-large-top uk-margin-large-bottom">
+  <h2 class="uk-heading-line uk-text-bold"><span>Tableau de bord IA</span></h2>
+
+  <div class="uk-child-width-1-4@m uk-grid-small uk-grid-match" uk-grid>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Posts</h4>
+        <div class="uk-text-large uk-text-bold">{{ kpis.total_posts }}</div>
+      </div>
+    </div>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Images</h4>
+        <div class="uk-text-large uk-text-bold">{{ kpis.total_images }}</div>
+      </div>
+    </div>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Vidéos</h4>
+        <div class="uk-text-large uk-text-bold">{{ kpis.total_videos }}</div>
+      </div>
+    </div>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Notes vocales</h4>
+        <div class="uk-text-large uk-text-bold">{{ kpis.total_voice }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="uk-child-width-1-2@m uk-grid-small uk-margin" uk-grid>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Whisper: succès vs échecs</h4>
+        <canvas id="whisperChart" height="140"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Classification: succès vs échecs</h4>
+        <canvas id="classifyChart" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="uk-child-width-1-2@m uk-grid-small uk-margin" uk-grid>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Répartition des catégories (images)</h4>
+        <canvas id="categoriesChart" height="160"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="uk-card uk-card-default uk-card-body">
+        <h4 class="uk-margin-remove">Langues détectées</h4>
+        <canvas id="languagesChart" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="uk-card uk-card-default uk-card-body uk-margin">
+    <h4 class="uk-margin-remove">Séries (7 jours)</h4>
+    <canvas id="seriesChart" height="180"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(async function() {
+  const dataRes = await fetch('{% url "analytics_data" %}', {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+  const payload = await dataRes.json();
+  if (!payload.success) return;
+
+  const whisperCtx = document.getElementById('whisperChart');
+  new Chart(whisperCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Succès', 'Échecs'],
+      datasets: [{ data: [{{ kpis.whisper_ok|default:0 }}, {{ kpis.whisper_fail|default:0 }}], backgroundColor: ['#32d296', '#f0506e'] }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+
+  const classifyCtx = document.getElementById('classifyChart');
+  new Chart(classifyCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Succès', 'Échecs'],
+      datasets: [{ data: [{{ kpis.classify_ok|default:0 }}, {{ kpis.classify_fail|default:0 }}], backgroundColor: ['#1e87f0', '#faa05a'] }]
+    },
+    options: { plugins: { legend: { position: 'bottom' } } }
+  });
+
+  const catCtx = document.getElementById('categoriesChart');
+  const catLabels = payload.categories.map(x => x.image_category);
+  const catValues = payload.categories.map(x => x.count);
+  new Chart(catCtx, {
+    type: 'bar',
+    data: {
+      labels: catLabels,
+      datasets: [{ label: 'Posts', data: catValues, backgroundColor: '#1e87f0' }]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+  });
+
+  const langCtx = document.getElementById('languagesChart');
+  const langLabels = payload.languages.map(x => x.detected_language);
+  const langValues = payload.languages.map(x => x.count);
+  new Chart(langCtx, {
+    type: 'bar',
+    data: {
+      labels: langLabels,
+      datasets: [{ label: 'Posts', data: langValues, backgroundColor: '#32d296' }]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+  });
+
+  const seriesCtx = document.getElementById('seriesChart');
+  new Chart(seriesCtx, {
+    type: 'line',
+    data: {
+      labels: payload.series.days,
+      datasets: [
+        { label: 'Créations', data: payload.series.create_posts, borderColor: '#1e87f0', fill: false },
+        { label: 'Whisper OK', data: payload.series.whisper_ok, borderColor: '#32d296', fill: false },
+        { label: 'Classify OK', data: payload.series.classify_ok, borderColor: '#faa05a', fill: false }
+      ]
+    },
+    options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' } } }
+  });
+})();
+</script>
+{% endblock %}

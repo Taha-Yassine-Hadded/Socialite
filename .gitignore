@@ -156,3 +156,8 @@ coverage/
 *~
 *.bak
 *.tmp
+
+# --- AI/Dataset & model artifacts ---
+ai_datasets/
+models/*.pth
+models/*.pt
