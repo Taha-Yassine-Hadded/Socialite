@@ -68,6 +68,8 @@ urlpatterns = [
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change-password/', views.change_password, name='change_password'),
     path('profile/<slug:slug>/', views.profile_view, name='profile'),
+    path('profile/<slug:slug>/albums/', views.profile_albums, name='profile_albums'),
+    path('profile/<slug:slug>/analytics/', views.profile_analytics, name='profile_analytics'),
 
     # Reviews
     path('profile/<slug:slug>/reviews/', views.reviews_list, name='reviews_list'),
@@ -81,6 +83,9 @@ urlpatterns = [
     path('posts/<int:post_id>/', views.get_post_detail, name='get_post_detail'),
     path('posts/<int:post_id>/edit/', views.edit_post, name='edit_post'),
     path('posts/<int:post_id>/delete/', views.delete_post, name='delete_post'),
+    
+    # API : Analyse d'image pour tags automatiques
+    path('api/analyze-image/', views.analyze_image_for_tags, name='analyze_image_for_tags'),
     
     # ============================================
     # COMMENTS : Commentaires
@@ -99,4 +104,17 @@ urlpatterns = [
     # SHARE : Partage de posts
     # ============================================
     path('posts/<int:post_id>/share/', views.share_post, name='share_post'),
+
+    # ============================================
+    # STORIES
+    # ============================================
+    path('stories/create/', views.create_story, name='create_story'),
+    path('stories/', views.list_stories, name='list_stories'),
+    path('stories/<int:story_id>/', views.story_detail, name='story_detail'),
+
+    # ============================================
+    # ANALYTICS DASHBOARD
+    # ============================================
+    path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
+    path('api/analytics/', views.analytics_data, name='analytics_data'),
 ]

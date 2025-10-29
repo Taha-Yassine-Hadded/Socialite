@@ -20,7 +20,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Avg, Count
-from .models import Post, Comment, Reaction, Share, UserProfile, Avis
+from django.core.paginator import Paginator
+from .models import Post, Comment, Reaction, Share, UserProfile, Avis, AnalyticsEvent, Story, StoryView
+from django.db.utils import OperationalError as DBOperationalError
+from .ai_services import transcribe_voice_note, classify_travel_image, get_image_tags
 import json
 
 # Liste des intérêts pour le formulaire
@@ -431,14 +434,61 @@ def feed(request):
     """
     Vue pour afficher le fil d'actualité (feed).
     Affiche tous les posts publics + posts de l'utilisateur.
+    Supporte le filtrage par catégorie d'image.
     """
+    # Récupérer le filtre de catégorie depuis les paramètres GET
+    category_filter = request.GET.get('category', 'all')
+    
     # Récupérer tous les posts publics + posts de l'utilisateur
-    posts = Post.objects.filter(
+    posts_query = Post.objects.filter(
         Q(visibility='public') | Q(user=request.user)
-    ).select_related('user', 'user__profile').prefetch_related(
+    )
+    
+    # 🔍 Filtrage par catégorie d'image
+    if category_filter and category_filter != 'all':
+        posts_query = posts_query.filter(image_category=category_filter)
+    
+    posts = posts_query.select_related('user', 'user__profile').prefetch_related(
         'comments', 'comments__user', 'comments__user__profile', 
         'comments__reactions', 'reactions', 'post_shares'
     ).order_by('-created_at')
+
+    # Stories actives (24h)
+    from django.utils import timezone
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(hours=24)
+    try:
+        active_stories_qs = (
+            Story.objects.filter(created_at__gte=cutoff)
+            .select_related('user', 'user__profile')
+            .order_by('-created_at')
+        )
+        # Force l'évaluation ici pour attraper l'erreur DB avant le template
+        active_stories = list(active_stories_qs)
+    except DBOperationalError:
+        # Table non migrée encore → éviter de casser le feed
+        active_stories = []
+    
+    # 📊 Compter les posts par catégorie (pour les badges de comptage)
+    from django.db.models import Count
+    category_counts = Post.objects.filter(
+        Q(visibility='public') | Q(user=request.user),
+        image_category__isnull=False
+    ).values('image_category').annotate(count=Count('id'))
+    
+    # Transformer en dictionnaire pour faciliter l'accès
+    counts_dict = {item['image_category']: item['count'] for item in category_counts}
+    
+    # Mapping des catégories avec leurs informations
+    categories = [
+        {'id': 'all', 'name': 'Tous', 'icon': '🌍', 'count': posts_query.count()},
+        {'id': 'sea', 'name': 'Mer', 'icon': '🌊', 'count': counts_dict.get('sea', 0)},
+        {'id': 'mountain', 'name': 'Montagne', 'icon': '⛰️', 'count': counts_dict.get('mountain', 0)},
+        {'id': 'forest', 'name': 'Forêt', 'icon': '🌲', 'count': counts_dict.get('forest', 0)},
+        {'id': 'buildings', 'name': 'Ville', 'icon': '🏢', 'count': counts_dict.get('buildings', 0)},
+        {'id': 'street', 'name': 'Rue', 'icon': '🛣️', 'count': counts_dict.get('street', 0)},
+        {'id': 'glacier', 'name': 'Glacier', 'icon': '❄️', 'count': counts_dict.get('glacier', 0)},
+    ]
     
     # Pour chaque post, vérifier si l'utilisateur a déjà réagi
     for post in posts:
@@ -453,8 +503,22 @@ def feed(request):
         for comment in post.comments.all():
             comment.user_reaction = comment.reactions.filter(user=request.user).first()
     
+    # 🔎 Log vue du feed (une ligne par appel, pas par post)
+    try:
+        AnalyticsEvent.objects.create(
+            event_type='view_feed',
+            user=request.user if request.user.is_authenticated else None,
+            media_type='mixed',
+            success=True
+        )
+    except Exception:
+        pass
+
     context = {
         'posts': posts,
+        'categories': categories,
+        'current_category': category_filter,
+        'stories': active_stories,
     }
     return render(request, 'feed.html', context)
 
@@ -634,6 +698,113 @@ def profile_view(request, slug=None):
         'reviews_count': stats['reviews_count'] or 0,
     }
     return render(request, 'profile.html', context)
+
+
+@login_required(login_url='/login/')
+def profile_albums(request, slug):
+    """Affiche les albums automatiques d'un utilisateur, groupés par image_category."""
+    # Identifier l'utilisateur par son slug
+    profile = UserProfile.objects.select_related('user').get(slug=slug)
+    user = profile.user
+
+    # Filtre actif
+    category_filter = request.GET.get('category', 'all')
+
+    # Base queryset: uniquement les posts avec image et catégorie connue
+    # Attention: certains FileField peuvent être non nuls mais vides -> exclure image=""
+    base_qs = Post.objects.filter(user=user, image__isnull=False).exclude(image="")
+
+    # Comptages par catégorie pour les badges
+    counts = base_qs.exclude(image_category__isnull=True).values('image_category').annotate(count=Count('id'))
+    counts_dict = {row['image_category']: row['count'] for row in counts}
+
+    categories = [
+        {'id': 'all', 'name': 'Tous', 'icon': '🌍', 'count': base_qs.count()},
+        {'id': 'sea', 'name': 'Mer', 'icon': '🌊', 'count': counts_dict.get('sea', 0)},
+        {'id': 'mountain', 'name': 'Montagne', 'icon': '⛰️', 'count': counts_dict.get('mountain', 0)},
+        {'id': 'forest', 'name': 'Forêt', 'icon': '🌲', 'count': counts_dict.get('forest', 0)},
+        {'id': 'buildings', 'name': 'Ville', 'icon': '🏢', 'count': counts_dict.get('buildings', 0)},
+        {'id': 'street', 'name': 'Rue', 'icon': '🛣️', 'count': counts_dict.get('street', 0)},
+        {'id': 'glacier', 'name': 'Glacier', 'icon': '❄️', 'count': counts_dict.get('glacier', 0)},
+    ]
+
+    # Appliquer le filtre si choisi
+    images_qs = base_qs
+    if category_filter != 'all':
+        images_qs = images_qs.filter(image_category=category_filter)
+
+    images_qs = images_qs.only('id', 'image', 'image_category').order_by('-created_at')
+
+    # Pagination
+    paginator = Paginator(images_qs, 24)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'categories': categories,
+        'current_category': category_filter,
+        'page_obj': page_obj,
+        'images': page_obj.object_list,
+    }
+    return render(request, 'profile_albums.html', context)
+
+
+@login_required(login_url='/login/')
+def profile_analytics(request, slug):
+    """
+    Tableau de bord analytique IA pour un utilisateur (dans son profil).
+    Montre ses stats: types de médias, catégories d'images, langues détectées,
+    et engagement (likes, commentaires, partages).
+    """
+    profile = UserProfile.objects.select_related('user').get(slug=slug)
+    user = profile.user
+
+    # Posts de l'utilisateur
+    user_posts = Post.objects.filter(user=user)
+
+    # KPIs
+    total_posts = user_posts.count()
+    total_images = user_posts.filter(image__isnull=False).exclude(image="").count()
+    total_videos = user_posts.filter(video__isnull=False).exclude(video="").count()
+    total_voice = user_posts.filter(voice_note__isnull=False).exclude(voice_note="").count()
+
+    # Engagement
+    total_likes = user_posts.aggregate(c=Count('reactions'))['c'] or 0
+    total_comments = user_posts.aggregate(c=Count('comments'))['c'] or 0
+    total_shares = user_posts.aggregate(c=Count('post_shares'))['c'] or 0
+
+    # Répartition catégories et langues
+    cat_counts = (
+        user_posts.exclude(image_category__isnull=True)
+        .values('image_category')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    lang_counts = (
+        user_posts.exclude(detected_language__isnull=True)
+        .values('detected_language')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'kpis': {
+            'total_posts': total_posts,
+            'total_images': total_images,
+            'total_videos': total_videos,
+            'total_voice': total_voice,
+            'total_likes': total_likes,
+            'total_comments': total_comments,
+            'total_shares': total_shares,
+        },
+        'category_counts': list(cat_counts),
+        'lang_counts': list(lang_counts),
+    }
+    return render(request, 'profile_analytics.html', context)
 def get_country_flag(country_code):
     """Convertir un code pays (ex: 'FR') en emoji drapeau (ex: '🇫🇷')"""
     OFFSET = 127397
@@ -937,15 +1108,206 @@ def create_post(request):
             visibility=visibility
         )
         
+        # ✅ IA : Transcription automatique avec Whisper (notes vocales ET vidéos)
+        transcription_success = False
+        media_to_transcribe = None
+        media_type = None
+        
+        # Déterminer quel média doit être transcrit
+        if voice_note:
+            media_to_transcribe = post.voice_note
+            media_type = "note vocale"
+        elif video:
+            media_to_transcribe = post.video
+            media_type = "vidéo"
+        
+        # Lancer la transcription si un média audio/vidéo est présent
+        if media_to_transcribe:
+            print(f"🎤 [IA] Lancement de la transcription Whisper ({media_type})...")
+            result = transcribe_voice_note(media_to_transcribe)
+            
+            if result['success']:
+                # Sauvegarder la transcription dans le post
+                post.voice_transcription = result['text']
+                post.detected_language = result['language']
+                post.save()
+                transcription_success = True
+                print(f"✅ [IA] Transcription sauvegardée : {result['language_name']} ({result['language']})")
+            else:
+                print(f"❌ [IA] Erreur de transcription : {result.get('error', 'Erreur inconnue')}")
+        
+        # ✅ IA : Classification automatique d'images de voyage (ResNet18)
+        classification_success = False
+        if image:
+            print(f"🖼️ [IA] Lancement de la classification d'image...")
+            classification_result = classify_travel_image(post.image)
+            
+            if classification_result['success']:
+                # Sauvegarder la classification dans le post
+                post.image_category = classification_result['category']
+                post.image_category_fr = classification_result['category_fr']
+                post.image_confidence = classification_result['confidence']
+                
+                # Générer les tags automatiques
+                post.image_tags = get_image_tags(post.image)
+                
+                post.save()
+                classification_success = True
+                print(f"✅ [IA] Image classifiée : {classification_result['category_fr']} ({classification_result['confidence']*100:.1f}%)")
+                print(f"   Tags générés : {', '.join(post.image_tags)}")
+            else:
+                print(f"❌ [IA] Erreur de classification : {classification_result.get('error', 'Erreur inconnue')}")
+        
+        # 📊 Analytics: log création + résultats IA
+        try:
+            media_type = 'text'
+            if image and video:
+                media_type = 'mixed'
+            elif image:
+                media_type = 'image'
+            elif video:
+                media_type = 'video'
+            elif voice_note:
+                media_type = 'voice'
+
+            # create_post event
+            AnalyticsEvent.objects.create(
+                event_type='create_post',
+                user=request.user,
+                post=post,
+                media_type=media_type,
+                image_category=post.image_category,
+                detected_language=post.detected_language,
+                success=True,
+                meta={
+                    'has_transcription': transcription_success,
+                    'has_classification': classification_success,
+                }
+            )
+
+            # whisper result
+            if media_to_transcribe is not None:
+                AnalyticsEvent.objects.create(
+                    event_type='whisper_ok' if transcription_success else 'whisper_fail',
+                    user=request.user,
+                    post=post,
+                    media_type='voice' if voice_note else 'video',
+                    detected_language=post.detected_language,
+                    success=transcription_success
+                )
+
+            # classify result
+            if image is not None:
+                AnalyticsEvent.objects.create(
+                    event_type='classify_ok' if classification_success else 'classify_fail',
+                    user=request.user,
+                    post=post,
+                    media_type='image',
+                    image_category=post.image_category,
+                    success=classification_success,
+                    meta={'confidence': post.image_confidence}
+                )
+        except Exception:
+            pass
+
         # Retourner une réponse JSON (succès)
         return JsonResponse({
             'success': True,
             'message': 'Post créé avec succès !',
-            'post_id': post.id
+            'post_id': post.id,
+            'has_transcription': transcription_success,
+            'transcription': post.voice_transcription if transcription_success else None,
+            'has_classification': classification_success,
+            'image_category': post.image_category_fr if classification_success else None,
+            'image_confidence': post.image_confidence if classification_success else None,
+            'image_tags': post.image_tags if classification_success else None
         })
     
     # Si GET : afficher le formulaire de création
     return render(request, 'create_post.html')
+
+
+# ============================================
+# API : ANALYSER UNE IMAGE POUR GÉNÉRER DES TAGS
+# ============================================
+@csrf_exempt
+@login_required(login_url='/login/')
+def analyze_image_for_tags(request):
+    """
+    API pour analyser une image et retourner des tags automatiques
+    AVANT la création du post.
+    
+    Utilisé par JavaScript en temps réel quand l'utilisateur sélectionne une image.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+    
+    if 'image' not in request.FILES:
+        return JsonResponse({'error': 'Aucune image fournie'}, status=400)
+    
+    try:
+        # Récupérer l'image uploadée
+        image = request.FILES['image']
+        
+        print(f"📥 [API] Réception d'une image pour analyse : {image.name}")
+        
+        # Sauvegarder temporairement l'image
+        import tempfile
+        import os
+        
+        # Créer un fichier temporaire avec la bonne extension
+        file_extension = os.path.splitext(image.name)[1] or '.jpg'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+            for chunk in image.chunks():
+                temp_file.write(chunk)
+            temp_path = temp_file.name
+        
+        print(f"💾 [API] Image sauvegardée temporairement : {temp_path}")
+        
+        # Importer les fonctions d'analyse
+        from .ai_services import classify_travel_image_from_path, get_image_tags_from_classification
+        
+        # Analyser l'image avec l'IA
+        classification = classify_travel_image_from_path(temp_path)
+        
+        # Nettoyer le fichier temporaire
+        try:
+            os.unlink(temp_path)
+            print(f"🗑️ [API] Fichier temporaire supprimé")
+        except Exception as e:
+            print(f"⚠️ [API] Impossible de supprimer le fichier temporaire : {e}")
+        
+        # Vérifier si la classification a réussi
+        if not classification.get('success'):
+            return JsonResponse({
+                'success': False,
+                'error': classification.get('error', 'Erreur d\'analyse')
+            }, status=500)
+        
+        # Générer les tags basés sur la classification
+        tags = get_image_tags_from_classification(classification)
+        
+        print(f"✅ [API] Tags générés : {', '.join(tags)}")
+        
+        # Retourner les résultats
+        return JsonResponse({
+            'success': True,
+            'category': classification.get('category_fr', ''),
+            'confidence': round(classification.get('confidence', 0) * 100, 1),  # Convertir en %
+            'tags': tags
+        })
+    
+    except Exception as e:
+        print(f"❌ [API] Erreur : {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
     # ============================================
 # VUE : AFFICHER LE FIL D'ACTUALITÉ
 # ============================================
@@ -976,6 +1338,183 @@ def list_posts(request):
         'posts': posts,
     }
     return render(request, 'feed.html', context)
+
+
+# ============================================
+# DASHBOARD ANALYTIQUE IA
+# ============================================
+@login_required(login_url='/login/')
+def analytics_dashboard(request):
+    """
+    Page tableau de bord analytique IA (graphiques + métriques clés).
+    """
+    # KPIs rapides (synchro)
+    total_posts = Post.objects.count()
+    total_images = Post.objects.filter(image__isnull=False).exclude(image="").count()
+    total_videos = Post.objects.filter(video__isnull=False).exclude(video="").count()
+    total_voice = Post.objects.filter(voice_note__isnull=False).exclude(voice_note="").count()
+
+    whisper_ok = AnalyticsEvent.objects.filter(event_type='whisper_ok').count()
+    whisper_fail = AnalyticsEvent.objects.filter(event_type='whisper_fail').count()
+    classify_ok = AnalyticsEvent.objects.filter(event_type='classify_ok').count()
+    classify_fail = AnalyticsEvent.objects.filter(event_type='classify_fail').count()
+
+    # Répartition par catégories IA (top)
+    category_counts = (
+        Post.objects.exclude(image_category__isnull=True)
+        .values('image_category')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    # Répartition par langues détectées (top)
+    lang_counts = (
+        Post.objects.exclude(detected_language__isnull=True)
+        .values('detected_language')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    context = {
+        'kpis': {
+            'total_posts': total_posts,
+            'total_images': total_images,
+            'total_videos': total_videos,
+            'total_voice': total_voice,
+            'whisper_ok': whisper_ok,
+            'whisper_fail': whisper_fail,
+            'classify_ok': classify_ok,
+            'classify_fail': classify_fail,
+        },
+        'category_counts': list(category_counts),
+        'lang_counts': list(lang_counts),
+    }
+    return render(request, 'analytics_dashboard.html', context)
+
+
+@login_required(login_url='/login/')
+def analytics_data(request):
+    """
+    API JSON pour alimenter Chart.js (données dynamiques).
+    """
+    # séries temporelles simples (7 derniers jours)
+    from django.utils import timezone
+    from datetime import timedelta
+
+    today = timezone.now().date()
+    days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+
+    def count_on(day, qs):
+        start = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.min.time()))
+        end = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.max.time()))
+        return qs.filter(created_at__gte=start, created_at__lte=end).count()
+
+    events = AnalyticsEvent.objects.all()
+    create_counts = [count_on(d, events.filter(event_type='create_post')) for d in days]
+    whisper_ok_counts = [count_on(d, events.filter(event_type='whisper_ok')) for d in days]
+    classify_ok_counts = [count_on(d, events.filter(event_type='classify_ok')) for d in days]
+
+    # Répartition courante par catégories et langues
+    cat = (
+        Post.objects.exclude(image_category__isnull=True)
+        .values('image_category')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    lang = (
+        Post.objects.exclude(detected_language__isnull=True)
+        .values('detected_language')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    return JsonResponse({
+        'success': True,
+        'series': {
+            'days': [d.strftime('%d/%m') for d in days],
+            'create_posts': create_counts,
+            'whisper_ok': whisper_ok_counts,
+            'classify_ok': classify_ok_counts,
+        },
+        'categories': list(cat),
+        'languages': list(lang),
+    })
+
+
+# ============================================
+# STORIES
+# ============================================
+@login_required(login_url='/login/')
+@require_http_methods(["POST"])
+def create_story(request):
+    """Créer une story (texte/image/vidéo) valable 24h."""
+    content_text = request.POST.get('content_text', '').strip() or None
+    image = request.FILES.get('image')
+    video = request.FILES.get('video')
+
+    if not content_text and not image and not video:
+        return JsonResponse({'success': False, 'error': 'Ajoutez un texte, une image ou une vidéo.'}, status=400)
+
+    story = Story.objects.create(user=request.user, content_text=content_text, image=image, video=video)
+    return JsonResponse({'success': True, 'story_id': story.id})
+
+
+@login_required(login_url='/login/')
+def list_stories(request):
+    """Lister les stories actives (24h) pour affichage léger."""
+    from django.utils import timezone
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(hours=24)
+    stories = Story.objects.filter(created_at__gte=cutoff).select_related('user', 'user__profile').order_by('-created_at')
+    data = []
+    for s in stories:
+        data.append({
+            'id': s.id,
+            'user': {
+                'id': s.user.id,
+                'name': f"{s.user.first_name} {s.user.last_name}".strip() or s.user.username,
+                'avatar': s.user.profile.avatar.url if s.user.profile.avatar else None,
+            },
+            'content_text': s.content_text,
+            'image': s.image.url if s.image else None,
+            'video': s.video.url if s.video else None,
+            'created_at': s.created_at.strftime('%d/%m/%Y %H:%M')
+        })
+    return JsonResponse({'success': True, 'stories': data})
+
+
+@login_required(login_url='/login/')
+def story_detail(request, story_id):
+    """Retourne le contenu d'une story et enregistre la vue."""
+    from django.utils import timezone
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(hours=24)
+    try:
+        story = Story.objects.select_related('user', 'user__profile').get(id=story_id, created_at__gte=cutoff)
+    except Story.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Story expirée ou introuvable'}, status=404)
+
+    # Enregistrer la vue (sauf pour l'auteur)
+    if request.user != story.user:
+        StoryView.objects.get_or_create(story=story, viewer=request.user)
+
+    return JsonResponse({
+        'success': True,
+        'story': {
+            'id': story.id,
+            'user': {
+                'id': story.user.id,
+                'name': f"{story.user.first_name} {story.user.last_name}".strip() or story.user.username,
+                'avatar': story.user.profile.avatar.url if story.user.profile.avatar else None,
+            },
+            'content_text': story.content_text,
+            'image': story.image.url if story.image else None,
+            'video': story.video.url if story.video else None,
+            'created_at': story.created_at.strftime('%d/%m/%Y %H:%M'),
+            'expires_at': (story.created_at + timezone.timedelta(hours=24)).strftime('%d/%m/%Y %H:%M'),
+            'views_count': story.views.count()
+        }
+    })
 # ============================================
 # VUE : SUPPRIMER UN POST
 # ============================================

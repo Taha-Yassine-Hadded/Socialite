@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Analytics de {{ profile_user.first_name }} {{ profile_user.last_name }}</h1>
+      <p class="text-gray-500 text-sm">Vue d’ensemble des performances et analyses IA</p>
+    </div>
+    <a href="{% url 'profile' profile.slug %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+      ← Retour au profil
+    </a>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <p class="text-sm text-gray-500">Total posts</p>
+      <p class="text-2xl font-semibold text-gray-900">{{ kpis.total_posts }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <p class="text-sm text-gray-500">Images / Vidéos / Voix</p>
+      <p class="text-2xl font-semibold text-gray-900">{{ kpis.total_images }} / {{ kpis.total_videos }} / {{ kpis.total_voice }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <p class="text-sm text-gray-500">Engagement (Likes)</p>
+      <p class="text-2xl font-semibold text-gray-900">{{ kpis.total_likes }}</p>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <p class="text-sm text-gray-500">Commentaires / Partages</p>
+      <p class="text-2xl font-semibold text-gray-900">{{ kpis.total_comments }} / {{ kpis.total_shares }}</p>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900">Catégories d’images (IA)</h3>
+      </div>
+      <canvas id="categoriesChart" height="180"></canvas>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-gray-900">Langues détectées (Whisper)</h3>
+      </div>
+      <canvas id="languagesChart" height="180"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function() {
+  const cats = {{ category_counts|safe|default:'[]' }};
+  const langs = {{ lang_counts|safe|default:'[]' }};
+
+  const catCtx = document.getElementById('categoriesChart');
+  const catLabels = cats.map(x => x.image_category || 'autre');
+  const catValues = cats.map(x => x.count);
+  new Chart(catCtx, {
+    type: 'bar',
+    data: { labels: catLabels, datasets: [{ label: 'Posts', data: catValues, backgroundColor: '#3b82f6' }] },
+    options: { scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+  });
+
+  const langCtx = document.getElementById('languagesChart');
+  const langLabels = langs.map(x => (x.detected_language || 'NA').toUpperCase());
+  const langValues = langs.map(x => x.count);
+  new Chart(langCtx, {
+    type: 'bar',
+    data: { labels: langLabels, datasets: [{ label: 'Posts', data: langValues, backgroundColor: '#10b981' }] },
+    options: { scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+  });
+})();
+</script>
+{% endblock %}

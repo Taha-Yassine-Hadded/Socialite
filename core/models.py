@@ -102,6 +102,16 @@ class Post(models.Model):
     video = models.FileField(upload_to='posts/videos/', blank=True, null=True, help_text="Vidéo du post")
     voice_note = models.FileField(upload_to='posts/voice_notes/', blank=True, null=True, help_text="Note vocale")
     
+    # IA - Transcription automatique de la note vocale (Whisper)
+    voice_transcription = models.TextField(blank=True, null=True, help_text="Transcription automatique de la note vocale")
+    detected_language = models.CharField(max_length=10, blank=True, null=True, help_text="Langue détectée (ex: fr, ar, en)")
+    
+    # IA - Classification automatique d'images de voyage (ResNet18)
+    image_category = models.CharField(max_length=50, blank=True, null=True, help_text="Catégorie détectée (beach, mountain, city, etc.)")
+    image_category_fr = models.CharField(max_length=50, blank=True, null=True, help_text="Catégorie en français")
+    image_confidence = models.FloatField(blank=True, null=True, help_text="Confiance de la prédiction (0-1)")
+    image_tags = models.JSONField(blank=True, null=True, help_text="Tags automatiques générés")
+    
     # Métadonnées
     location = models.CharField(max_length=200, blank=True, null=True, help_text="Lieu du post")
     
@@ -284,3 +294,91 @@ class Avis(models.Model):
 
     def __str__(self):
         return f"Avis {self.reviewer.username} → {self.reviewee.username} ({self.note}/5)"
+
+
+# ============================================
+# ANALYTICS (IA & Engagement)
+# ============================================
+class AnalyticsEvent(models.Model):
+    """
+    Événements analytiques pour le tableau de bord IA et d'engagement.
+    Permet d'agréger des métriques sans requêtes coûteuses en direct.
+    """
+    EVENT_TYPES = [
+        ('create_post', 'Création de post'),
+        ('view_feed', 'Vue du feed'),
+        ('analyze_image', 'Analyse image (pré-upload)'),
+        ('whisper_ok', 'Transcription réussie'),
+        ('whisper_fail', 'Transcription échouée'),
+        ('classify_ok', 'Classification image réussie'),
+        ('classify_fail', 'Classification image échouée'),
+    ]
+
+    event_type = models.CharField(max_length=32, choices=EVENT_TYPES)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='analytics_events')
+    post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True, related_name='analytics_events')
+
+    # Dimensions utiles
+    media_type = models.CharField(max_length=16, blank=True, null=True, help_text="text|image|video|voice|mixed")
+    image_category = models.CharField(max_length=50, blank=True, null=True)
+    detected_language = models.CharField(max_length=10, blank=True, null=True)
+    success = models.BooleanField(null=True, blank=True)
+    latency_ms = models.IntegerField(null=True, blank=True)
+
+    # Contenu brut/extra (JSON libre)
+    meta = models.JSONField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['event_type', 'created_at']),
+            models.Index(fields=['image_category']),
+            models.Index(fields=['detected_language']),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"AnalyticsEvent[{self.event_type}] user={getattr(self.user, 'id', None)} post={getattr(self.post, 'id', None)}"
+
+
+# ============================================
+# STORIES (24h)
+# ============================================
+from django.utils import timezone
+
+class Story(models.Model):
+    """Story type Instagram/Facebook. Expire après 24h."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='stories')
+    content_text = models.CharField(max_length=300, blank=True, null=True)
+    image = models.ImageField(upload_to='stories/images/', blank=True, null=True)
+    video = models.FileField(upload_to='stories/videos/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Story #{self.id} by {self.user.username}"
+
+    @property
+    def expires_at(self):
+        return self.created_at + timezone.timedelta(hours=24)
+
+    @property
+    def is_active(self):
+        return timezone.now() < self.expires_at
+
+
+class StoryView(models.Model):
+    """Qui a vu quelle story (pour stats/privacité)."""
+    story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name='views')
+    viewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='story_views')
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['story', 'viewer']
+        ordering = ['-viewed_at']
+
+    def __str__(self):
+        return f"view {self.viewer.username} -> story {self.story_id}"

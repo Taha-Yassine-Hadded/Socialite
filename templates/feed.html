@@ -10,127 +10,137 @@
     <!-- Colonne principale (fil d'actualité) -->
     <div class="max-w-[680px] mx-auto">
 
-        <!-- Section Stories (copiée de la deuxième page) -->
-        <div class="mb-8">
-            <h3 class="font-extrabold text-2xl text-black dark:text-white hidden"> Stories</h3>
-            <div class="relative" tabindex="-1" uk-slider="autoplay: true;finite: true" uk-lightbox="">
-                <div class="py-5 uk-slider-container">
-                    <ul class="uk-slider-items w-[calc(100%+14px)]"
-                        uk-scrollspy="target: > li; cls: uk-animation-scale-up; delay: 20;repeat:true">
-                        <li class="md:pr-3" uk-scrollspy-class="uk-animation-fade">
-                            <div class="md:w-16 md:h-16 w-12 h-12 rounded-full relative border-2 border-dashed grid place-items-center bg-slate-200 border-slate-300 dark:border-slate-700 dark:bg-dark2 shrink-0"
-                                uk-toggle="target: #create-story">
-                                <ion-icon name="camera" class="text-2xl"></ion-icon>
-                            </div>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-1.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-2.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-2.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-3.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-4.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-5.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-5.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-6.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-1.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-7.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-1.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-2.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-2.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-3.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-4.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-5.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-5.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-6.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2 hover:scale-[1.15] hover:-rotate-2 duration-300">
-                            <a href="{% static 'images/avatars/avatar-lg-1.webp' %}" data-caption="Caption 1">
-                                <div
-                                    class="md:w-16 md:h-16 w-12 h-12 relative md:border-4 border-2 shadow border-white rounded-full overflow-hidden dark:border-slate-700">
-                                    <img src="{% static 'images/avatars/avatar-7.webp' %}" alt=""
-                                        class="absolute w-full h-full object-cover">
-                                </div>
-                            </a>
-                        </li>
-                        <li class="md:pr-3 pr-2">
-                            <div
-                                class="md:w-16 md:h-16 w-12 h-12 bg-slate-200/60 rounded-full dark:bg-dark2 animate-pulse">
-                            </div>
-                        </li>
-                    </ul>
+        <!-- Stories dynamiques -->
+        <div class="mb-6 bg-white rounded-xl shadow-sm p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="font-semibold text-gray-800">Stories</div>
+                <form id="create-story-form" class="flex items-center gap-2" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="text" name="content_text" placeholder="Ajouter une story (texte)" class="hidden md:block bg-gray-100 rounded-full px-4 py-2 text-sm">
+                    <label class="cursor-pointer bg-gray-100 px-3 py-2 rounded-full text-sm">📷<input type="file" name="image" accept="image/*" class="hidden"></label>
+                    <label class="cursor-pointer bg-gray-100 px-3 py-2 rounded-full text-sm">🎬<input type="file" name="video" accept="video/*" class="hidden"></label>
+                    <button type="submit" class="bg-blue-600 text-white text-sm px-4 py-2 rounded-full hover:bg-blue-700">Publier</button>
+                </form>
+            </div>
+            <div class="flex items-center gap-4 overflow-x-auto no-scrollbar">
+                {% for s in stories %}
+                <button class="flex-shrink-0 w-16 text-center" data-story-id="{{ s.id }}">
+                    <div class="w-16 h-16 rounded-full border-4 border-blue-500 overflow-hidden mx-auto">
+                        {% if s.image %}
+                        <img src="{{ s.image.url }}" class="w-full h-full object-cover" alt="story">
+                        {% elif s.video %}
+                        <div class="w-full h-full bg-black grid place-items-center text-white text-xs">VID</div>
+                        {% else %}
+                        <div class="w-full h-full bg-gray-200 grid place-items-center text-gray-600 text-xs">TXT</div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-1 text-[11px] text-gray-600 truncate">{{ s.user.first_name|default:s.user.username }}</div>
+                </button>
+                {% empty %}
+                <div class="text-sm text-gray-500">Aucune story pour le moment. Créez la vôtre !</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Modal Story -->
+        <div id="story-modal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-50">
+            <div class="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 border-b">
+                    <div class="flex items-center gap-2" id="story-user"></div>
+                    <button class="text-gray-600 hover:text-black" onclick="closeStoryModal()">✖</button>
                 </div>
-                <div class="max-md:hidden">
-                    <button type="button"
-                        class="absolute -translate-y-1/2 bg-white shadow rounded-full top-1/2 -left-3.5 grid w-8 h-8 place-items-center dark:bg-dark3"
-                        uk-slider-item="previous"> <ion-icon name="chevron-back" class="text-2xl"></ion-icon></button>
-                    <button type="button"
-                        class="absolute -right-2 -translate-y-1/2 bg-white shadow rounded-full top-1/2 grid w-8 h-8 place-items-center dark:bg-dark3"
-                        uk-slider-item="next"> <ion-icon name="chevron-forward" class="text-2xl"></ion-icon> </button>
+                <!-- Progress 10s -->
+                <div class="w-full h-1 bg-gray-200">
+                    <div id="story-progress" class="h-1 bg-blue-600 w-0"></div>
+                </div>
+                <div id="story-content" class="p-0"></div>
+                <div class="px-4 py-2 text-xs text-gray-500 flex justify-between">
+                    <span id="story-time"></span>
+                    <span id="story-views"></span>
                 </div>
             </div>
         </div>
 
+        <script>
+        document.getElementById('create-story-form').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const form = e.target;
+            const fd = new FormData(form);
+            try {
+                const res = await fetch('{% url "create_story" %}', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-CSRFToken': getCsrfToken() }
+                });
+                const data = await res.json();
+                if(data.success){ location.reload(); }
+                else{ alert(data.error || 'Erreur lors de la création de la story'); }
+            } catch(err){ console.error(err); alert('Erreur réseau'); }
+        });
+
+        // Open story modal
+        document.querySelectorAll('[data-story-id]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-story-id');
+                try {
+                    const res = await fetch(`/stories/${id}/`);
+                    const data = await res.json();
+                    if(!data.success) return alert(data.error || 'Story indisponible');
+                    const s = data.story;
+                    const userDiv = document.getElementById('story-user');
+                    userDiv.innerHTML = `
+                        <img src="${s.user.avatar || ''}" onerror="this.style.display='none'" class="w-8 h-8 rounded-full object-cover" />
+                        <div class="text-sm font-semibold">${s.user.name}</div>
+                    `;
+                    const contentDiv = document.getElementById('story-content');
+                    if(s.image){
+                        contentDiv.innerHTML = `<img src="${s.image}" class="w-full max-h-[70vh] object-contain">`;
+                    } else if(s.video){
+                        contentDiv.innerHTML = `<video src="${s.video}" class="w-full max-h-[70vh] bg-black" controls autoplay></video>`;
+                    } else {
+                        contentDiv.innerHTML = `<div class="p-6 text-lg">${s.content_text || ''}</div>`;
+                    }
+                    document.getElementById('story-time').textContent = `Posté: ${s.created_at}`;
+                    document.getElementById('story-views').textContent = `${s.views_count} vues`;
+                    openStoryModal();
+                } catch(err){ alert('Erreur de chargement de la story'); }
+            })
+        });
+
+        let storyAutoCloseTimer = null;
+        function openStoryModal(){
+            const modal = document.getElementById('story-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.addEventListener('click', (e)=>{ if(e.target.id === 'story-modal'){ closeStoryModal(); } });
+            // Auto close after 10s
+            if(storyAutoCloseTimer){ clearTimeout(storyAutoCloseTimer); }
+            storyAutoCloseTimer = setTimeout(()=>{ closeStoryModal(); }, 10000);
+            // Allow Esc to close
+            document.addEventListener('keydown', escCloser, { once: true });
+            // Animate progress line 0% -> 100% over 10s
+            const prog = document.getElementById('story-progress');
+            if (prog){
+                prog.style.transition = 'none';
+                prog.style.width = '0%';
+                // force reflow
+                void prog.offsetWidth;
+                prog.style.transition = 'width 10s linear';
+                prog.style.width = '100%';
+            }
+        }
+        function closeStoryModal(){
+            const modal = document.getElementById('story-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            const contentDiv = document.getElementById('story-content');
+            contentDiv.innerHTML = '';
+            if(storyAutoCloseTimer){ clearTimeout(storyAutoCloseTimer); storyAutoCloseTimer = null; }
+            const prog = document.getElementById('story-progress');
+            if (prog){ prog.style.transition = 'none'; prog.style.width = '0%'; }
+        }
+        function escCloser(ev){ if(ev.key === 'Escape'){ closeStoryModal(); } }
+        </script>
         <!-- Fil d'actualité (contenu original) -->
         <div class="md:max-w-[580px] mx-auto flex-1 xl:space-y-6 space-y-3">
             <!-- Bouton Créer un post -->
@@ -141,7 +151,7 @@
                     {% else %}
                         <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
                             {{ request.user.first_name.0|upper }}
-                        </div>
+                    </div>
                     {% endif %}
                     <div class="flex-1 bg-gray-100 rounded-full px-4 py-3 text-gray-500">
                         Quoi de neuf, {{ request.user.first_name }} ?
@@ -160,8 +170,115 @@
                         </svg>
                         Vidéo
                     </a>
+                        </div>
+                            </div>
+
+            <!-- 🔍 Filtres par catégorie d'image (IA) - Dropdown Compact -->
+            <div class="bg-white rounded-xl shadow-sm p-3 mb-6">
+                <div class="flex items-center gap-3">
+                    <!-- Icône filtre -->
+                    <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                    </svg>
+                    
+                    <!-- Dropdown -->
+                    <div class="relative flex-1" x-data="{ open: false }" @click.away="open = false">
+                        <!-- Bouton Dropdown -->
+                        <button @click="open = !open" 
+                                class="w-full flex items-center justify-between px-4 py-2.5 rounded-lg border-2 transition-all duration-200
+                                       {% if current_category != 'all' %}
+                                           bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-600 shadow-md hover:shadow-lg
+                                       {% else %}
+                                           bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-gray-50
+                                       {% endif %}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-lg">
+                                    {% for category in categories %}
+                                        {% if current_category == category.id %}{{ category.icon }}{% endif %}
+                                    {% endfor %}
+                                </span>
+                                <span class="font-semibold text-sm">
+                                    Filtrer : 
+                                    {% for category in categories %}
+                                        {% if current_category == category.id %}
+                                            {{ category.name }}
+                                            <span class="{% if current_category != 'all' %}text-blue-100{% else %}text-blue-600{% endif %} font-bold">
+                                                ({{ category.count }})
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                            </div>
+                            <svg class="w-5 h-5 transition-transform duration-200" 
+                                 :class="{'rotate-180': open}" 
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Menu Dropdown -->
+                        <div x-show="open" 
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden"
+                             style="display: none;">
+                            <div class="py-2 max-h-80 overflow-y-auto">
+                                {% for category in categories %}
+                                <a href="?category={{ category.id }}" 
+                                   class="flex items-center justify-between px-4 py-3 transition-colors duration-150
+                                          {% if current_category == category.id %}
+                                              bg-blue-50 text-blue-700 border-l-4 border-blue-600
+                                          {% else %}
+                                              text-gray-700 hover:bg-gray-50 border-l-4 border-transparent
+                                          {% endif %}">
+                                    <div class="flex items-center gap-3">
+                                        {% if current_category == category.id %}
+                                        <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        {% else %}
+                                        <span class="w-4"></span>
+                                        {% endif %}
+                                        <span class="text-xl">{{ category.icon }}</span>
+                                        <span class="font-medium">{{ category.name }}</span>
+                                    </div>
+                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold
+                                                 {% if current_category == category.id %}
+                                                     bg-blue-600 text-white
+                                                 {% else %}
+                                                     {% if category.count > 0 %}
+                                                         bg-blue-100 text-blue-700
+                                                     {% else %}
+                                                         bg-gray-100 text-gray-400
+                                                     {% endif %}
+                                                 {% endif %}">
+                                        {{ category.count }}
+                                    </span>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bouton Effacer (visible seulement si filtre actif) -->
+                    {% if current_category != 'all' %}
+                    <a href="?" 
+                       class="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-200 text-sm font-medium border-2 border-red-200 hover:border-red-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Effacer</span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
+            
+            <!-- Alpine.js pour le dropdown -->
+            <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
             <!-- Liste des posts -->
             {% if posts %}
@@ -169,14 +286,14 @@
                 <div class="bg-white rounded-xl shadow-lg mb-6 overflow-hidden" data-post-id="{{ post.id }}">
                     <!-- En-tête du post -->
                     <div class="p-4 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3">
                             <a href="{% url 'profile' post.user.profile.slug %}">
                                 {% if post.user.profile.avatar %}
                                     <img src="{{ post.user.profile.avatar.url }}" alt="{{ post.user.username }}" class="w-12 h-12 rounded-full object-cover">
                                 {% else %}
                                     <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
                                         {{ post.user.first_name.0|upper }}
-                                    </div>
+                    </div>
                                 {% endif %}
                             </a>
                             <div>
@@ -200,10 +317,10 @@
                                     {% elif post.visibility == 'private' %}
                                         <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">🔒 Privé</span>
                                     {% endif %}
-                                </div>
-                            </div>
+                </div>
                         </div>
-                        
+                    </div>
+
                         <!-- Menu options (si c'est notre post) -->
                         {% if post.user == request.user %}
                         <div class="relative">
@@ -211,7 +328,7 @@
                                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
                                 </svg>
-                            </button>
+                    </button>
                             <div id="menu-{{ post.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10">
                                 <button onclick="startEditPost({{ post.id }})" class="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg">
                                     ✏️ Modifier
@@ -219,10 +336,10 @@
                                 <button onclick="deletePost({{ post.id }})" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
                                     🗑️ Supprimer
                                 </button>
+                </div>
                             </div>
-                        </div>
                         {% endif %}
-                    </div>
+                        </div>
 
                     <!-- Contenu texte -->
                     {% if post.content %}
@@ -238,9 +355,9 @@
                                 <button onclick="cancelPostEdit({{ post.id }})" class="bg-gray-300 text-gray-700 px-4 py-1 rounded-lg hover:bg-gray-400 transition">
                                     ❌ Annuler
                                 </button>
-                            </div>
-                        </div>
                     </div>
+                </div>
+            </div>
                     {% endif %}
 
                     <!-- Image -->
@@ -248,6 +365,35 @@
                     <div class="w-full">
                         <img src="{{ post.image.url }}" alt="Post image" class="w-full object-cover max-h-[600px]">
                     </div>
+
+                    <!-- ✅ IA : Classification automatique d'image (ResNet18) -->
+                    <!-- CACHÉ : Les tags sont maintenant générés AVANT publication -->
+                    {% comment %}
+                    {% if post.image_category %}
+                    <div class="px-4 pb-3 pt-3">
+                        <div class="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-4 border-2 border-green-200">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                                    🤖 IA - CATÉGORIE DÉTECTÉE
+                                </span>
+                                <span class="text-sm font-semibold text-gray-800">
+                                    {{ post.image_category_fr|title }} 
+                                    <span class="text-green-600">({{ post.image_confidence|floatformat:0 }}%)</span>
+                                </span>
+                        </div>
+                            {% if post.image_tags %}
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                {% for tag in post.image_tags %}
+                                <span class="text-xs bg-teal-100 text-teal-700 px-3 py-1 rounded-full font-medium">
+                                    #{{ tag }}
+                                </span>
+                                {% endfor %}
+                    </div>
+                            {% endif %}
+                </div>
+                </div>
+                    {% endif %}
+                    {% endcomment %}
                     {% endif %}
 
                     <!-- Vidéo -->
@@ -257,23 +403,84 @@
                             <source src="{{ post.video.url }}" type="video/mp4">
                             Votre navigateur ne supporte pas la vidéo.
                         </video>
+                        </div>
+                    
+                    <!-- ✅ IA : Transcription automatique de l'audio de la vidéo (Whisper) -->
+                    {% if post.voice_transcription %}
+                    <div class="px-4 pb-3">
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-200">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                                    🤖 IA - TRANSCRIPTION AUDIO DE LA VIDÉO
+                                </span>
+                                {% if post.detected_language %}
+                                <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                                    {% if post.detected_language == 'fr' %}🇫🇷 Français
+                                    {% elif post.detected_language == 'ar' %}🇹🇳 العربية
+                                    {% elif post.detected_language == 'en' %}🇬🇧 English
+                                    {% else %}🌍 {{ post.detected_language|upper }}
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-gray-800 italic leading-relaxed">
+                                "{{ post.voice_transcription }}"
+                            </p>
+                        </div>
                     </div>
+                    {% endif %}
                     {% endif %}
 
                     <!-- Note vocale -->
                     {% if post.voice_note %}
                     <div class="px-4 pb-3">
-                        <div class="bg-gray-100 rounded-lg p-4">
-                            <div class="flex items-center gap-3">
-                                <svg class="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
-                                </svg>
-                                <audio controls class="flex-1">
-                                    <source src="{{ post.voice_note.url }}">
-                                </audio>
-                            </div>
+                        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border-2 border-purple-200">
+                            <!-- Lecteur audio -->
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="bg-purple-600 text-white rounded-full p-2 flex-shrink-0">
+                                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd"></path>
+                                    </svg>
+                        </div>
+                        <div class="flex-1">
+                                    <span class="text-sm font-bold text-purple-700 block mb-1">🎤 Note vocale</span>
+                                    <audio controls class="w-full">
+                                        <source src="{{ post.voice_note.url }}">
+                                        Votre navigateur ne supporte pas l'élément audio.
+                                    </audio>
                         </div>
                     </div>
+                            
+                            <!-- ✅ IA : Transcription automatique (Whisper) -->
+                            {% if post.voice_transcription %}
+                            <div class="bg-white p-3 rounded-lg border-2 border-purple-300 shadow-sm">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded-full">
+                                        🤖 IA - TRANSCRIPTION AUTOMATIQUE
+                                    </span>
+                                    {% if post.detected_language %}
+                                    <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                                        {% if post.detected_language == 'fr' %}🇫🇷 Français
+                                        {% elif post.detected_language == 'ar' %}🇹🇳 العربية
+                                        {% elif post.detected_language == 'en' %}🇬🇧 English
+                                        {% else %}🌍 {{ post.detected_language|upper }}
+                                        {% endif %}
+                                    </span>
+                                    {% endif %}
+                        </div>
+                                <p class="text-gray-800 italic leading-relaxed">
+                                    "{{ post.voice_transcription }}"
+                                </p>
+                    </div>
+                            {% else %}
+                            <div class="text-center py-2">
+                                <span class="text-xs text-gray-500 italic">
+                                    ⏳ Transcription en cours... (rafraîchissez la page)
+                                </span>
+                </div>
+                            {% endif %}
+                            </div>
+                        </div>
                     {% endif %}
 
                     <!-- Post partagé (si c'est un partage) -->
@@ -285,15 +492,15 @@
                             {% else %}
                                 <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
                                     {{ post.shared_post.user.first_name.0|upper }}
-                                </div>
+                    </div>
                             {% endif %}
                             <span class="font-semibold">{{ post.shared_post.user.first_name }} {{ post.shared_post.user.last_name }}</span>
-                        </div>
+                </div>
                         <p class="text-gray-700">{{ post.shared_post.content|truncatewords:30 }}</p>
                         {% if post.shared_post.image %}
                             <img src="{{ post.shared_post.image.url }}" alt="" class="mt-2 rounded-lg max-h-48 object-cover">
                         {% endif %}
-                    </div>
+            </div>
                     {% endif %}
 
                     <!-- Statistiques (Likes, Comments, Shares) -->
@@ -307,12 +514,12 @@
                                     </span>
                                 {% endif %}
                             </span>
-                        </div>
+                    </div>
                         <div class="flex items-center gap-4 text-sm text-gray-600">
                             <span>{{ post.comments_count }} commentaires</span>
                             <span>{{ post.shares_count }} partages</span>
-                        </div>
-                    </div>
+                </div>
+                </div>
 
                     <!-- Actions (Like, Comment, Share) -->
                     <div class="px-4 py-2 flex justify-around border-t border-gray-200">
@@ -344,8 +551,8 @@
                                 <button onclick="reactToPost({{ post.id }}, 'wow')" class="text-3xl hover:scale-125 transition" title="Wow">😮</button>
                                 <button onclick="reactToPost({{ post.id }}, 'sad')" class="text-3xl hover:scale-125 transition" title="Triste">😢</button>
                                 <button onclick="reactToPost({{ post.id }}, 'angry')" class="text-3xl hover:scale-125 transition" title="Grrr">😠</button>
-                            </div>
-                        </div>
+            </div>
+        </div>
 
                         <!-- Bouton Commentaire -->
                         <button onclick="toggleComments('comments-{{ post.id }}')" class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-600 rounded-lg hover:bg-gray-100 transition">
@@ -362,7 +569,7 @@
                             </svg>
                             <span>Partager</span>
                         </button>
-                    </div>
+    </div>
 
                     <!-- Section Commentaires (masquée par défaut) -->
                     <div id="comments-{{ post.id }}" class="hidden border-t border-gray-200">
@@ -377,7 +584,7 @@
                                         {{ request.user.first_name.0|upper }}
                                     </div>
                                 {% endif %}
-                                <div class="flex-1">
+    <div class="flex-1">
                                     <div class="flex gap-2">
                                         <input type="text" name="content" placeholder="Écrivez un commentaire ou ajoutez une image..." 
                                                class="flex-1 bg-gray-100 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -396,8 +603,8 @@
                                         <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition">
                                             Envoyer
                                         </button>
-                                    </div>
-                                    
+                </div>
+
                                     <!-- Prévisualisation de l'image -->
                                     <div id="comment-image-preview-{{ post.id }}" class="hidden mt-2">
                                         <div class="relative inline-block">
@@ -407,11 +614,11 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                 </svg>
                                             </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
                         </div>
+                    </div>
+                        </div>
+                            </form>
+                    </div>
 
                         <!-- Liste des commentaires -->
                         <div id="comments-list-{{ post.id }}" class="px-4 pb-4 space-y-3">
@@ -423,9 +630,9 @@
                                     {% else %}
                                         <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
                                             {{ comment.user.first_name.0|upper }}
-                                        </div>
+                        </div>
                                     {% endif %}
-                                    <div class="flex-1">
+                        <div class="flex-1">
                                         <div class="bg-gray-100 rounded-lg px-4 py-2">
                                             <a href="{% url 'profile' comment.user.profile.slug %}" class="font-semibold text-sm hover:underline">
                                                 {{ comment.user.first_name }} {{ comment.user.last_name }}
@@ -436,7 +643,7 @@
                                             {% if comment.image %}
                                             <div class="mt-2">
                                                 <img src="{{ comment.image.url }}" alt="Comment image" class="rounded-lg max-h-48 object-cover">
-                                            </div>
+                        </div>
                                             {% endif %}
                                             
                                             <!-- Zone d'édition (cachée par défaut) -->
@@ -445,9 +652,9 @@
                                                 <div class="flex gap-2 mt-2">
                                                     <button onclick="saveCommentEdit({{ comment.id }})" class="px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs">💾 Enregistrer</button>
                                                     <button onclick="cancelCommentEdit({{ comment.id }})" class="px-4 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 text-xs">❌ Annuler</button>
-                                                </div>
-                                            </div>
-                                        </div>
+                </div>
+            </div>
+                </div>
                                         <div class="flex items-center gap-4 mt-1 text-xs text-gray-500 px-4">
                                             <span>{{ comment.created_at|timesince }} ago</span>
                                             <!-- Sélecteur de réactions pour commentaire -->
@@ -466,9 +673,9 @@
                                                     <button onclick="reactToComment({{ comment.id }}, 'wow')" class="text-2xl hover:scale-125 transition">😮</button>
                                                     <button onclick="reactToComment({{ comment.id }}, 'sad')" class="text-2xl hover:scale-125 transition">😢</button>
                                                     <button onclick="reactToComment({{ comment.id }}, 'angry')" class="text-2xl hover:scale-125 transition">😠</button>
-                                                </div>
-                                            </div>
-                                            <button class="hover:underline">Répondre</button>
+                                        </div>
+                                    </div>
+                                            <button class="hover:underline" onclick="startReply({{ comment.id }}, {{ post.id }})">Répondre</button>
                                             {% if comment.user == request.user %}
                                                 <button onclick="startEditComment({{ comment.id }})" class="hover:underline text-blue-600">✏️ Modifier</button>
                                                 <button onclick="deleteComment({{ comment.id }}, {{ post.id }})" class="hover:underline text-red-600">🗑️ Supprimer</button>
@@ -477,11 +684,19 @@
                                                 <span class="text-blue-600 comment-likes-{{ comment.id }}">👍 {{ comment.likes_count }}</span>
                                             {% endif %}
                                         </div>
+                                        <!-- Inline reply form (hidden by default) -->
+                                        <div id="reply-box-{{ comment.id }}" class="hidden mt-2 pl-12">
+                                            <form onsubmit="submitReply(event, {{ post.id }}, {{ comment.id }})" class="flex gap-2">
+                                                {% csrf_token %}
+                                                <input type="text" name="content" placeholder="Votre réponse..." class="flex-1 bg-gray-100 rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700">Répondre</button>
+                                            </form>
+                                        </div>
                                     </div>
-                                </div>
+                                        </div>
                                 {% endif %}
                             {% endfor %}
-                        </div>
+                                    </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -491,15 +706,23 @@
                     <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
                     </svg>
-                    <h3 class="text-xl font-bold text-gray-700 mb-2">Aucune publication pour le moment</h3>
-                    <p class="text-gray-500 mb-6">Soyez le premier à partager quelque chose !</p>
-                    <a href="{% url 'create_post' %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
-                        📝 Créer une publication
-                    </a>
-                </div>
+                    {% if current_category != 'all' %}
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">🔍 Aucune publication trouvée</h3>
+                        <p class="text-gray-500 mb-6">Aucun post de cette catégorie pour le moment.</p>
+                        <a href="?" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                            🌍 Voir tous les posts
+                        </a>
+                    {% else %}
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">Aucune publication pour le moment</h3>
+                        <p class="text-gray-500 mb-6">Soyez le premier à partager quelque chose !</p>
+                        <a href="{% url 'create_post' %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                            📝 Créer une publication
+                        </a>
+                    {% endif %}
+                        </div>
             {% endif %}
-        </div>
-    </div>
+                        </div>
+                        </div>
 
     <!-- Sidebar (cartes statiques : Pro Members et autres) -->
     <div class="flex-1">
@@ -586,31 +809,31 @@
                     <ul class="space-y-4">
                         <li>
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3">
                                     <img src="{% static 'images/avatars/avatar-1.webp' %}" alt=""
                                         class="w-10 h-10 rounded-full object-cover">
                                     <div>
                                         <h5 class="font-semibold text-sm">Sarah Johnson</h5>
                                         <div class="text-xs text-gray-400">8K Followers</div>
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
                                 <button type="button"
                                     class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Add Friend</button>
                             </div>
                         </li>
                         <li>
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3">
                                     <img src="{% static 'images/avatars/avatar-2.webp' %}" alt=""
                                         class="w-10 h-10 rounded-full object-cover">
                                     <div>
                                         <h5 class="font-semibold text-sm">Michael Chen</h5>
                                         <div class="text-xs text-gray-400">5K Followers</div>
-                                    </div>
-                                </div>
+                            </div>
+                        </div>
                                 <button type="button"
                                     class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Add Friend</button>
-                            </div>
+                </div>
                         </li>
                         <li>
                             <div class="flex items-center justify-between">
@@ -620,21 +843,21 @@
                                     <div>
                                         <h5 class="font-semibold text-sm">Emily Davis</h5>
                                         <div class="text-xs text-gray-400">10K Followers</div>
-                                    </div>
-                                </div>
-                                <button type="button"
+            </div>
+                        </div>
+                        <button type="button"
                                     class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Add Friend</button>
-                            </div>
+                    </div>
                         </li>
                     </ul>
-                </div>
-            </div>
+                                </div>
+                                    </div>
 
             <!-- Suggested Groups -->
             <div class="box p-5 px-6 border1 dark:bg-dark2 mt-4">
                 <div class="flex justify-between text-black dark:text-white">
                     <h3 class="font-bold text-base">Suggested Groups</h3>
-                </div>
+                                </div>
                 <div class="mt-4">
                     <ul class="space-y-4">
                         <li>
@@ -645,15 +868,15 @@
                                     <div>
                                         <h5 class="font-semibold text-sm">Photography Club</h5>
                                         <div class="text-xs text-gray-400">25K Members</div>
-                                    </div>
-                                </div>
-                                <button type="button"
-                                    class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Join Group</button>
                             </div>
+                                </div>
+                                        <button type="button"
+                                    class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Join Group</button>
+                                    </div>
                         </li>
                         <li>
                             <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-3">
                                     <img src="{% static 'images/group/group-2.webp' %}" alt=""
                                         class="w-10 h-10 rounded-full object-cover">
                                     <div>
@@ -661,39 +884,35 @@
                                         <div class="text-xs text-gray-400">15K Members</div>
                                     </div>
                                 </div>
-                                <button type="button"
+                        <button type="button"
                                     class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Join Group</button>
-                            </div>
+                    </div>
                         </li>
                         <li>
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-3">
                                     <img src="{% static 'images/group/group-3.webp' %}" alt=""
                                         class="w-10 h-10 rounded-full object-cover">
-                                    <div>
+                        <div>
                                         <h5 class="font-semibold text-sm">Travel Lovers</h5>
                                         <div class="text-xs text-gray-400">20K Members</div>
-                                    </div>
-                                </div>
-                                <button type="button"
+                                        </div>
+                                        </div>
+                            <button type="button"
                                     class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Join Group</button>
-                            </div>
+                        </div>
                         </li>
                     </ul>
                 </div>
             </div>
 
-        </div>
-    </div>
+                    </div>
+                        </div>
 
-</div>
+            </div>
 
 <!-- Scripts nécessaires pour les stories et les cartes -->
-<script src="{% static 'js/uikit.min.js' %}"></script>
-<script src="{% static 'js/simplebar.js' %}"></script>
-<script src="{% static 'js/script.js' %}"></script>
-<script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
-<script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+            
 
 <!-- Script JavaScript original de la première page -->
 <script>
@@ -926,6 +1145,38 @@ function addEmojiToInput(postId, emoji) {
     document.getElementById(`emoji-popup-${postId}`)?.remove();
 }
 
+// ================================
+// RÉPONDRE À UN COMMENTAIRE (UI)
+// ================================
+function startReply(commentId, postId){
+    const box = document.getElementById(`reply-box-${commentId}`);
+    if (box){
+        box.classList.toggle('hidden');
+        const input = box.querySelector('input[name="content"]');
+        if (input){ input.focus(); }
+    }
+}
+
+async function submitReply(evt, postId, parentId){
+    evt.preventDefault();
+    const form = evt.target;
+    const content = form.querySelector('input[name="content"]').value.trim();
+    if(!content){ alert('Écris une réponse.'); return; }
+    const fd = new FormData();
+    fd.append('content', content);
+    fd.append('parent_id', parentId);
+    try{
+        const res = await fetch(`/posts/${postId}/comments/`, {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-CSRFToken': getCsrfToken() }
+        });
+        const data = await res.json();
+        if(data.success){ location.reload(); }
+        else{ alert(data.error || 'Réponse impossible'); }
+    }catch(e){ console.error(e); alert('Erreur réseau'); }
+}
+
 // ============================================
 // AJOUTER UN COMMENTAIRE (avec support image)
 // ============================================
@@ -992,9 +1243,12 @@ async function reactToComment(commentId, reactionType = 'like') {
                     likesSpan.textContent = '';
                 }
             }
+        } else {
+            alert(data.error || 'Action impossible');
         }
     } catch (error) {
         console.error('Erreur:', error);
+        alert('Erreur réseau lors de la réaction');
     }
 }
 
@@ -1185,4 +1439,4 @@ async function deleteComment(commentId, postId) {
     }
 }
 </script>
-{% endblock %}
+            {% endblock %}
