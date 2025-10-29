@@ -12,7 +12,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),  # ← AJOUTEZ CETTE LIGNE
     # Timeline pages
     path('follow-unfollow/', views.follow_unfollow, name='follow_unfollow'),
-
+    path('plan-together/', views.plan_together, name='plan_together'),
     path('timeline/', views.timeline, name='timeline'),
     path('timeline-event/', views.timeline_event, name='timeline_event'),
     path('timeline-funding/', views.timeline_funding, name='timeline_funding'),
@@ -63,6 +63,9 @@ urlpatterns = [
     # Single page
     path('single/', views.single, name='single'),
     
+     # Places page
+    path('place/', views.place, name='place'),
+
     # Profile
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change-password/', views.change_password, name='change_password'),

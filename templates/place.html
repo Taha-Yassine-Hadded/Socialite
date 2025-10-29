@@ -1,0 +1,695 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Socialite - Travel Recommendations{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --secondary-color: #e5e7eb;
+        --secondary-hover: #d1d5db;
+        --danger-color: #ef4444;
+        --danger-hover: #dc2626;
+        --success-color: #10b981;
+        --success-hover: #059669;
+        --text-primary: #1f2937;
+        --text-secondary: #6b7280;
+        --bg-light: #f9fafb;
+        --bg-dark: #1f2937;
+        --border-light: #d1d5db;
+        --border-dark: #4b5563;
+    }
+
+    .dark {
+        --primary-color: #60a5fa;
+        --primary-hover: #3b82f6;
+        --secondary-color: #4b5563;
+        --secondary-hover: #6b7280;
+        --danger-color: #f87171;
+        --danger-hover: #ef4444;
+        --success-color: #34d399;
+        --success-hover: #10b981;
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        --bg-light: #1f2937;
+        --bg-dark: #111827;
+        --border-light: #4b5563;
+        --border-dark: #374151;
+    }
+
+    /* Compact Filters */
+    .filter-section {
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+        background: var(--bg-light);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .filter-section h3 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+    }
+    .filter-item {
+        display: flex;
+        flex-direction: column;
+    }
+    .filter-item label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+    }
+    .filter-item select {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-light);
+        color: var(--text-primary);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
+    }
+    .dark .filter-item select {
+        border-color: var(--border-dark);
+        background: var(--bg-dark);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    }
+    .filter-item select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 6px;
+        margin: 0.5rem 0.5rem 0 0;
+        transition: all 0.2s ease;
+    }
+    .tag:hover {
+        opacity: 0.9;
+    }
+    .tag button {
+        margin-left: 0.5rem;
+        padding: 0.25rem;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+    .tag button:hover {
+        background: rgba(0,0,0,0.1);
+    }
+    .dark .tag button:hover {
+        background: rgba(255,255,255,0.1);
+    }
+    .clear-filters {
+        font-size: 0.875rem;
+        color: var(--danger-color);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        transition: color 0.2s;
+    }
+    .clear-filters:hover {
+        color: var(--danger-hover);
+    }
+    .filter-count {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+
+    /* Compact Cards */
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        background: var(--bg-light);
+    }
+    .card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .card-media {
+        height: 140px;
+        position: relative;
+        overflow: hidden;
+    }
+    .card-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    .card:hover .card-media img {
+        transform: scale(1.1);
+    }
+    .card-body {
+        padding: 1.25rem;
+    }
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+    .card-subtitle {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+    .card-details p {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+    .card-details .label {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    .card-details .description {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+        max-height: 4.2rem; /* Limite à 3 lignes environ */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+    .tag-blue { background: #dbeafe; color: #1e40af; }
+    .tag-green { background: #dcfce7; color: #166534; }
+    .tag-purple { background: #f3e8ff; color: #6b21a8; }
+    .tag-cyan { background: #cffafe; color: #0e7490; }
+    .tag-pink { background: #fce7f3; color: #9d174d; }
+    .tag-orange { background: #ffedd5; color: #c2410c; }
+    .tag-yellow { background: #fefcbf; color: #a16207; }
+    .tag-red { background: #fee2e2; color: #991b1b; }
+    .dark .tag-blue { background: #1e40af; color: #dbeafe; }
+    .dark .tag-green { background: #166534; color: #dcfce7; }
+    .dark .tag-purple { background: #6b21a8; color: #f3e8ff; }
+    .dark .tag-cyan { background: #0e7490; color: #cffafe; }
+    .dark .tag-pink { background: #9d174d; color: #fce7f3; }
+    .dark .tag-orange { background: #c2410c; color: #ffedd5; }
+    .dark .tag-yellow { background: #a16207; color: #fefcbf; }
+    .dark .tag-red { background: #991b1b; color: #fee2e2; }
+    .button {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .button.bg-primary {
+        background: var(--success-color);
+        color: #fff;
+    }
+    .button.bg-primary:hover {
+        background: var(--success-hover);
+    }
+    .button.bg-secondery {
+        background: var(--secondary-color);
+        color: var(--text-primary);
+    }
+    .button.bg-secondery:hover {
+        background: var(--secondary-hover);
+    }
+    .button i {
+        margin-right: 0.5rem;
+    }
+</style>
+
+<div class="2xl:max-w-[1280px] max-w-[1100px] mx-auto px-4">
+    <!-- Page Heading -->
+    <div class="page-heading mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Explore Your Next Adventure</h1>
+        <nav class="nav__underline mt-3">
+            <ul class="group flex gap-6" uk-switcher="connect: #recommendation-tabs; animation: uk-animation-slide-right-medium, uk-animation-slide-left-medium">
+                <li><a href="#" class="text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary">For You</a></li>
+                <li><a href="#" class="text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary">Discover Home</a></li>
+                <li><a href="#" class="text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary">Places You Might Like</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filter-section">
+        <div class="flex items-center justify-between mb-4">
+            <h3><i class="fas fa-filter mr-2"></i>Refine Your Search</h3>
+            <button type="button" id="clearAllFilters" class="clear-filters"><i class="fas fa-times-circle mr-2"></i>Clear All</button>
+        </div>
+        <div class="filter-grid">
+            <!-- Continent Filter -->
+            <div class="filter-item">
+                <label><i class="fas fa-globe-americas mr-2"></i>Continent</label>
+                <select id="continentSelect" aria-label="Select a continent">
+                    <option value="">Select continents...</option>
+                    <option value="Africa">Africa</option>
+                    <option value="Asia">Asia</option>
+                    <option value="Europe">Europe</option>
+                    <option value="North America">North America</option>
+                    <option value="South America">South America</option>
+                    <option value="Oceania">Oceania</option>
+                </select>
+                <div id="continentTags" class="flex flex-wrap gap-1 min-h-[28px]"></div>
+            </div>
+            <!-- Budget Filter -->
+            <div class="filter-item">
+                <label><i class="fas fa-wallet mr-2"></i>Budget</label>
+                <select id="budgetSelect" aria-label="Select a budget">
+                    <option value="">Select budget...</option>
+                    <option value="Budget">Budget</option>
+                    <option value="Mid-range">Mid-range</option>
+                    <option value="Luxury">Luxury</option>
+                </select>
+                <div id="budgetTags" class="flex flex-wrap gap-1 min-h-[28px]"></div>
+            </div>
+            <!-- Month Filter -->
+            <div class="filter-item">
+                <label><i class="fas fa-calendar-alt mr-2"></i>Best Months</label>
+                <select id="monthSelect" aria-label="Select best months">
+                    <option value="">Select months...</option>
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April">April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
+                </select>
+                <div id="monthTags" class="flex flex-wrap gap-1 min-h-[28px]"></div>
+            </div>
+            <!-- Activity Filter -->
+            <div class="filter-item">
+                <label><i class="fas fa-hiking mr-2"></i>Activities</label>
+                <select id="activitySelect" aria-label="Select activities">
+                    <option value="">Select activities...</option>
+                    <option value="Culture">Culture</option>
+                    <option value="Adventure">Adventure</option>
+                    <option value="Nature">Nature</option>
+                    <option value="Beaches">Beaches</option>
+                    <option value="Nightlife">Nightlife</option>
+                    <option value="Cuisine">Cuisine</option>
+                    <option value="Wellness">Wellness</option>
+                    <option value="Urban">Urban</option>
+                    <option value="Seclusion">Seclusion</option>
+                </select>
+                <div id="activityTags" class="flex flex-wrap gap-1 min-h-[28px]"></div>
+            </div>
+        </div>
+        <div id="filterCount" class="filter-count mt-3 hidden"><i class="fas fa-check-circle text-green-600 mr-2"></i><span id="filterCountText">0 filters active</span></div>
+    </div>
+
+    <!-- Recommendation Tabs -->
+    <div class="uk-switcher" id="recommendation-tabs">
+        <!-- Tab 1: For You -->
+        <div class="container mx-auto px-4 py-8">
+            {% if future_places %}
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Destinations Picked Just for You</h2>
+            <div id="futurePlacesContainer" class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                {% for place in future_places %}
+                <div class="card relative" 
+                     data-city="{{ place.city|lower }}" 
+                     data-continent="{{ place.continent|lower }}" 
+                     data-budget="{{ place.budget|lower }}" 
+                     data-activities="{% for activity, score in place.top_activities %}{{ activity|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     data-temps='{{ place.monthly_temps_json|safe }}'>
+                    <img src="{{ place.flag|default:'/static/images/avatars/avatar-default.webp' }}" 
+                         alt="{{ place.country }} flag" 
+                         class="w-10 h-10 rounded-full shadow absolute top-3 left-3 z-10 border-2 border-white dark:border-slate-800 object-cover">
+                    <a href="#" class="block">
+                        <div class="card-media">
+                            <img src="{{ place.continent_image|default:'/static/images/group/group-cover-1.webp' }}" 
+                                 alt="{{ place.city }}" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                    </a>
+                    <div class="card-body">
+                        <h4 class="card-title">{{ place.city }}</h4>
+                        <p class="card-subtitle">{{ place.country }} | {{ place.continent }}</p>
+                        <div class="card-details mt-3 space-y-2">
+                            <p><span class="label">Budget:</span> {{ place.budget }}</p>
+                            <p><span class="label">Duration:</span> {{ place.ideal_durations|join:", " }}</p>
+                            <p><span class="label">Temperature:</span> <span class="temperature-display"></span></p>
+                            <p><span class="label">Description:</span></p>
+                            <p class="description">{{ place.description|default:"No description available" }}</p>
+                            <p><span class="label">Activities:</span></p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for activity, score in place.top_activities %}
+                                <span class="tag tag-{{ activity|lower }}">#{{ activity }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="flex gap-3 mt-4">
+                            <button type="button" class="button bg-primary flex-1" aria-label="Mark as Interested"><i class="fas fa-heart"></i>Interested</button>
+                            <button type="button" class="button bg-secondery flex-1" aria-label="Mark as Not Interested"><i class="fas fa-times"></i>Not Interested</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-globe text-5xl text-gray-300 dark:text-gray-500 mb-3"></i>
+                <h3 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">No Recommendations Yet</h3>
+                <p class="text-base text-gray-500 dark:text-gray-400">Add preferences in your profile to see personalized recommendations.</p>
+                <a href="{% url 'edit_profile' %}" class="button bg-primary mt-4 inline-flex items-center" aria-label="Update Profile"><i class="fas fa-user-edit mr-2"></i>Update Profile</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab 2: Discover Home -->
+        <div class="container mx-auto px-4 py-8">
+            {% if home_country_places %}
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Explore {{ user_nationality|title }}</h2>
+            <div id="homeCountryPlacesContainer" class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                {% for place in home_country_places %}
+                <div class="card relative" 
+                     data-city="{{ place.city|lower }}" 
+                     data-continent="{{ place.continent|lower }}" 
+                     data-budget="{{ place.budget|lower }}" 
+                     data-activities="{% for activity, score in place.top_activities %}{{ activity|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     data-temps='{{ place.monthly_temps_json|safe }}'>
+                    <img src="{{ place.flag|default:'/static/images/avatars/avatar-default.webp' }}" 
+                         alt="{{ place.country }} flag" 
+                         class="w-10 h-10 rounded-full shadow absolute top-3 left-3 z-10 border-2 border-white dark:border-slate-800 object-cover">
+                    <a href="#" class="block">
+                        <div class="card-media">
+                            <img src="{{ place.continent_image|default:'/static/images/group/group-cover-1.webp' }}" 
+                                 alt="{{ place.city }}" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                    </a>
+                    <div class="card-body">
+                        <h4 class="card-title">{{ place.city }}</h4>
+                        <p class="card-subtitle">{{ place.country }} | {{ place.continent }}</p>
+                        <div class="card-details mt-3 space-y-2">
+                            <p><span class="label">Budget:</span> {{ place.budget }}</p>
+                            <p><span class="label">Duration:</span> {{ place.ideal_durations|join:", " }}</p>
+                            <p><span class="label">Temperature:</span> <span class="temperature-display"></span></p>
+                            <p><span class="label">Description:</span></p>
+                            <p class="description">{{ place.description|default:"No description available" }}</p>
+                            <p><span class="label">Activities:</span></p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for activity, score in place.top_activities %}
+                                <span class="tag tag-{{ activity|lower }}">#{{ activity }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="flex gap-3 mt-4">
+                            <button type="button" class="button bg-primary flex-1" aria-label="Mark as Interested"><i class="fas fa-heart"></i>Interested</button>
+                            <button type="button" class="button bg-secondery flex-1" aria-label="Mark as Not Interested"><i class="fas fa-times"></i>Not Interested</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-map-marked-alt text-5xl text-gray-300 dark:text-gray-500 mb-3"></i>
+                <h3 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Discover Your Home Country</h3>
+                {% if user_nationality %}
+                    <p class="text-base text-gray-500 dark:text-gray-400">No destinations found for {{ user_nationality|title }}.</p>
+                {% else %}
+                    <p class="text-base text-gray-500 dark:text-gray-400">Specify your nationality in your profile.</p>
+                {% endif %}
+                <a href="{% url 'edit_profile' %}" class="button bg-primary mt-4 inline-flex items-center" aria-label="Update Profile"><i class="fas fa-user-edit mr-2"></i>Update Profile</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab 3: Places You Might Like -->
+        <div class="container mx-auto px-4 py-8">
+            {% if similar_places %}
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Places You Might Like</h2>
+            <div id="similarPlacesContainer" class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                {% for place in similar_places %}
+                <div class="card relative" 
+                     data-city="{{ place.city|lower }}" 
+                     data-continent="{{ place.continent|lower }}" 
+                     data-budget="{{ place.budget|lower }}" 
+                     data-activities="{% for activity, score in place.top_activities %}{{ activity|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     data-temps='{{ place.monthly_temps_json|safe }}'>
+                    <img src="{{ place.flag|default:'/static/images/avatars/avatar-default.webp' }}" 
+                         alt="{{ place.country }} flag" 
+                         class="w-10 h-10 rounded-full shadow absolute top-3 left-3 z-10 border-2 border-white dark:border-slate-800 object-cover">
+                    <a href="#" class="block">
+                        <div class="card-media">
+                            <img src="{{ place.continent_image|default:'/static/images/group/group-cover-1.webp' }}" 
+                                 alt="{{ place.city }}" 
+                                 class="w-full h-full object-cover">
+                        </div>
+                    </a>
+                    <div class="card-body">
+                        <h4 class="card-title">{{ place.city }}</h4>
+                        <p class="card-subtitle">{{ place.country }} | {{ place.continent }}</p>
+                        <div class="card-details mt-3 space-y-2">
+                            <p><span class="label">Budget:</span> {{ place.budget }}</p>
+                            <p><span class="label">Duration:</span> {{ place.ideal_durations|join:", " }}</p>
+                            <p><span class="label">Temperature:</span> <span class="temperature-display"></span></p>
+                            <p><span class="label">Description:</span></p>
+                            <p class="description">{{ place.description|default:"No description available" }}</p>
+                            <p><span class="label">Activities:</span></p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for activity, score in place.top_activities %}
+                                <span class="tag tag-{{ activity|lower }}">#{{ activity }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="flex gap-3 mt-4">
+                            <button type="button" class="button bg-primary flex-1" aria-label="Mark as Interested"><i class="fas fa-heart"></i>Interested</button>
+                            <button type="button" class="button bg-secondery flex-1" aria-label="Mark as Not Interested"><i class="fas fa-times"></i>Not Interested</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-globe text-5xl text-gray-300 dark:text-gray-500 mb-3"></i>
+                <h3 class="text-xl font-semibold mb-2 text-gray-900 dark:text-white">No Recommendations Yet</h3>
+                <p class="text-base text-gray-500 dark:text-gray-400">Explore more destinations or update your profile.</p>
+                <a href="{% url 'edit_profile' %}" class="button bg-primary mt-4 inline-flex items-center" aria-label="Update Profile"><i class="fas fa-user-edit mr-2"></i>Update Profile</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Slide Navigation Icons -->
+    <a class="nav-prev" href="#" uk-slider-item="previous" aria-label="Previous slide">
+        <ion-icon name="chevron-back" class="text-3xl text-gray-600 dark:text-gray-300 hover:text-primary"></ion-icon>
+    </a>
+    <a class="nav-next" href="#" uk-slider-item="next" aria-label="Next slide">
+        <ion-icon name="chevron-forward" class="text-3xl text-gray-600 dark:text-gray-300 hover:text-primary"></ion-icon>
+    </a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Storage for selected filters
+    const filters = {
+        continents: [],
+        budgets: [],
+        months: [],
+        activities: []
+    };
+
+    // Current month (October 2025)
+    const currentMonth = 'October';
+
+    // Month mapping for temperatures
+    const monthMap = {
+        'January': '1', 'February': '2', 'March': '3', 'April': '4',
+        'May': '5', 'June': '6', 'July': '7', 'August': '8',
+        'September': '9', 'October': '10', 'November': '11', 'December': '12'
+    };
+
+    // Helper function to create a tag
+    function createTag(value, type) {
+        const tag = document.createElement('span');
+        const colorClasses = {
+            continents: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+            budgets: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+            months: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+            activities: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+        };
+        tag.className = `tag ${colorClasses[type]}`;
+        tag.innerHTML = `
+            <span>${value}</span>
+            <button type="button" class="ml-1 hover:bg-white/20 dark:hover:bg-black/20 rounded-full p-0.5" onclick="removeTag('${type}', '${value}')">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        `;
+        return tag;
+    }
+
+    // Add tag function
+    window.addTag = function(type, value) {
+        if (value && !filters[type].includes(value)) {
+            filters[type].push(value);
+            const container = document.getElementById(`${type.slice(0, -1)}Tags`);
+            container.appendChild(createTag(value, type));
+            updateFilterCount();
+            applyFilters();
+            updateTemperatures();
+        }
+    };
+
+    // Remove tag function
+    window.removeTag = function(type, value) {
+        filters[type] = filters[type].filter(item => item !== value);
+        renderTags(type);
+        updateFilterCount();
+        applyFilters();
+        updateTemperatures();
+    };
+
+    // Render tags
+    function renderTags(type) {
+        const container = document.getElementById(`${type.slice(0, -1)}Tags`);
+        container.innerHTML = '';
+        filters[type].forEach(value => {
+            container.appendChild(createTag(value, type));
+        });
+    }
+
+    // Update filter count
+    function updateFilterCount() {
+        const total = Object.values(filters).reduce((sum, arr) => sum + arr.length, 0);
+        const countElement = document.getElementById('filterCount');
+        const countText = document.getElementById('filterCountText');
+        if (total > 0) {
+            countElement.classList.remove('hidden');
+            countText.textContent = `${total} filter${total > 1 ? 's' : ''} active`;
+        } else {
+            countElement.classList.add('hidden');
+        }
+    }
+
+    // Update temperatures display on cards
+    function updateTemperatures() {
+        const allCards = [
+            ...document.querySelectorAll('#futurePlacesContainer .card'),
+            ...document.querySelectorAll('#homeCountryPlacesContainer .card'),
+            ...document.querySelectorAll('#similarPlacesContainer .card')
+        ];
+
+        allCards.forEach(card => {
+            const tempDisplay = card.querySelector('.temperature-display');
+            let temps;
+            try {
+                temps = JSON.parse(card.dataset.temps || '{}');
+            } catch (e) {
+                console.error('Invalid JSON in data-temps for', card.dataset.city, ':', card.dataset.temps, e);
+                temps = {};
+            }
+            tempDisplay.innerHTML = '';
+
+            if (filters.months.length > 0) {
+                filters.months.forEach(month => {
+                    const monthNum = monthMap[month];
+                    const span = document.createElement('span');
+                    span.className = 'text-xs text-gray-600 dark:text-gray-300 block';
+                    span.textContent = temps[monthNum]?.avg != null ? `${month}: ${temps[monthNum].avg}°C` : `${month}: N/A`;
+                    tempDisplay.appendChild(span);
+                });
+            } else {
+                const monthNum = monthMap[currentMonth];
+                const span = document.createElement('span');
+                span.className = 'text-xs text-gray-600 dark:text-gray-300';
+                span.textContent = temps[monthNum]?.avg != null ? `${currentMonth}: ${temps[monthNum].avg}°C` : `${currentMonth}: N/A`;
+                tempDisplay.appendChild(span);
+            }
+        });
+    }
+
+    // Apply filters in real-time
+    function applyFilters() {
+        const allCards = [
+            ...document.querySelectorAll('#futurePlacesContainer .card'),
+            ...document.querySelectorAll('#homeCountryPlacesContainer .card'),
+            ...document.querySelectorAll('#similarPlacesContainer .card')
+        ];
+
+        allCards.forEach(card => {
+            const continent = card.dataset.continent?.trim().toLowerCase() || '';
+            const budget = card.dataset.budget?.trim().toLowerCase() || '';
+            const activities = card.dataset.activities ? card.dataset.activities.split(',').map(a => a.trim().toLowerCase()) : [];
+
+            let show = true;
+            if (filters.continents.length > 0 && !filters.continents.map(c => c.toLowerCase()).includes(continent)) {
+                show = false;
+            }
+            if (filters.budgets.length > 0 && !filters.budgets.map(b => b.toLowerCase()).includes(budget)) {
+                show = false;
+            }
+            if (filters.activities.length > 0 && !filters.activities.map(a => a.toLowerCase()).some(activity => activities.includes(activity))) {
+                show = false;
+            }
+            card.style.display = show ? '' : 'none';
+        });
+    }
+
+    // Event listeners for select elements
+    ['continentSelect', 'budgetSelect', 'monthSelect', 'activitySelect'].forEach(selectId => {
+        const select = document.getElementById(selectId);
+        select.addEventListener('change', function() {
+            if (this.value) {
+                const type = selectId.replace('Select', 's').toLowerCase();
+                addTag(type, this.value);
+                this.value = '';
+            }
+        });
+    });
+
+    // Clear all filters
+    document.getElementById('clearAllFilters').addEventListener('click', function() {
+        filters.continents = [];
+        filters.budgets = [];
+        filters.months = [];
+        filters.activities = [];
+
+        document.getElementById('continentTags').innerHTML = '';
+        document.getElementById('budgetTags').innerHTML = '';
+        document.getElementById('monthTags').innerHTML = '';
+        document.getElementById('activityTags').innerHTML = '';
+
+        ['continentSelect', 'budgetSelect', 'monthSelect', 'activitySelect'].forEach(selectId => {
+            document.getElementById(selectId).value = '';
+        });
+
+        updateFilterCount();
+        applyFilters();
+        updateTemperatures();
+    });
+
+    // Initialize temperatures and filters on page load
+    updateTemperatures();
+    applyFilters();
+});
+</script>
+{% endblock %}

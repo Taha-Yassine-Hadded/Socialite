@@ -1,0 +1,238 @@
+/* recommendations.css */
+
+/* Card Styles */
+.card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-media {
+    height: 250px; /* Image de fond agrandie */
+    position: relative;
+    overflow: hidden;
+}
+
+.card-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.card:hover .card-overlay {
+    opacity: 1;
+}
+
+.card-body {
+    padding: 16px;
+    position: relative;
+}
+
+.card-flag {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: absolute;
+    top: -24px;
+    left: 16px;
+    object-fit: cover;
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+}
+
+.card-description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.card-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.card-info div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-info i {
+    color: #007bff;
+    font-size: 16px;
+}
+
+.card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* Tag Gradient Styles */
+.tag-blue {
+    background: linear-gradient(45deg, #007bff, #00b7eb);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tag-purple {
+    background: linear-gradient(45deg, #6f42c1, #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tag-green {
+    background: linear-gradient(45deg, #28a745, #34d058);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tag-pink {
+    background: linear-gradient(45deg, #d63384, #f472b6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tag-yellow {
+    background: linear-gradient(45deg, #ffc107, #ffca2c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tag-orange {
+    background: linear-gradient(45deg, #fd7e14, #ff9f43);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tag-red {
+    background: linear-gradient(45deg, #dc3545, #f87171);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tag-cyan {
+    background: linear-gradient(45deg, #17a2b8, #2bc4d9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.card-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.card-buttons .button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+.card-buttons .button-primary {
+    background-color: #007bff;
+    color: #fff;
+    flex: 1;
+}
+
+.card-buttons .button-primary:hover {
+    background-color: #0056b3;
+}
+
+.card-buttons .button-secondary {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.card-buttons .button-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* General Page Styles */
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+}
+
+.nav__underline {
+    margin-bottom: 24px;
+}
+
+.nav__underline .group li a {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    padding-bottom: 8px;
+    transition: color 0.3s ease;
+}
+
+.nav__underline .group li.uk-active a {
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+}
+
+.text-gray-500 {
+    color: #6b7280;
+}

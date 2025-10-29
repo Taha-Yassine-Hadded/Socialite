@@ -1,3 +1,5 @@
+from datetime import datetime
+import logging
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.db import IntegrityError
@@ -5,6 +7,8 @@ from .mongo import get_db
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 import os
+import json
+import random  
 import uuid
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, login, logout
@@ -21,10 +25,11 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 from .models import Post, Comment, Reaction, Share, UserProfile
-import json
-
+from sklearn.ensemble import RandomForestRegressor
+import numpy as np
+import pandas as pd
 # Liste des intérêts pour le formulaire
-INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation']
+INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation', 'work']
 
 # Liste des types de voyage
 TRAVEL_TYPES = [
@@ -235,7 +240,8 @@ def register_page(request):
         languages = request.POST.getlist('languages')
         nationality = request.POST.get('nationality', '').strip()
         interests = request.POST.getlist('interests')
-
+        future_countries = request.POST.getlist('future_countries')
+        
         errors = []
         if not first_name or not last_name:
             errors.append('First name and last name are required.')
@@ -255,7 +261,8 @@ def register_page(request):
             errors.append('Country of origin is required.')
         if not interests:
             errors.append('At least one interest is required.')
-
+        ##if not future_countries:
+            ##errors.append('At least one country you may visit in the future is recommended.')
         if errors:
             return render(request, 'register.html', {
                 'errors': errors,
@@ -274,6 +281,7 @@ def register_page(request):
                     'languages': languages,
                     'nationality': nationality,
                     'interests': interests,
+                    'future_countries': future_countries,  # Ajout
                 }
             })
 
@@ -298,6 +306,7 @@ def register_page(request):
                     'languages': languages,
                     'nationality': nationality,
                     'interests': interests,
+                    'future_countries': future_countries,  # Ajout
                 }
             })
 
@@ -325,6 +334,7 @@ def register_page(request):
             'languages': languages,
             'nationality': nationality,
             'interests': interests,
+            'future_countries': future_countries,  # Ajout
             'followers': [],  # Initialize empty followers list
             'following': [],  # Initialize empty following list
             'follower_count': 0  # Initialize follower count
@@ -445,7 +455,413 @@ def feed(request):
     context = {
         'posts': posts,
     }
+
+    # Ne modifie pas ces trois lignes et ne les supprime pas ines dahmani :)
+    db = get_db()
+    travel_companions = get_travel_companions(request.user, db)
+    context['travel_companions'] = travel_companions
+
+    # Ajout de la logique pour suggested_users
+    user = request.user
+    user_profile = db.profiles.find_one({'user_id': user.id})
+    
+    # Initialiser suggested_users comme liste vide
+    suggested_users = []
+    
+    # Vérifier si l'utilisateur a un profil MongoDB
+    if user_profile:
+        # Récupérer tous les profils sauf celui de l'utilisateur actuel
+        profiles = list(db.profiles.find({'user_id': {'$ne': user.id}}))
+        
+        # Calculer les scores de similarité
+        for profile in profiles:
+            if profile:  # Vérifier que le profil n'est pas None
+                score = calculate_similarity(user_profile, profile)
+                try:
+                    user_profile_obj = UserProfile.objects.get(user_id=profile['user_id'])
+                    slug = user_profile_obj.slug
+                except UserProfile.DoesNotExist:
+                    slug = str(profile['user_id'])  # Fallback sur user_id
+                suggested_users.append({
+                    'user_id': profile['user_id'],
+                    'first_name': profile['first_name'],
+                    'last_name': profile['last_name'],
+                    'profile_image': profile.get('profile_image', '/static/images/avatars/avatar-default.webp'),
+                    'follower_count': format_follower_count(profile.get('follower_count', 0)),
+                    'is_following': profile['user_id'] in user_profile.get('following', []),
+                    'score': score,
+                    'slug': slug
+                })
+        
+        # Trier par score de similarité (décroissant)
+        suggested_users.sort(key=lambda x: x.get('score', 0), reverse=True)
+        
+        # Filtrer pour n'afficher que les utilisateurs non suivis et limiter à 4
+        suggested_users = [user for user in suggested_users if not user['is_following']][:4]
+    
+    # Ajouter suggested_users au contexte
+    context['suggested_users'] = suggested_users
+
     return render(request, 'feed.html', context)
+
+
+
+
+
+
+
+
+
+        
+
+@login_required(login_url='/login/')
+def place(request):
+    # Connexion à MongoDB
+    db = get_db()
+    user = request.user
+    user_profile = db.profiles.find_one({'user_id': user.id})
+
+    # Initialiser les listes pour les recommandations
+    home_country_places = []
+    future_places = []
+    similar_places = []
+    countries = []
+
+    # Vérifier si le profil existe
+    if user_profile:
+        nationality = user_profile.get('nationality', '')
+        future_countries = user_profile.get('future_countries', [])
+        travel_budget = user_profile.get('travel_budget', '').lower()
+        user_interests = user_profile.get('interests', [])
+
+        # Charger les datasets
+        cities_df = pd.read_csv(r"D:\Django_Projet\Socialite\public\Cities.csv")
+        flags_df = pd.read_csv(r"D:\Django_Projet\Socialite\public\Flags.csv")
+
+        # Normaliser les données
+        cities_df['city'] = cities_df['city'].str.strip().str.title()
+        cities_df['country'] = cities_df['country'].str.strip().str.title()
+        cities_df['region'] = cities_df['region'].str.strip().str.title()
+        cities_df['budget_level'] = cities_df['budget_level'].str.strip().str.title()
+
+        # Liste des pays uniques pour le filtre country
+        countries = sorted(cities_df['country'].unique().tolist())
+
+        # Dictionnaire de mappage des codes ISO aux noms de pays
+        country_code_to_name = {
+            code.lower(): name for code, name in [
+                ('AF', 'Afghanistan'), ('AL', 'Albania'), ('DZ', 'Algeria'), ('AD', 'Andorra'),
+                ('AO', 'Angola'), ('AG', 'Antigua and Barbuda'), ('AR', 'Argentina'), ('AM', 'Armenia'),
+                ('AU', 'Australia'), ('AT', 'Austria'), ('AZ', 'Azerbaijan'), ('BS', 'Bahamas'),
+                ('BH', 'Bahrain'), ('BD', 'Bangladesh'), ('BB', 'Barbados'), ('BY', 'Belarus'),
+                ('BE', 'Belgium'), ('BZ', 'Belize'), ('BJ', 'Benin'), ('BT', 'Bhutan'),
+                ('BO', 'Bolivia'), ('BA', 'Bosnia and Herzegovina'), ('BW', 'Botswana'), ('BR', 'Brazil'),
+                ('BN', 'Brunei'), ('BG', 'Bulgaria'), ('BF', 'Burkina Faso'), ('BI', 'Burundi'),
+                ('KH', 'Cambodia'), ('CM', 'Cameroon'), ('CA', 'Canada'), ('CV', 'Cape Verde'),
+                ('CF', 'Central African Republic'), ('TD', 'Chad'), ('CL', 'Chile'), ('CN', 'China'),
+                ('CO', 'Colombia'), ('KM', 'Comoros'), ('CG', 'Congo'), ('CD', 'Congo, Democratic Republic'),
+                ('CR', 'Costa Rica'), ('HR', 'Croatia'), ('CU', 'Cuba'), ('CY', 'Cyprus'),
+                ('CZ', 'Czech Republic'), ('DK', 'Denmark'), ('DJ', 'Djibouti'), ('DM', 'Dominica'),
+                ('DO', 'Dominican Republic'), ('EC', 'Ecuador'), ('EG', 'Egypt'), ('SV', 'El Salvador'),
+                ('GQ', 'Equatorial Guinea'), ('ER', 'Eritrea'), ('EE', 'Estonia'), ('ET', 'Ethiopia'),
+                ('FJ', 'Fiji'), ('FI', 'Finland'), ('FR', 'France'), ('GA', 'Gabon'),
+                ('GM', 'Gambia'), ('GE', 'Georgia'), ('DE', 'Germany'), ('GH', 'Ghana'),
+                ('GR', 'Greece'), ('GD', 'Grenada'), ('GT', 'Guatemala'), ('GN', 'Guinea'),
+                ('GW', 'Guinea-Bissau'), ('GY', 'Guyana'), ('HT', 'Haiti'), ('HN', 'Honduras'),
+                ('HU', 'Hungary'), ('IS', 'Iceland'), ('IN', 'India'), ('ID', 'Indonesia'),
+                ('IR', 'Iran'), ('IQ', 'Iraq'), ('IE', 'Ireland'), ('IL', 'Israel'),
+                ('IT', 'Italy'), ('JM', 'Jamaica'), ('JP', 'Japan'), ('JO', 'Jordan'),
+                ('KZ', 'Kazakhstan'), ('KE', 'Kenya'), ('KI', 'Kiribati'), ('KP', 'North Korea'),
+                ('KR', 'South Korea'), ('KW', 'Kuwait'), ('KG', 'Kyrgyzstan'), ('LA', 'Laos'),
+                ('LV', 'Latvia'), ('LB', 'Lebanon'), ('LS', 'Lesotho'), ('LR', 'Liberia'),
+                ('LY', 'Libya'), ('LI', 'Liechtenstein'), ('LT', 'Lithuania'), ('LU', 'Luxembourg'),
+                ('MG', 'Madagascar'), ('MW', 'Malawi'), ('MY', 'Malaysia'), ('MV', 'Maldives'),
+                ('ML', 'Mali'), ('MT', 'Malta'), ('MH', 'Marshall Islands'), ('MR', 'Mauritania'),
+                ('MU', 'Mauritius'), ('MX', 'Mexico'), ('FM', 'Micronesia'), ('MD', 'Moldova'),
+                ('MC', 'Monaco'), ('MN', 'Mongolia'), ('ME', 'Montenegro'), ('MA', 'Morocco'),
+                ('MZ', 'Mozambique'), ('MM', 'Myanmar'), ('NA', 'Namibia'), ('NR', 'Nauru'),
+                ('NP', 'Nepal'), ('NL', 'Netherlands'), ('NZ', 'New Zealand'), ('NI', 'Nicaragua'),
+                ('NE', 'Niger'), ('NG', 'Nigeria'), ('NO', 'Norway'), ('OM', 'Oman'),
+                ('PK', 'Pakistan'), ('PW', 'Palau'), ('PA', 'Panama'), ('PG', 'Papua New Guinea'),
+                ('PY', 'Paraguay'), ('PE', 'Peru'), ('PH', 'Philippines'), ('PL', 'Poland'),
+                ('PT', 'Portugal'), ('QA', 'Qatar'), ('RO', 'Romania'), ('RU', 'Russia'),
+                ('RW', 'Rwanda'), ('KN', 'Saint Kitts and Nevis'), ('LC', 'Saint Lucia'),
+                ('VC', 'Saint Vincent and the Grenadines'), ('WS', 'Samoa'), ('SM', 'San Marino'),
+                ('ST', 'Sao Tome and Principe'), ('SA', 'Saudi Arabia'), ('SN', 'Senegal'),
+                ('RS', 'Serbia'), ('SC', 'Seychelles'), ('SL', 'Sierra Leone'), ('SG', 'Singapore'),
+                ('SK', 'Slovakia'), ('SI', 'Slovenia'), ('SB', 'Solomon Islands'), ('SO', 'Somalia'),
+                ('ZA', 'South Africa'), ('SS', 'South Sudan'), ('ES', 'Spain'), ('LK', 'Sri Lanka'),
+                ('SD', 'Sudan'), ('SR', 'Suriname'), ('SE', 'Sweden'), ('CH', 'Switzerland'),
+                ('SY', 'Syria'), ('TW', 'Taiwan'), ('TJ', 'Tajikistan'), ('TZ', 'Tanzania'),
+                ('TH', 'Thailand'), ('TL', 'Timor-Leste'), ('TG', 'Togo'), ('TO', 'Tonga'),
+                ('TT', 'Trinidad and Tobago'), ('TN', 'Tunisia'), ('TR', 'Turkey'), ('TM', 'Turkmenistan'),
+                ('TV', 'Tuvalu'), ('UG', 'Uganda'), ('UA', 'Ukraine'), ('AE', 'United Arab Emirates'),
+                ('GB', 'United Kingdom'), ('US', 'United States'), ('UY', 'Uruguay'), ('UZ', 'Uzbekistan'),
+                ('VU', 'Vanuatu'), ('VE', 'Venezuela'), ('VN', 'Vietnam'), ('YE', 'Yemen'),
+                ('ZM', 'Zambia'), ('ZW', 'Zimbabwe')
+            ]
+        }
+
+        # Créer un dictionnaire pour les drapeaux
+        flag_dict = dict(zip(flags_df['Country code'].str.lower(), flags_df['Flag']))
+
+        # Mappage des budgets utilisateur aux budgets du dataset
+        budget_mapping = {
+            'economic': 'Budget',
+            'medium': 'Mid-range',
+            'comfort': 'Mid-range',
+            'luxury': 'Luxury'
+        }
+        target_budget = budget_mapping.get(travel_budget, 'Mid-range')
+
+        # Chemin vers les images des continents
+        continent_images_base = r"D:\Django_Projet\Socialite\public\assets\images\Continent"
+        continent_mapping = {
+            'africa': 'Africa',
+            'asia': 'Asia',
+            'europe': 'Europe',
+            'north_america': 'North America',
+            'south_america': 'South America',
+            'oceania': 'Oceania',
+            'antarctica': 'Antarctica'
+        }
+
+        # Configurer le logger
+        logger = logging.getLogger(__name__)
+
+        def get_random_continent_image(region):
+            continent_folder = continent_mapping.get(region.lower(), 'Africa')
+            continent_path = os.path.join(continent_images_base, continent_folder)
+            default_image = "/static/images/group/group-cover-1.webp"
+            if os.path.exists(continent_path):
+                images = [f for f in os.listdir(continent_path)
+                         if f.lower().endswith(('.jpg', '.jpeg', '.png')) and os.path.isfile(os.path.join(continent_path, f))]
+                if images:
+                    chosen_image = random.choice(images)
+                    image_url = f"/assets/images/Continent/{continent_folder}/{chosen_image}"
+                    logger.debug(f"Selected image: {os.path.join(continent_path, chosen_image)}, URL: {image_url}")
+                    return image_url
+                else:
+                    logger.warning(f"No images found in directory: {continent_path}")
+            else:
+                logger.warning(f"Directory not found: {continent_path}")
+            return default_image
+
+        def get_monthly_temps(temp_data):
+            if pd.isna(temp_data) or not temp_data:
+                logger.debug("Temp_data is None or empty")
+                return {}
+            try:
+                if isinstance(temp_data, dict):
+                    temp_dict = temp_data
+                else:
+                    cleaned = temp_data.strip()
+                    if cleaned.startswith('"') and cleaned.endswith('"'):
+                        cleaned = cleaned[1:-1]
+                    cleaned = cleaned.replace('""', '"').replace("'", '"')
+                    if cleaned.startswith('1:{'):
+                        cleaned = '{' + cleaned + '}'
+                    logger.debug(f"Cleaned temp_data: {cleaned}")
+                    temp_dict = json.loads(cleaned)
+                
+                # Vérifier et formater les données de température
+                formatted_temps = {}
+                for month in range(1, 13):
+                    month_str = str(month)
+                    if month_str in temp_dict and 'avg' in temp_dict[month_str]:
+                        try:
+                            formatted_temps[month_str] = {'avg': round(float(temp_dict[month_str]['avg']), 1)}
+                        except (ValueError, TypeError):
+                            formatted_temps[month_str] = {'avg': None}
+                    else:
+                        formatted_temps[month_str] = {'avg': None}
+                return formatted_temps
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.error(f"Error parsing temperature data: {temp_data} → {str(e)}")
+                return {str(i): {'avg': None} for i in range(1, 13)}
+
+        def calculate_interest_score(place, user_interests, user_budget):
+            interest_mapping = {
+                'adventure': 'adventure',
+                'culture': 'culture',
+                'gastronomy': 'cuisine',
+                'nature': 'nature',
+                'sport': 'adventure',
+                'relaxation': 'wellness',
+                'work': 'urban'
+            }
+            interest_score = 0
+            for interest in user_interests:
+                mapped_field = interest_mapping.get(interest.lower(), interest.lower())
+                if mapped_field in place and pd.notna(place[mapped_field]):
+                    interest_score += place[mapped_field] * 10
+
+            budget_score = 0
+            place_budget = place['budget_level'].title()
+            target_budget_mapped = budget_mapping.get(user_budget, 'Mid-range')
+            budget_hierarchy = {
+                'Budget': 1,
+                'Mid-range': 2,
+                'Luxury': 3
+            }
+            user_budget_level = budget_hierarchy.get(target_budget_mapped, 2)
+            place_budget_level = budget_hierarchy.get(place_budget, 2)
+
+            if user_budget in ['comfort', 'luxury'] and place_budget_level <= user_budget_level:
+                if place_budget == target_budget_mapped:
+                    budget_score = 30
+                else:
+                    budget_score = 15
+            elif user_budget in ['economic', 'medium'] and place_budget == target_budget_mapped:
+                budget_score = 30
+            else:
+                budget_score = 0
+
+            total_score = interest_score + budget_score
+            return total_score
+
+        def is_place_visible(place, user_budget):
+            target_budget_mapped = budget_mapping.get(user_budget, 'Mid-range')
+            budget_hierarchy = {
+                'Budget': 1,
+                'Mid-range': 2,
+                'Luxury': 3
+            }
+            user_budget_level = budget_hierarchy.get(target_budget_mapped, 2)
+            place_budget_level = budget_hierarchy.get(place['budget_level'].title(), 2)
+            return (user_budget in ['comfort', 'luxury'] and place_budget_level <= user_budget_level) or \
+                   (user_budget in ['economic', 'medium'] and place['budget_level'].title() == target_budget_mapped)
+
+        # Convertir les codes ISO en noms complets pour future_countries
+        future_country_names = [country_code_to_name.get(code.lower(), '') for code in future_countries]
+        future_country_names = [name for name in future_country_names if name]  # Supprimer les entrées vides
+
+        # Section 1 : Explorez votre pays (basé sur la nationalité)
+        if nationality:
+            country_name = country_code_to_name.get(nationality.lower(), '')
+            if country_name:
+                country_places = cities_df[cities_df['country'].str.lower() == country_name.lower()]
+                for _, place in country_places.iterrows():
+                    if is_place_visible(place, travel_budget):
+                        interest_score = calculate_interest_score(place, user_interests, travel_budget)
+                        activities = [
+                            ('Culture', place['culture']),
+                            ('Adventure', place['adventure']),
+                            ('Nature', place['nature']),
+                            ('Beaches', place['beaches']),
+                            ('Nightlife', place['nightlife']),
+                            ('Cuisine', place['cuisine']),
+                            ('Wellness', place['wellness']),
+                            ('Urban', place['urban']),
+                            ('Seclusion', place['seclusion'])
+                        ]
+                        top_activities = [(name.title(), score) for name, score in activities if score >= 4]
+                        monthly_temps_json = get_monthly_temps(place['avg_temp_monthly'])
+                        home_country_places.append({
+                            'city': place['city'],
+                            'country': place['country'],
+                            'continent': place['region'],
+                            'description': place['short_description'],
+                            'flag': flag_dict.get(nationality.lower(), '/static/images/avatars/avatar-default.webp'),
+                            'continent_image': get_random_continent_image(place['region']),
+                            'top_activities': top_activities,
+                            'budget': place['budget_level'],
+                            'ideal_durations': eval(place['ideal_durations']) if isinstance(place['ideal_durations'], str) else place['ideal_durations'],
+                            'monthly_temps_json': json.dumps(monthly_temps_json),  # Convertir en chaîne JSON
+                            'interest_score': interest_score
+                        })
+
+        # Section 2 : Destinations pour vos projets de voyage
+        for country_name in future_country_names:
+            country_places = cities_df[cities_df['country'].str.lower() == country_name.lower()]
+            for _, place in country_places.iterrows():
+                if is_place_visible(place, travel_budget):
+                    interest_score = calculate_interest_score(place, user_interests, travel_budget)
+                    activities = [
+                        ('Culture', place['culture']),
+                        ('Adventure', place['adventure']),
+                        ('Nature', place['nature']),
+                        ('Beaches', place['beaches']),
+                        ('Nightlife', place['nightlife']),
+                        ('Cuisine', place['cuisine']),
+                        ('Wellness', place['wellness']),
+                        ('Urban', place['urban']),
+                        ('Seclusion', place['seclusion'])
+                    ]
+                    top_activities = [(name.title(), score) for name, score in activities if score >= 4]
+                    monthly_temps_json = get_monthly_temps(place['avg_temp_monthly'])
+                    country_code = [k for k, v in country_code_to_name.items() if v.lower() == country_name.lower()]
+                    flag = flag_dict.get(country_code[0].lower() if country_code else '', '/static/images/avatars/avatar-default.webp')
+                    future_places.append({
+                        'city': place['city'],
+                        'country': place['country'],
+                        'continent': place['region'],
+                        'description': place['short_description'],
+                        'flag': flag,
+                        'continent_image': get_random_continent_image(place['region']),
+                        'top_activities': top_activities,
+                        'budget': place['budget_level'],
+                        'ideal_durations': eval(place['ideal_durations']) if isinstance(place['ideal_durations'], str) else place['ideal_durations'],
+                        'monthly_temps_json': json.dumps(monthly_temps_json),
+                        'interest_score': interest_score
+                    })
+
+        # Section 3 : Places You Might Like
+        if future_country_names:
+            future_continents = cities_df[cities_df['country'].isin(future_country_names)]['region'].unique()
+            similar_places_df = cities_df[
+                (cities_df['region'].isin(future_continents)) & 
+                (~cities_df['country'].isin(future_country_names + [country_code_to_name.get(nationality.lower(), '')]))
+            ]
+            similar_places_df = similar_places_df.head(100)
+            for _, place in similar_places_df.iterrows():
+                if is_place_visible(place, travel_budget):
+                    interest_score = calculate_interest_score(place, user_interests, travel_budget)
+                    activities = [
+                        ('Culture', place['culture']),
+                        ('Adventure', place['adventure']),
+                        ('Nature', place['nature']),
+                        ('Beaches', place['beaches']),
+                        ('Nightlife', place['nightlife']),
+                        ('Cuisine', place['cuisine']),
+                        ('Wellness', place['wellness']),
+                        ('Urban', place['urban']),
+                        ('Seclusion', place['seclusion'])
+                    ]
+                    top_activities = [(name.title(), score) for name, score in activities if score >= 4]
+                    monthly_temps_json = get_monthly_temps(place['avg_temp_monthly'])
+                    country_code = [k for k, v in country_code_to_name.items() if v.lower() == place['country'].lower()]
+                    flag = flag_dict.get(country_code[0].lower() if country_code else '', '/static/images/avatars/avatar-default.webp')
+                    similar_places.append({
+                        'city': place['city'],
+                        'country': place['country'],
+                        'continent': place['region'],
+                        'description': place['short_description'],
+                        'flag': flag,
+                        'continent_image': get_random_continent_image(place['region']),
+                        'top_activities': top_activities,
+                        'budget': place['budget_level'],
+                        'ideal_durations': eval(place['ideal_durations']) if isinstance(place['ideal_durations'], str) else place['ideal_durations'],
+                        'monthly_temps_json': json.dumps(monthly_temps_json),
+                        'interest_score': interest_score
+                    })
+
+        # Trier les destinations par score d'intérêt
+        home_country_places.sort(key=lambda x: x['interest_score'], reverse=True)
+        future_places.sort(key=lambda x: x['interest_score'], reverse=True)
+        similar_places.sort(key=lambda x: x['interest_score'], reverse=True)
+
+    # Contexte pour le template
+    context = {
+        'home_country_places': home_country_places,
+        'future_places': future_places,
+        'similar_places': similar_places,
+        'countries': countries,
+        'user_nationality': country_code_to_name.get(nationality.lower(), '') if user_profile else '',
+        'future_countries': future_country_names if user_profile else [],
+    }
+    return render(request, 'place.html', context)
+
 
 # Groups pages
 @login_required(login_url='/login/')
@@ -463,34 +879,85 @@ def pages(request):
     user = request.user
     user_profile = db.profiles.find_one({'user_id': user.id})
     
+    if not user_profile:
+        return render(request, 'pages.html', {
+            'travel_duo': [],
+            'might_know': [],
+            'may_like': []
+        })
+
+    # Initialiser les listes
+    travel_duo = []
+    might_know = []
+    may_like = []
+    
     # Récupérer tous les profils sauf celui de l'utilisateur actuel
     profiles = list(db.profiles.find({'user_id': {'$ne': user.id}}))
     
-    # Calculer les scores de similarité
-    suggested_users = []
+    # Récupérer les données de l'utilisateur actuel
+    user_travel_types = set(user_profile.get('travel_type', []))
+    user_future_countries = set(user_profile.get('future_countries', []))
+    user_travel_budget = user_profile.get('travel_budget', '')
+    user_visited_countries = set(user_profile.get('visited_countries', []))
+    user_nationality = user_profile.get('nationality', '')
+    user_following = user_profile.get('following', [])
+    
     for profile in profiles:
-        if profile:  # Vérifier que le profil n'est pas None
-            score = calculate_similarity(user_profile, profile) if user_profile else 0
-            suggested_users.append({
+        if profile['user_id'] not in user_following:  # Exclure les utilisateurs suivis
+            try:
+                user_profile_obj = UserProfile.objects.get(user_id=profile['user_id'])
+                slug = user_profile_obj.slug
+            except UserProfile.DoesNotExist:
+                slug = str(profile['user_id'])
+                
+            profile_data = {
                 'user_id': profile['user_id'],
                 'first_name': profile['first_name'],
                 'last_name': profile['last_name'],
                 'profile_image': profile.get('profile_image', '/static/images/avatars/avatar-default.webp'),
                 'follower_count': format_follower_count(profile.get('follower_count', 0)),
-                'is_following': user_profile and profile['user_id'] in user_profile.get('following', []),
-                'score': score
-            })
+                'is_following': False,  # Déjà filtré
+                'slug': slug
+            }
+            
+            # Section 1: Find Your Travel Duo
+            common_travel_types = user_travel_types.intersection(set(profile.get('travel_type', [])))
+            common_future_countries = user_future_countries.intersection(set(profile.get('future_countries', [])))
+            same_budget = user_travel_budget == profile.get('travel_budget', '')
+            
+            if common_travel_types and common_future_countries and same_budget:
+                profile_data['common_future_countries'] = [get_country_flag(code) for code in common_future_countries]
+                travel_duo.append(profile_data)
+            
+            # Section 2: People You Might Know
+            common_visited_countries = user_visited_countries.intersection(set(profile.get('visited_countries', [])))
+            same_nationality = user_nationality == profile.get('nationality', '')
+            
+            if common_visited_countries or same_nationality:
+                profile_data['common_visited_countries'] = [get_country_flag(code) for code in common_visited_countries]
+                profile_data['nationality_match'] = same_nationality
+                might_know.append(profile_data)
+            
+            # Section 3: People You May Like
+            score = calculate_similarity(user_profile, profile)
+            profile_data['score'] = score
+            may_like.append(profile_data)
     
-    # Trier par score de similarité (décroissant)
-    suggested_users.sort(key=lambda x: x.get('score', 0), reverse=True)
+    # Trier les listes
+    travel_duo.sort(key=lambda x: len(x['common_future_countries']), reverse=True)
+    might_know.sort(key=lambda x: (len(x['common_visited_countries']), x['nationality_match']), reverse=True)
+    may_like.sort(key=lambda x: x['score'], reverse=True)
     
-    # Filtrer pour n'afficher que les utilisateurs non suivis
-    suggested_users = [user for user in suggested_users if not user['is_following']]
+    # Limiter les résultats (par exemple, 100 par section)
+    travel_duo = travel_duo[:100]
+    might_know = might_know[:100]
+    may_like = may_like[:100]
     
     return render(request, 'pages.html', {
-        'suggested_users': suggested_users,  # Afficher tous les utilisateurs
+        'travel_duo': travel_duo,
+        'might_know': might_know,
+        'may_like': may_like
     })
-
     
 # Messages
 @login_required(login_url='/login/')
@@ -1225,3 +1692,158 @@ def delete_comment(request, comment_id):
         'message': 'Commentaire supprimé avec succès !',
         'comments_count': post.comments_count
     })
+
+
+
+
+
+
+
+
+
+def get_travel_companions(user, db):
+  
+    user_profile = db.profiles.find_one({'user_id': user.id})
+    travel_companions = []
+
+    if not user_profile:
+        return travel_companions  # Retourne une liste vide si le profil est incomplet
+
+    # Récupérer tous les profils sauf celui de l'utilisateur actuel
+    profiles = list(db.profiles.find({'user_id': {'$ne': user.id}}))
+
+    if not profiles:
+        return travel_companions  # Retourne une liste vide s'il n'y a pas d'autres profils
+
+    # Définir les tranches de budget pour normalisation
+    def get_budget_value(budget):
+        try:
+            return float(budget) if budget else 0
+        except (ValueError, TypeError):
+            return 0
+
+    # Préparer les données pour Random Forest
+    X = []
+    user_ids = []
+    user_budget = get_budget_value(user_profile.get('travel_budget', 0))
+    user_travel_types = set(user_profile.get('travel_type', []))
+    user_languages = set(user_profile.get('languages', []))
+    user_interests = set(user_profile.get('interests', []))
+    user_nationality = user_profile.get('nationality', '')
+
+    for profile in profiles:
+        if profile:
+            budget = get_budget_value(profile.get('travel_budget', 0))
+            travel_types = set(profile.get('travel_type', []))
+            languages = set(profile.get('languages', []))
+            interests = set(profile.get('interests', []))
+            nationality = profile.get('nationality', '')
+
+            # Caractéristiques pour Random Forest
+            budget_match = 1 if user_budget and abs(user_budget - budget) <= user_budget * 0.2 else 0
+            travel_type_score = len(user_travel_types.intersection(travel_types))
+            language_score = len(user_languages.intersection(languages))
+            interest_score = len(user_interests.intersection(interests))
+            nationality_match = 1 if user_nationality and user_nationality == nationality else 0
+
+            features = [
+                budget_match,  # 0 ou 1 (budget dans ±20%)
+                travel_type_score,  # Nombre de styles de voyage communs
+                language_score,  # Nombre de langues communes
+                interest_score,  # Nombre d'intérêts communs
+                nationality_match  # 0 ou 1 (même nationalité)
+            ]
+
+            X.append(features)
+            user_ids.append(profile['user_id'])
+
+    if not X:
+        return travel_companions  # Retourne une liste vide si aucune donnée
+
+    # Calculer les scores cibles pour l'entraînement
+    y = []
+    for features in X:
+        score = (
+            features[0] * 40 +  # Budget match (+40 si dans ±20%)
+            features[1] * 30 +  # Travel type match (+30 par style commun)
+            features[2] * 20 +  # Language match (+20 par langue commune)
+            features[3] * 15 +  # Interest match (+15 par intérêt commun)
+            features[4] * 10    # Nationality match (+10 si même nationalité)
+        )
+        y.append(score)
+
+    # Entraîner le modèle Random Forest
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
+    model.fit(X, y)
+
+    # Prédire les scores
+    scores = model.predict(X)
+
+    # Associer les scores aux utilisateurs
+    scored_users = [
+        {
+            'user_id': user_ids[i],
+            'score': scores[i],
+            'first_name': profile['first_name'],
+            'last_name': profile['last_name'],
+            'profile_image': profile.get('profile_image', '/static/images/avatars/avatar-default.webp'),
+            'follower_count': format_follower_count(profile.get('follower_count', 0)),
+            'is_following': profile['user_id'] in user_profile.get('following', [])
+        }
+        for i, profile in enumerate(profiles)
+    ]
+
+    # Trier par score décroissant
+    scored_users.sort(key=lambda x: x['score'], reverse=True)
+
+    # Sélectionner les 3-4 meilleurs utilisateurs non suivis
+    travel_companions = [user for user in scored_users if not user['is_following']][:4]
+
+    # Compléter avec des utilisateurs non suivis si moins de 3
+    if len(travel_companions) < 3:
+        additional_users = [
+            {
+                'user_id': profile['user_id'],
+                'score': 0,
+                'first_name': profile['first_name'],
+                'last_name': profile['last_name'],
+                'profile_image': profile.get('profile_image', '/static/images/avatars/avatar-default.webp'),
+                'follower_count': format_follower_count(profile.get('follower_count', 0)),
+                'is_following': False
+            }
+            for profile in profiles
+            if profile['user_id'] not in [u['user_id'] for u in travel_companions]
+            and profile['user_id'] not in user_profile.get('following', [])
+        ]
+        # Ajouter des utilisateurs pour atteindre au moins 3
+        travel_companions.extend(additional_users[:max(0, 3 - len(travel_companions))])
+
+    return travel_companions
+
+@login_required(login_url='/login/')
+def plan_together(request):
+    """
+    Handle 'Plan Together' action by initiating a conversation or redirecting to a planning page.
+    """
+    if request.method == 'POST':
+        target_user_id = request.POST.get('target_user_id')
+        if not target_user_id:
+            return JsonResponse({'success': False, 'message': 'Target user ID is required'}, status=400)
+        
+        try:
+            target_user_id = int(target_user_id)
+        except ValueError:
+            return JsonResponse({'success': False, 'message': 'Invalid user ID'}, status=400)
+        
+        if target_user_id == request.user.id:
+            return JsonResponse({'success': False, 'message': 'Cannot plan with yourself'}, status=400)
+        
+        # Logique pour initier une conversation (par exemple, redirection vers messages)
+        # À implémenter selon votre système de messagerie
+        return JsonResponse({
+            'success': True,
+            'message': 'Conversation initiated with user',
+            'redirect_url': '/messages/'  # À ajuster selon votre URL de messagerie
+        })
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)

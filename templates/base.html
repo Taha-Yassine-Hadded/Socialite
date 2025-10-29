@@ -417,7 +417,7 @@
                             </div>
         
                             <!-- profile -->
-                            <a href="{% url 'profile' request.user.profile.slug %}" class="rounded-full relative bg-secondery cursor-pointer shrink-0">
+                            <a href="" class="rounded-full relative bg-secondery cursor-pointer shrink-0"> 
                                 {% if request.user.profile.avatar %}
                                     <img src="{{ request.user.profile.avatar.url }}" alt="" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0 object-cover">
                                 {% else %}
@@ -427,7 +427,7 @@
                             <div class="hidden bg-white rounded-lg drop-shadow-xl dark:bg-slate-700 w-64 border2"
                                 uk-drop="offset:6;pos: bottom-right;animate-out: true; animation: uk-animation-scale-up uk-transform-origin-top-right ">
                                 
-                                <a href="{% url 'profile' request.user.profile.slug %}">
+                                <a href="">
                                     <div class="p-4 py-5 flex items-center gap-4">
                                         {% if request.user.profile.avatar %}
                                             <img src="{{ request.user.profile.avatar.url }}" alt="" class="w-10 h-10 rounded-full shadow object-cover" data-profile-img>
@@ -576,6 +576,17 @@
                                     <span> Groups </span> 
                                 </a>
                             </li>
+
+
+                            <li class="{% if request.resolver_match.url_name == 'places' %}active{% endif %}">
+                                <a href="{% url 'place' %}">
+                                    <img src="{% static 'images/icons/places.png' %}" alt="places" class="w-6">
+                                    <span> Places </span> 
+                                </a>
+                            </li>
+                         
+
+
                             <li class="{% if request.resolver_match.url_name == 'market' %}active{% endif %}">
                                 <a href="{% url 'market' %}">
                                     <img src="{% static 'images/icons/market.webp' %}" alt="market" class="w-7 -ml-1">
