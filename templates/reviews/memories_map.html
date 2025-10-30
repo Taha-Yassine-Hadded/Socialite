@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Carte des souvenirs{% endblock %}
+
+{% block extra_head %}
+<!-- Inclure Leaflet pour la carte interactive -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<!-- Plugin de clustering pour regrouper les marqueurs -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="main_content">
+    <div class="mcontainer">
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold">Carte des souvenirs</h1>
+            <p class="text-sm text-gray-500">Explorez les souvenirs partagés par la communauté à travers le monde</p>
+        </div>
+
+        <!-- Filtres -->
+        <div class="bg-white rounded-md shadow-sm mb-4 p-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="country-filter" class="text-sm font-medium">Pays</label>
+                    <select id="country-filter" class="w-full p-2 border rounded-md">
+                        <option value="">Tous les pays</option>
+                        <!-- Les options seront remplies par JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label for="user-filter" class="text-sm font-medium">Utilisateur</label>
+                    <select id="user-filter" class="w-full p-2 border rounded-md">
+                        <option value="">Tous les utilisateurs</option>
+                        <!-- Les options seront remplies par JavaScript -->
+                    </select>
+                </div>
+                <div>
+                    <label for="date-filter" class="text-sm font-medium">Période</label>
+                    <select id="date-filter" class="w-full p-2 border rounded-md">
+                        <option value="">Toutes les dates</option>
+                        <option value="week">Cette semaine</option>
+                        <option value="month">Ce mois</option>
+                        <option value="year">Cette année</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte et statistiques -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Carte principale -->
+            <div class="md:col-span-3 bg-white rounded-md shadow-sm p-2">
+                <div id="map" style="height: 600px; width: 100%;"></div>
+            </div>
+            
+            <!-- Statistiques -->
+            <div class="bg-white rounded-md shadow-sm p-4">
+                <h2 class="text-xl font-semibold mb-4">Statistiques</h2>
+                
+                <div class="mb-4">
+                    <h3 class="text-lg font-medium mb-2">Top 5 des pays</h3>
+                    <div id="top-countries" class="space-y-2">
+                        <!-- Sera rempli par JavaScript -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-medium mb-2">Statistiques globales</h3>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-sm">Total des posts géolocalisés:</span>
+                            <span id="total-posts" class="font-medium">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm">Pays représentés:</span>
+                            <span id="total-countries" class="font-medium">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm">Utilisateurs contributeurs:</span>
+                            <span id="total-users" class="font-medium">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Liste des derniers posts géolocalisés -->
+        <div class="mt-6 bg-white rounded-md shadow-sm p-4">
+            <h2 class="text-xl font-semibold mb-4">Derniers souvenirs partagés</h2>
+            <div id="recent-posts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Sera rempli par JavaScript -->
+                <div class="text-center p-4">
+                    <p>Chargement des souvenirs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template pour les popups des marqueurs -->
+<template id="marker-popup-template">
+    <div class="marker-popup">
+        <div class="marker-popup-header">
+            <img src="" alt="" class="marker-popup-avatar">
+            <div class="marker-popup-user">
+                <a href="" class="marker-popup-username"></a>
+                <span class="marker-popup-date"></span>
+            </div>
+        </div>
+        <div class="marker-popup-content"></div>
+        <div class="marker-popup-image">
+            <img src="" alt="">
+        </div>
+        <div class="marker-popup-footer">
+            <a href="" class="marker-popup-link">Voir le post</a>
+        </div>
+    </div>
+</template>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation de la carte
+        var map = L.map('map').setView([20, 0], 2);
+        
+        // Ajout de la couche de tuiles OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Création du groupe de marqueurs pour le clustering
+        var markers = L.markerClusterGroup();
+        
+        // Fonction pour charger les données des posts géolocalisés
+        function loadGeolocatedPosts(filters = {}) {
+            // Construction de l'URL avec les filtres
+            let url = '/api/geolocated-posts/';
+            let params = new URLSearchParams();
+            
+            if (filters.country) params.append('country', filters.country);
+            if (filters.user) params.append('user', filters.user);
+            if (filters.date) params.append('date', filters.date);
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+            
+            // Récupération des données via l'API
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Réinitialisation des marqueurs
+                    markers.clearLayers();
+                    
+                    // Mise à jour des statistiques
+                    document.getElementById('total-posts').textContent = data.stats.total_posts;
+                    document.getElementById('total-countries').textContent = data.stats.total_countries;
+                    document.getElementById('total-users').textContent = data.stats.total_users;
+                    
+                    // Mise à jour du top des pays
+                    const topCountriesEl = document.getElementById('top-countries');
+                    topCountriesEl.innerHTML = '';
+                    
+                    data.stats.top_countries.forEach(country => {
+                        const countryEl = document.createElement('div');
+                        countryEl.className = 'flex justify-between items-center';
+                        countryEl.innerHTML = `
+                            <span class="text-sm">${country.name}</span>
+                            <span class="font-medium">${country.count}</span>
+                        `;
+                        topCountriesEl.appendChild(countryEl);
+                    });
+                    
+                    // Mise à jour des posts récents
+                    const recentPostsEl = document.getElementById('recent-posts');
+                    recentPostsEl.innerHTML = '';
+                    
+                    data.posts.slice(0, 6).forEach(post => {
+                        const postEl = document.createElement('div');
+                        postEl.className = 'bg-gray-50 rounded-md p-3';
+                        
+                        let postImage = '';
+                        if (post.image) {
+                            postImage = `<img src="${post.image}" alt="" class="w-full h-32 object-cover rounded-md mb-2">`;
+                        }
+                        
+                        postEl.innerHTML = `
+                            ${postImage}
+                            <div class="flex items-center mb-2">
+                                <img src="${post.user.avatar || '/static/assets/images/avatars/avatar-2.jpg'}" class="w-8 h-8 rounded-full mr-2" alt="">
+                                <div>
+                                    <a href="/profile/${post.user.username}/" class="font-medium">${post.user.first_name} ${post.user.last_name}</a>
+                                    <p class="text-xs text-gray-500">${post.created_at}</p>
+                                </div>
+                            </div>
+                            <p class="text-sm">${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</p>
+                            <div class="mt-2 text-xs text-gray-500">
+                                <span>${post.detected_country || post.location || 'Lieu inconnu'}</span>
+                            </div>
+                        `;
+                        
+                        recentPostsEl.appendChild(postEl);
+                    });
+                    
+                    // Ajout des marqueurs à la carte
+                    data.posts.forEach(post => {
+                        if (post.latitude && post.longitude) {
+                            const marker = L.marker([post.latitude, post.longitude]);
+                            
+                            // Création du contenu de la popup
+                            const popupContent = document.createElement('div');
+                            popupContent.className = 'marker-popup';
+                            
+                            let postImage = '';
+                            if (post.image) {
+                                postImage = `<div class="mt-2"><img src="${post.image}" alt="" class="w-full max-h-32 object-cover rounded"></div>`;
+                            }
+                            
+                            popupContent.innerHTML = `
+                                <div class="flex items-center mb-2">
+                                    <img src="${post.user.avatar || '/static/assets/images/avatars/avatar-2.jpg'}" class="w-8 h-8 rounded-full mr-2" alt="">
+                                    <div>
+                                        <a href="/profile/${post.user.username}/" class="font-medium">${post.user.first_name} ${post.user.last_name}</a>
+                                        <p class="text-xs text-gray-500">${post.created_at}</p>
+                                    </div>
+                                </div>
+                                <p class="text-sm">${post.content.substring(0, 150)}${post.content.length > 150 ? '...' : ''}</p>
+                                ${postImage}
+                                <div class="mt-2 text-xs text-gray-500">
+                                    <span>${post.detected_country || post.location || 'Lieu inconnu'}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="/post/${post.id}/" class="text-blue-500 text-sm">Voir le post</a>
+                                </div>
+                            `;
+                            
+                            marker.bindPopup(popupContent);
+                            markers.addLayer(marker);
+                        }
+                    });
+                    
+                    // Ajout du groupe de marqueurs à la carte
+                    map.addLayer(markers);
+                    
+                    // Mise à jour des filtres
+                    updateFilters(data);
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des posts géolocalisés:', error);
+                });
+        }
+        
+        // Fonction pour mettre à jour les options des filtres
+        function updateFilters(data) {
+            // Mise à jour du filtre de pays
+            const countryFilter = document.getElementById('country-filter');
+            const currentCountry = countryFilter.value;
+            
+            // Sauvegarde de la sélection actuelle
+            countryFilter.innerHTML = '<option value="">Tous les pays</option>';
+            
+            data.filters.countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.code;
+                option.textContent = country.name;
+                if (country.code === currentCountry) {
+                    option.selected = true;
+                }
+                countryFilter.appendChild(option);
+            });
+            
+            // Mise à jour du filtre d'utilisateurs
+            const userFilter = document.getElementById('user-filter');
+            const currentUser = userFilter.value;
+            
+            userFilter.innerHTML = '<option value="">Tous les utilisateurs</option>';
+            
+            data.filters.users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.first_name} ${user.last_name}`;
+                if (user.id === currentUser) {
+                    option.selected = true;
+                }
+                userFilter.appendChild(option);
+            });
+        }
+        
+        // Chargement initial des données
+        loadGeolocatedPosts();
+        
+        // Gestion des événements de filtrage
+        document.getElementById('country-filter').addEventListener('change', function() {
+            const filters = {
+                country: this.value,
+                user: document.getElementById('user-filter').value,
+                date: document.getElementById('date-filter').value
+            };
+            loadGeolocatedPosts(filters);
+        });
+        
+        document.getElementById('user-filter').addEventListener('change', function() {
+            const filters = {
+                country: document.getElementById('country-filter').value,
+                user: this.value,
+                date: document.getElementById('date-filter').value
+            };
+            loadGeolocatedPosts(filters);
+        });
+        
+        document.getElementById('date-filter').addEventListener('change', function() {
+            const filters = {
+                country: document.getElementById('country-filter').value,
+                user: document.getElementById('user-filter').value,
+                date: this.value
+            };
+            loadGeolocatedPosts(filters);
+        });
+    });
+</script>
+
+<style>
+    .marker-popup {
+        max-width: 300px;
+    }
+    
+    .marker-popup img {
+        max-width: 100%;
+    }
+    
+    .leaflet-popup-content {
+        margin: 10px;
+    }
+</style>
+{% endblock %}

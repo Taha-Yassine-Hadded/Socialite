@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Socialite - Carte des souvenirs{% endblock %}
+
+{% block content %}
+<div class="flex max-lg:flex-col 2xl:gap-12 gap-10 2xl:max-w-[1220px] max-w-[1065px] mx-auto" id="js-oversized">
+    <div class="flex-1">
+        <div class="max-w-[680px] w-full mx-auto">
+            <div class="page-heading">
+                <h1 class="page-title">Carte des souvenirs</h1>
+                <p class="text-sm text-gray-500 dark:text-white/80">Explorez vos souvenirs et ceux de vos amis sur la carte</p>
+            </div>
+
+            <!-- Filtres -->
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-5 dark:bg-dark2">
+                <h3 class="font-bold text-lg mb-3">Filtres</h3>
+                <form id="filter-form" class="space-y-3">
+                    <!-- Filtre par pays -->
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Pays</label>
+                        <select id="country-filter" class="w-full p-2 border rounded-md">
+                            <option value="">Tous les pays</option>
+                            {% for country in countries %}
+                            <option value="{{ country }}">{{ country }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Filtre par utilisateur -->
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Utilisateur</label>
+                        <select id="user-filter" class="w-full p-2 border rounded-md">
+                            <option value="">Tous les utilisateurs</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        Appliquer les filtres
+                    </button>
+                </form>
+            </div>
+
+            <!-- Carte -->
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-5 dark:bg-dark2">
+                <div id="map" style="height: 500px; width: 100%;"></div>
+            </div>
+
+            <!-- Liste des posts avec localisation -->
+            <div id="posts-container" class="space-y-4">
+                <!-- Les posts seront chargés ici via JavaScript -->
+                <div class="text-center py-10" id="loading">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-blue-600"></div>
+                    <p class="mt-2 text-gray-600 dark:text-gray-300">Chargement des souvenirs...</p>
+                </div>
+                <div id="no-posts" class="hidden text-center py-10">
+                    <p class="text-gray-600 dark:text-gray-300">Aucun souvenir avec localisation trouvé.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inclure Leaflet.js pour la carte -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiser la carte
+        const map = L.map('map').setView([20, 0], 2); // Vue mondiale par défaut
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Groupe pour les marqueurs
+        const markers = L.layerGroup().addTo(map);
+        
+        // Fonction pour charger les posts
+        function loadPosts(countryFilter = '', userFilter = '') {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('no-posts').classList.add('hidden');
+            document.getElementById('posts-container').innerHTML = '';
+            markers.clearLayers();
+            
+            // Construire l'URL avec les filtres
+            let url = '/api/geolocated-posts/';
+            const params = [];
+            if (countryFilter) params.push(`country=${encodeURIComponent(countryFilter)}`);
+            if (userFilter) params.push(`user_id=${encodeURIComponent(userFilter)}`);
+            if (params.length > 0) url += '?' + params.join('&');
+            
+            // Charger les données
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').classList.add('hidden');
+                    
+                    if (data.posts.length === 0) {
+                        document.getElementById('no-posts').classList.remove('hidden');
+                        return;
+                    }
+                    
+                    // Ajouter les posts à la carte et à la liste
+                    data.posts.forEach(post => {
+                        // Ajouter un marqueur si on a des coordonnées
+                        if (post.latitude && post.longitude) {
+                            const marker = L.marker([post.latitude, post.longitude])
+                                .addTo(markers)
+                                .bindPopup(`
+                                    <div class="popup-content">
+                                        <h3 class="font-bold">${post.user_name}</h3>
+                                        <p>${post.content.substring(0, 100)}${post.content.length > 100 ? '...' : ''}</p>
+                                        <p class="text-sm text-gray-500">
+                                            ${post.location ? `📍 ${post.location}` : ''}
+                                            ${post.detected_landmark ? `<br>🏛️ ${post.detected_landmark}` : ''}
+                                            ${post.detected_country ? `<br>🌍 ${post.detected_country}` : ''}
+                                        </p>
+                                        <a href="/post/${post.id}/" class="text-blue-600 hover:underline">Voir le post</a>
+                                    </div>
+                                `);
+                        }
+                        
+                        // Ajouter à la liste des posts
+                        const postElement = document.createElement('div');
+                        postElement.className = 'bg-white rounded-xl shadow-sm p-4 dark:bg-dark2';
+                        postElement.innerHTML = `
+                            <div class="flex items-center gap-3 mb-3">
+                                <a href="/profile/${post.user_username}/">
+                                    <img src="${post.user_avatar || '{% static "images/avatars/avatar-default.webp" %}'}" 
+                                         alt="${post.user_name}" class="w-10 h-10 rounded-full object-cover">
+                                </a>
+                                <div>
+                                    <a href="/profile/${post.user_username}/" class="font-semibold">${post.user_name}</a>
+                                    <div class="text-xs text-gray-500">
+                                        ${new Date(post.created_at).toLocaleDateString()}
+                                        ${post.location ? `• 📍 ${post.location}` : ''}
+                                        ${post.detected_country ? `• 🌍 ${post.detected_country}` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mb-3">${post.content}</p>
+                            ${post.image ? `<img src="${post.image}" alt="Post image" class="rounded-lg w-full object-cover mb-3">` : ''}
+                            ${post.detected_landmark ? `<p class="text-sm text-gray-600 dark:text-gray-300">🏛️ Point d'intérêt détecté: ${post.detected_landmark}</p>` : ''}
+                            <a href="/post/${post.id}/" class="text-blue-600 hover:underline">Voir le post</a>
+                        `;
+                        document.getElementById('posts-container').appendChild(postElement);
+                    });
+                    
+                    // Ajuster la vue de la carte si on a des marqueurs
+                    if (markers.getLayers().length > 0) {
+                        const bounds = L.featureGroup(markers.getLayers()).getBounds();
+                        map.fitBounds(bounds, { padding: [50, 50] });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des posts:', error);
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('no-posts').classList.remove('hidden');
+                    document.getElementById('no-posts').innerHTML = '<p class="text-red-600">Erreur lors du chargement des souvenirs.</p>';
+                });
+        }
+        
+        // Charger les posts au chargement de la page
+        loadPosts();
+        
+        // Gérer le formulaire de filtres
+        document.getElementById('filter-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const countryFilter = document.getElementById('country-filter').value;
+            const userFilter = document.getElementById('user-filter').value;
+            loadPosts(countryFilter, userFilter);
+        });
+    });
+</script>
+{% endblock %}

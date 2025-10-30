@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'reports/js/reports.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4">{% trans 'Tableau de bord des signalements' %}</h1>
+    
+    <!-- Filtres et statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans 'Total' %}</h5>
+                    <h2 class="card-text">{{ stats.total }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <a href="?status=pending" class="text-decoration-none">
+                <div class="card text-white bg-warning mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{% trans 'En attente' %}</h5>
+                        <h2 class="card-text">{{ stats.pending }}</h2>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="?status=resolved" class="text-decoration-none">
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{% trans 'Résolus' %}</h5>
+                        <h2 class="card-text">{{ stats.resolved }}</h2>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="?status=ignored" class="text-decoration-none">
+                <div class="card text-white bg-secondary mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{% trans 'Ignorés' %}</h5>
+                        <h2 class="card-text">{{ stats.ignored }}</h2>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Liste des signalements -->
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link {% if current_status == 'pending' %}active{% endif %}" 
+                       href="?status=pending">
+                        {% trans 'En attente' %}
+                        <span class="badge bg-warning text-dark">{{ stats.pending }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if current_status == 'resolved' %}active{% endif %}" 
+                       href="?status=resolved">
+                        {% trans 'Résolus' %}
+                        <span class="badge bg-success">{{ stats.resolved }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if current_status == 'ignored' %}active{% endif %}" 
+                       href="?status=ignored">
+                        {% trans 'Ignorés' %}
+                        <span class="badge bg-secondary">{{ stats.ignored }}</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            {% if reports %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>{% trans 'Type' %}</th>
+                                <th>{% trans 'Contenu signalé' %}</th>
+                                <th>{% trans 'Signalé par' %}</th>
+                                <th>{% trans 'Date' %}</th>
+                                <th>{% trans 'Statut' %}</th>
+                                <th>{% trans 'Actions' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            <tr class="align-middle">
+                                <td>
+                                    <span class="badge bg-{{ report.get_status_color }}">
+                                        {{ report.get_report_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>{{ report.content_type|title }}:</strong><br>
+                                    {{ report.content_object|truncatechars:50 }}
+                                </td>
+                                <td>
+                                    {{ report.reporter.get_full_name|default:report.reporter.username }}
+                                    <small class="d-block text-muted">
+                                        {{ report.created_at|timesince }}
+                                    </small>
+                                </td>
+                                <td>{{ report.created_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    <span class="badge bg-{{ report.get_status_color }}">
+                                        {{ report.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if report.status == 'pending' %}
+                                        <form method="post" action="{% url 'reports:update_status' report.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="approve" 
+                                                    class="btn btn-sm btn-success me-1"
+                                                    title="{% trans 'Approuver' %}">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{% url 'reports:update_status' report.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" name="action" value="ignore" 
+                                                    class="btn btn-sm btn-secondary me-1"
+                                                    title="{% trans 'Ignorer' %}">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{% url 'reports:delete_content' report.id %}" 
+                                              class="d-inline" 
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?');">
+                                            {% csrf_token %}
+                                            <button type="submit" 
+                                                    class="btn btn-sm btn-danger"
+                                                    title="{% trans 'Supprimer le contenu' %}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if report.message %}
+                            <tr>
+                                <td colspan="6" class="small text-muted">
+                                    <strong>{% trans 'Message:' %}</strong> {{ report.message }}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    {% trans 'Aucun signalement trouvé.' %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

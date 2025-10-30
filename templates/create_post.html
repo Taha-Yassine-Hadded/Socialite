@@ -216,6 +216,10 @@ document.getElementById('createPostForm').addEventListener('submit', async funct
             messageContent.className = 'p-4 rounded-lg bg-green-100 text-green-700';
             messageContent.textContent = '✅ ' + data.message;
             
+            // Déclencher l'événement pour rafraîchir la carte
+            const postCreatedEvent = new CustomEvent('postCreated');
+            document.dispatchEvent(postCreatedEvent);
+            
             // Rediriger après 2 secondes
             setTimeout(() => {
                 window.location.href = '{% url "list_posts" %}';

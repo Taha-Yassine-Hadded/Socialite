@@ -1,0 +1,11 @@
+<html>
+  <body>
+    <p>Hello {{ user.first_name|default:user.username }},</p>
+    <p>Your sign-in code is:</p>
+    <h2 style="letter-spacing:4px;">{{ code }}</h2>
+    <p>This code is valid for {{ valid_minutes }} minutes.</p>
+    <p>If you didn’t request this, you can ignore this email.</p>
+    <p>— {{ site_name }}</p>
+  </body>
+</html>
+

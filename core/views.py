@@ -1,3 +1,4 @@
+
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.db import IntegrityError
@@ -17,11 +18,36 @@ from django.contrib import messages
 from .forms import UserEditForm, ProfileEditForm, CustomPasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import render, redirect, get_object_or_404
+from django.db import models
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Avg, Count
 from .models import Post, Comment, Reaction, Share, UserProfile, Avis
 import json
+import logging
+from django.http import JsonResponse
+from rest_framework.decorators import api_view
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.views.decorators.http import require_http_methods
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from io import BytesIO
+import base64
+
+# Import des services de détection de pays
+try:
+    from ai_services.exif_service import extract_gps, reverse_geocode
+    from ai_services.clip_service import ClipService
+    from ai_services.countries import ALL_COUNTRIES, CONTINENTS, COUNTRIES_BY_CONTINENT
+    from ai_services.landmark_service import detect_landmark_country
+    CLIP_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Impossible d'importer les services de détection de pays: {e}")
+    CLIP_AVAILABLE = False
+    from ai_services.exif_service import extract_gps, reverse_geocode
+
+
 
 # Liste des intérêts pour le formulaire
 INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation']
@@ -112,7 +138,22 @@ COUNTRIES = [
     ('VU', 'Vanuatu'), ('VE', 'Venezuela'), ('VN', 'Vietnam'), ('YE', 'Yemen'),
     ('ZM', 'Zambia'), ('ZW', 'Zimbabwe')
 ]
-
+@login_required(login_url='/login/')
+def memories_map(request):
+    """Vue pour afficher la carte des souvenirs avec les posts géolocalisés"""
+    # Récupérer les pays disponibles pour le filtre
+    countries = Post.objects.exclude(detected_country__isnull=True)\
+                          .values_list('detected_country', flat=True)\
+                          .distinct()\
+                          .order_by('detected_country')
+    
+    # Récupérer les utilisateurs pour le filtre
+    users = User.objects.filter(posts__isnull=False).distinct()
+    
+    return render(request, 'memories_map.html', {
+        'countries': countries,
+        'users': users
+    })
 def format_follower_count(count):
     """Format follower count (e.g., 100000 -> 100K, 1000000 -> 1M)."""
     if count >= 1_000_000:
@@ -455,6 +496,7 @@ def feed(request):
     
     context = {
         'posts': posts,
+        'chatbot_enabled': True,
     }
     return render(request, 'feed.html', context)
 
@@ -930,7 +972,75 @@ def create_post(request):
             location=location,
             visibility=visibility
         )
+
+        # Détection de pays et métadonnées
+        country = request.POST.get('country')
+        method = 'user_input'
+        confidence = 1.0
+        landmark = request.POST.get('landmark')
+        response_data = {
+            'country': country,
+            'method': method,
+            'confidence': confidence,
+            'landmark': landmark
+        }
         
+        # Détection automatique de localisation à partir de l'image
+        if image and not country:
+            try:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"Tentative de détection de pays à partir de l'image: {image.name}")
+                
+                from ai_services.simple_landmark_service import detect_landmark_country
+                # Lire le contenu de l'image en tant que bytes
+                image_bytes = image.read()
+                logger.info(f"Image lue avec succès, taille: {len(image_bytes)} bytes")
+                
+                # Réinitialiser le pointeur du fichier pour pouvoir le sauvegarder ensuite
+                image.seek(0)
+                
+                # Détecter le pays à partir de l'image
+                logger.info("Appel de la fonction detect_landmark_country")
+                landmark_result = detect_landmark_country(image_bytes)
+                logger.info(f"Résultat de la détection: {landmark_result}")
+                
+                if landmark_result:
+                    country = landmark_result['country']
+                    method = landmark_result['method']
+                    confidence = landmark_result['confidence']
+                    landmark = landmark_result.get('landmark', '')
+                    
+                    response_data = {
+                        'country': country,
+                        'method': method,
+                        'confidence': confidence,
+                        'landmark': landmark
+                    }
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erreur lors de la détection de localisation: {e}")
+                # Continuer sans détection automatique en cas d'erreur
+
+        # --- Ajout des métadonnées détectées ---
+        if country:
+            post.detected_country = country
+            post.detection_method = method
+            post.detection_confidence = confidence
+            post.detected_landmark = landmark
+            
+            # Si on a des coordonnées GPS via EXIF
+            if method == 'exif' and 'extras' in response_data and 'lat' in response_data['extras']:
+                post.latitude = response_data['extras']['lat']
+                post.longitude = response_data['extras']['lng']
+            
+            # Si la localisation n'est pas définie par l'utilisateur mais qu'on a détecté un pays
+            if not location and method == 'landmark' and landmark:
+                post.location = landmark  # Utiliser le landmark comme localisation
+            
+            post.save()
+
         # Retourner une réponse JSON (succès)
         return JsonResponse({
             'success': True,
@@ -1374,6 +1484,130 @@ def edit_comment(request, comment_id):
 
 
 # ============================================
+# DÉTECTION DE PAYS PAR IMAGE (API)
+# ============================================
+
+@api_view(['POST'])
+@require_http_methods(["POST"])
+def detect_country(request):
+    """
+    Endpoint pour détecter le pays d'une image à partir de ses métadonnées EXIF ou de son contenu visuel.
+    
+    Méthodes supportées :
+    - EXIF GPS : Extrait les coordonnées GPS des métadonnées de l'image
+    - CLIP : Utilise un modèle d'IA pour classer l'image parmi une liste de pays
+    
+    Paramètres (multipart/form-data) :
+    - image : Fichier image à analyser
+    
+    Retourne un JSON avec :
+    - method : 'exif' si détection par GPS, 'clip_hybrid' si détection par IA
+    - country : Nom du pays détecté (peut être None)
+    - confidence : Niveau de confiance (entre 0 et 1)
+    - candidates : Liste des pays candidats avec leurs scores
+    - extras : Informations supplémentaires (coordonnées GPS, etc.)
+    """
+    if not CLIP_AVAILABLE:
+        return Response(
+            {"error": "Service de détection de pays non disponible"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    
+    # Vérifier si une image a été fournie
+    if 'image' not in request.FILES:
+        return Response(
+            {"error": "Aucune image fournie"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    image_file = request.FILES['image']
+    
+    # Vérifier la taille du fichier (max 10 Mo)
+    if image_file.size > 10 * 1024 * 1024:  # 10 Mo
+        return Response(
+            {"error": "L'image est trop volumineuse (max 10 Mo)"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Lire le contenu du fichier
+    try:
+        image_bytes = image_file.read()
+        
+        # Essayer d'abord avec les métadonnées EXIF
+        lat, lng = extract_gps(image_bytes)
+        
+        if lat is not None and lng is not None:
+            # Si on a des coordonnées GPS, on fait du reverse geocoding
+            location = reverse_geocode(lat, lng)
+            
+            if location and 'country_name' in location:
+                return Response({
+                    "method": "exif",
+                    "country": location['country_name'],
+                    "country_code": location.get('country_code', '').upper(),
+                    "confidence": 1.0,  # Forte confiance pour la méthode EXIF
+                    "candidates": [{"country": location['country_name'], "score": 1.0}],
+                    "extras": {"lat": lat, "lng": lng}
+                })
+        
+        # Si pas de GPS ou échec du géocodage, essayer la détection de landmark
+        logging.info("Tentative de détection de landmark...")
+        landmark_result = detect_landmark_country(image_bytes)
+        
+        if landmark_result and landmark_result['confidence'] > 0.25:
+            # Landmark détecté avec haute confiance → retour direct
+            return Response({
+                "method": "landmark",
+                "country": landmark_result['country'],
+                "landmark": landmark_result['landmark'],
+                "confidence": landmark_result['confidence'],
+                "candidates": [
+                    {"country": landmark_result['country'], "score": landmark_result['confidence']}
+                ]
+            })
+        
+        # Si pas de landmark détecté, utiliser CLIP classique
+        clip_service = ClipService()
+        
+        # D'abord prédire le continent
+        continent = clip_service.predict_continent(image_bytes, CONTINENTS)
+        
+        # Filtrer les pays en fonction du continent prédit
+        candidate_countries = []
+        if continent and continent in COUNTRIES_BY_CONTINENT:
+            candidate_countries = COUNTRIES_BY_CONTINENT[continent]
+        else:
+            # Si on n'a pas pu déterminer le continent, utiliser les 50 pays les plus touristiques
+            candidate_countries = ALL_COUNTRIES[:50]
+        
+        # Limiter à 30 pays pour de meilleurs résultats (trop de choix dilue la précision)
+        candidate_countries = candidate_countries[:30]
+        
+        # Classer les pays avec CLIP
+        results = clip_service.zero_shot_countries(image_bytes, candidate_countries)
+        
+        # Préparer la réponse
+        response_data = {
+            "method": "clip_hybrid",
+            "country": results[0]['country'] if results else None,
+            "confidence": results[0]['score'] if results else 0.0,
+            "candidates": results[:10],  # Retourner les 10 premiers résultats
+        }
+        
+        # Ajouter le continent prédit si disponible
+        if continent:
+            response_data["predicted_continent"] = continent
+        
+        return Response(response_data)
+        
+    except Exception as e:
+        logging.error(f"Erreur lors de la détection de pays: {str(e)}", exc_info=True)
+        return Response(
+            {"error": f"Erreur lors du traitement de l'image: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+# ============================================
 # VUE : SUPPRIMER UN COMMENTAIRE
 # ============================================
 @login_required
@@ -1408,3 +1642,225 @@ def delete_comment(request, comment_id):
         'message': 'Commentaire supprimé avec succès !',
         'comments_count': post.comments_count
     })
+
+@api_view(['GET'])
+def geolocated_posts(request):
+    """API pour récupérer les posts géolocalisés au format JSON"""
+    try:
+        # Configurer le logging pour le débogage
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Appel à geolocated_posts avec params: {request.GET}")
+        
+        # Filtres
+        country = request.GET.get('country')
+        user_id = request.GET.get('user_id')  # Changé de 'user' à 'user_id' pour correspondre au template
+        
+        # Requête de base - élargir les critères pour inclure tous les posts avec une information de localisation
+        posts = Post.objects.filter(
+            # Un post est considéré comme géolocalisé s'il a au moins une de ces informations
+            models.Q(latitude__isnull=False) | 
+            models.Q(longitude__isnull=False) | 
+            models.Q(detected_country__isnull=False) & ~models.Q(detected_country='') |
+            models.Q(location__isnull=False) & ~models.Q(location='')
+        )
+        
+        logger.info(f"Nombre de posts trouvés initialement: {posts.count()}")
+        
+        # Appliquer les filtres
+        if country:
+            posts = posts.filter(detected_country=country)
+            logger.info(f"Après filtre pays '{country}': {posts.count()} posts")
+        
+        if user_id:
+            try:
+                user_id = int(user_id)
+                posts = posts.filter(user_id=user_id)
+                logger.info(f"Après filtre utilisateur {user_id}: {posts.count()} posts")
+            except (ValueError, TypeError):
+                logger.warning(f"ID utilisateur invalide: {user_id}")
+        
+        # Limiter le nombre de résultats pour les performances
+        posts = posts[:500]
+        
+        # Sérialiser les données avec gestion des erreurs
+        data = []
+        for post in posts:
+            try:
+                post_data = {
+                    'id': post.id,
+                    'content': post.content[:100] + '...' if post.content and len(post.content) > 100 else post.content,
+                    'image': post.image.url if post.image else None,
+                    'latitude': post.latitude,
+                    'longitude': post.longitude,
+                    'location': post.location or '',
+                    'detected_country': post.detected_country or '',
+                    'detected_landmark': post.detected_landmark or '',
+                    'created_at': post.created_at.strftime('%d/%m/%Y'),
+                    'user_id': post.user.id,
+                    'user_name': f"{post.user.first_name} {post.user.last_name}",
+                    'user_username': post.user.username,
+                }
+                
+                # Ajouter l'avatar de l'utilisateur s'il existe
+                try:
+                    if hasattr(post.user, 'profile') and post.user.profile and post.user.profile.avatar:
+                        post_data['user_avatar'] = post.user.profile.avatar.url
+                except Exception as e:
+                    logger.warning(f"Erreur lors de la récupération de l'avatar pour l'utilisateur {post.user.id}: {str(e)}")
+                
+                data.append(post_data)
+            except Exception as e:
+                logger.error(f"Erreur lors de la sérialisation du post {post.id}: {str(e)}")
+        
+        logger.info(f"Nombre final de posts sérialisés: {len(data)}")
+        
+        # Ajouter les statistiques attendues par le template
+        response_data = {
+            'posts': data,
+            'stats': {
+                'total_posts': len(data),
+                'countries': len(set(p.get('detected_country') for p in data if p.get('detected_country'))),
+                'users': len(set(p.get('user_id') for p in data)),
+                'top_countries': []
+            },
+            'filters': {
+                'countries': list(set(p.get('detected_country') for p in data if p.get('detected_country'))),
+                'users': []
+            }
+        }
+        
+        return Response(response_data)
+    
+    except Exception as e:
+        logger.error(f"Erreur globale dans geolocated_posts: {str(e)}", exc_info=True)
+        return Response({'error': str(e)}, status=500)
+
+
+@login_required(login_url='/login/')
+def memories_map(request):
+    """
+    Vue pour afficher la carte des souvenirs avec les posts géolocalisés
+    """
+    return render(request, 'reviews/memories_map.html')
+
+
+@api_view(['GET'])
+@login_required(login_url='/login/')
+def geolocated_posts_api(request):
+    """
+    API pour récupérer les posts géolocalisés avec filtrage
+    """
+    # Récupération des paramètres de filtrage
+    country = request.GET.get('country', None)
+    user_id = request.GET.get('user', None)
+    date_filter = request.GET.get('date', None)
+    
+    # Base de la requête : posts avec coordonnées géographiques
+    posts_query = Post.objects.filter(
+        Q(latitude__isnull=False) & Q(longitude__isnull=False)
+    )
+    
+    # Application des filtres
+    if country:
+        posts_query = posts_query.filter(detected_country=country)
+    
+    if user_id:
+        posts_query = posts_query.filter(user_id=user_id)
+    
+    if date_filter:
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        
+        if date_filter == 'week':
+            start_date = today - timedelta(days=7)
+            posts_query = posts_query.filter(created_at__gte=start_date)
+        elif date_filter == 'month':
+            start_date = today.replace(day=1)  # Premier jour du mois
+            posts_query = posts_query.filter(created_at__gte=start_date)
+        elif date_filter == 'year':
+            start_date = today.replace(month=1, day=1)  # Premier jour de l'année
+            posts_query = posts_query.filter(created_at__gte=start_date)
+    
+    # Récupération des posts avec les données nécessaires
+    posts = posts_query.select_related('user', 'user__profile').order_by('-created_at')
+    
+    # Préparation des données pour la réponse
+    posts_data = []
+    for post in posts:
+        user_data = {
+            'id': post.user.id,
+            'username': post.user.username,
+            'first_name': post.user.first_name,
+            'last_name': post.user.last_name,
+            'avatar': post.user.profile.avatar.url if post.user.profile.avatar else None
+        }
+        
+        post_data = {
+            'id': post.id,
+            'content': post.content,
+            'image': post.image.url if post.image else None,
+            'latitude': post.latitude,
+            'longitude': post.longitude,
+            'location': post.location,
+            'detected_country': post.detected_country,
+            'detected_landmark': post.detected_landmark,
+            'created_at': post.created_at.strftime('%d/%m/%Y %H:%M'),
+            'user': user_data
+        }
+        
+        posts_data.append(post_data)
+    
+    # Statistiques
+    total_posts = posts_query.count()
+    total_countries = posts_query.values('detected_country').distinct().count()
+    total_users = posts_query.values('user').distinct().count()
+    
+    # Top 5 des pays
+    top_countries = posts_query.values('detected_country')\
+                            .annotate(count=Count('id'))\
+                            .order_by('-count')[:5]
+    
+    top_countries_data = []
+    for country in top_countries:
+        if country['detected_country']:
+            top_countries_data.append({
+                'name': country['detected_country'],
+                'count': country['count']
+            })
+    
+    # Données pour les filtres
+    countries_data = []
+    countries = posts_query.values('detected_country').distinct()
+    for country in countries:
+        if country['detected_country']:
+            countries_data.append({
+                'code': country['detected_country'],
+                'name': country['detected_country']
+            })
+    
+    users_data = []
+    users = posts_query.values('user', 'user__first_name', 'user__last_name').distinct()
+    for user in users:
+        users_data.append({
+            'id': user['user'],
+            'first_name': user['user__first_name'],
+            'last_name': user['user__last_name']
+        })
+    
+    # Construction de la réponse
+    response_data = {
+        'posts': posts_data,
+        'stats': {
+            'total_posts': total_posts,
+            'total_countries': total_countries,
+            'total_users': total_users,
+            'top_countries': top_countries_data
+        },
+        'filters': {
+            'countries': countries_data,
+            'users': users_data
+        }
+    }
+    
+    return Response(response_data)

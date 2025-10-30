@@ -16,6 +16,7 @@
     <!-- CSS files -->
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/chatbot.css' %}">
     
     <!-- Google font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -508,9 +509,7 @@
                                     <hr class="-mx-2 my-2 dark:border-gray-600/60">
                                     <a href="#" id="logoutBtn">
                                         <div class="flex items-center gap-2.5 hover:bg-secondery p-2 px-2.5 rounded-md dark:hover:bg-white/10 cursor-pointer"> 
-                                            <svg class="w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 01-3 3H6a3 3 01-3-3V7a3 3 013-3h4a3 3 013 3v1"></path>
-                                            </svg>
+                                            <ion-icon name="log-out-outline" class="w-6 h-6"></ion-icon>
                                             Log Out 
                                         </div>
                                     </a>
@@ -598,6 +597,15 @@
                                 <a href="{% url 'blog' %}">
                                     <img src="{% static 'images/icons/blog.webp' %}" alt="blog" class="w-6">
                                     <span> blog </span> 
+                                </a>
+                            </li>
+                            <li class="{% if request.resolver_match.url_name == 'memories_map' %}active{% endif %}">
+                                <a href="{% url 'memories_map' %}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25s-7.5-4.108-7.5-11.25a7.5 7.5 0 1115 0z" />
+                                    </svg>
+                                    <span> Memories Map </span> 
                                 </a>
                             </li> 
                             <li class="!hidden {% if request.resolver_match.url_name == 'games' %}active{% endif %}" id="show__more">
@@ -982,37 +990,23 @@
     async function loadUserInfo() {
         const token = localStorage.getItem('token');
         if (!token) return null;
-        
         try {
-            const response = await fetch('/api/user/', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                const user = data.user;
-                
-                // PROFIL
-                const profileName = document.querySelector('[data-profile-name]');
-                const profileHandle = document.querySelector('[data-profile-handle]');
-                const profileImg = document.querySelector('[data-profile-img]');
-                
-                if (profileName) profileName.textContent = `${user.first_name} ${user.last_name}`;
-                if (profileHandle) profileHandle.textContent = `@${user.first_name.toLowerCase()}${user.last_name ? '.' + user.last_name.toLowerCase() : ''}`;
-                if (profileImg && user.profile_image) profileImg.src = `${user.profile_image}`;
-                
-                // ✅ ADMIN MENU : SHOW/HIDE AUTO
-                const adminMenu = document.querySelector('[data-admin-menu]');
-                if (adminMenu) {
-                    adminMenu.style.display = user.is_staff ? 'block' : 'none';
-                }
-                
-                return user;
-            }
-        } catch (error) {
-            console.error('Failed to load user info');
-        }
-        return null;
+            const response = await fetch('/api/user/', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!response.ok) return null; // quietly ignore 401/403/etc.
+            const data = await response.json();
+            const user = data.user;
+            // PROFIL
+            const profileName = document.querySelector('[data-profile-name]');
+            const profileHandle = document.querySelector('[data-profile-handle]');
+            const profileImg = document.querySelector('[data-profile-img]');
+            if (profileName) profileName.textContent = `${user.first_name} ${user.last_name}`;
+            if (profileHandle) profileHandle.textContent = `@${user.first_name.toLowerCase()}${user.last_name ? '.' + user.last_name.toLowerCase() : ''}`;
+            if (profileImg && user.profile_image) profileImg.src = `${user.profile_image}`;
+            // ✅ ADMIN MENU : SHOW/HIDE AUTO
+            const adminMenu = document.querySelector('[data-admin-menu]');
+            if (adminMenu) adminMenu.style.display = user.is_staff ? 'block' : 'none';
+            return user;
+        } catch (e) { return null; }
     }
     
     // LOGOUT DIRECT
@@ -1056,6 +1050,9 @@
     <!-- Ion icon -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
+    {% if chatbot_enabled %}{% include 'partials/chatbot.html' %}{% endif %}
+    {% if chatbot_enabled %}<script src="{% static 'js/chatbot.js' %}"></script>{% endif %}
 
 </body>
 </html>

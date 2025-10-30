@@ -15,9 +15,25 @@ import os
 from dotenv import load_dotenv
 from datetime import timedelta
 
+# Correction du problème de résolution DNS
+import socket
+socket.getfqdn = lambda x='': 'localhost'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@socialite.com')
+
+# Templates
+TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
+EMAIL_TEMPLATES_DIR = os.path.join(TEMPLATES_DIR, 'emails')
 
 # Load environment variables from a .env file if present
 load_dotenv(BASE_DIR / '.env')
@@ -49,6 +65,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
+    'reports',
+    'reviews',
 ]
 
 MIDDLEWARE = [
@@ -130,9 +148,17 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Configuration pour le développement - servir les fichiers médias
+if DEBUG:
+    import mimetypes
+    mimetypes.add_type("application/javascript", ".js", True)
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Créer le répertoire media s'il n'existe pas
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -149,7 +175,14 @@ INSTALLED_APPS += [
 ]
 
 
-
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # ou votre serveur SMTP
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'chihidorsaf99@gmail.com'
+EMAIL_HOST_PASSWORD = 'bxct evrm ognx hipp'
+DEFAULT_FROM_EMAIL =  'chihidorsaf99@gmail.com'
 
 # socialite_project/settings.py
 REST_FRAMEWORK = {
@@ -163,3 +196,7 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# Reviews configuration
+# If False, users can leave reviews without mutual follow requirement
+REQUIRE_MUTUAL_FOLLOW_FOR_REVIEWS = False

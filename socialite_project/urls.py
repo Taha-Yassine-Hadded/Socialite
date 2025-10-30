@@ -7,6 +7,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
+    path('reports/', include('reports.urls', namespace='reports')),
+    path('', include('reviews.urls', namespace='reviews')),
 ]
 
 # Serve static files in development

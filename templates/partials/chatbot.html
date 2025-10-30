@@ -1,0 +1,19 @@
+<!-- Chatbot widget (flagged include) -->
+<div id="chatbot-root" class="cb-hidden" aria-live="polite">
+  <button id="cb-toggle" class="cb-btn" aria-haspopup="dialog" aria-controls="cb-panel" aria-expanded="false">
+    <span class="sr-only">Ouvrir le chatbot</span>
+    💬
+  </button>
+
+  <div id="cb-panel" class="cb-panel" role="dialog" aria-modal="false" aria-labelledby="cb-title" hidden>
+    <div class="cb-header">
+      <div class="cb-title" id="cb-title">Assistant</div>
+      <button id="cb-close" class="cb-close" aria-label="Fermer">×</button>
+    </div>
+    <div id="cb-messages" class="cb-messages" tabindex="0"></div>
+    <form id="cb-form" class="cb-form" autocomplete="off">
+      <input id="cb-input" class="cb-input" type="text" name="q" placeholder="Écrivez votre question..." aria-label="Votre message" />
+      <button class="cb-send" type="submit">Envoyer</button>
+    </form>
+  </div>
+</div>

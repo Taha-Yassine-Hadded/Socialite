@@ -3,6 +3,15 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-6">
+  {% if messages %}
+  <div class="mb-4 space-y-2">
+    {% for message in messages %}
+      <div class="px-4 py-2 rounded text-sm {% if message.tags == 'error' %}bg-red-100 text-red-800 border border-red-300{% elif message.tags == 'success' %}bg-green-100 text-green-800 border border-green-300{% else %}bg-blue-100 text-blue-800 border border-blue-300{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">
     <div>
@@ -10,7 +19,7 @@
       <p class="text-sm text-white/50 mt-1">Votre retour aide la communauté</p>
     </div>
     <div class="flex gap-2">
-      <a class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition" href="{% url 'reviews_list' slug=profile.slug %}">Voir les avis</a>
+      <a class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition" href="{% url 'reviews:reviews_list' slug=profile.slug %}">Voir les avis</a>
       <a class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition" href="{% url 'profile' slug=profile.slug %}">Retour au profil</a>
     </div>
   </div>
@@ -28,7 +37,7 @@
         <div class="mt-2 flex items-center gap-2" id="starGroup">
           <!-- 5→1 pour hover cohérent -->
           {% for n in "54321" %}
-            <input type="radio" name="note" value="{{ n|slice:':1' }}" id="star{{ n|slice:':1' }}" class="hidden peer" required>
+            <input type="radio" name="note" value="{{ n|slice:':1' }}" id="star{{ n|slice:':1' }}" class="sr-only peer" required>
             <label for="star{{ n|slice:':1' }}" class="cursor-pointer">
               <svg class="w-8 h-8 text-white/20 peer-checked:text-yellow-400 hover:text-yellow-300 transition-colors" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.802-2.034a1 1 0 00-1.175 0l-2.802 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.88 8.72c-.783-.57-.38-1.81.588-1.81H6.93a1 1 0 00.95-.69l1.07-3.292z"/>
@@ -73,7 +82,7 @@
       <!-- Actions -->
       <div class="flex items-center gap-3">
         <button type="submit" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow transition">Enregistrer l'avis</button>
-        <a href="{% url 'reviews_list' slug=profile.slug %}" class="px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition">Annuler</a>
+        <a href="{% url 'reviews:reviews_list' slug=profile.slug %}" class="px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition">Annuler</a>
       </div>
 
       <div class="text-xs text-white/50">

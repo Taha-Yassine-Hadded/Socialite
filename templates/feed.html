@@ -194,6 +194,15 @@
                                             {{ post.location }}
                                         </span>
                                     {% endif %}
+                                    {% if post.detected_country %}
+                                        <span>•</span>
+                                        <span class="flex items-center gap-1 bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
+                                            🌍 {{ post.detected_country }}
+                                            {% if post.detected_landmark %}
+                                                - {{ post.detected_landmark }}
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
                                     <!-- Badge visibilité -->
                                     {% if post.visibility == 'friends' %}
                                         <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">👥 Amis</span>
@@ -204,8 +213,7 @@
                             </div>
                         </div>
                         
-                        <!-- Menu options (si c'est notre post) -->
-                        {% if post.user == request.user %}
+                        <!-- Menu options pour tous les posts -->
                         <div class="relative">
                             <button onclick="toggleMenu('menu-{{ post.id }}')" class="text-gray-500 hover:bg-gray-100 p-2 rounded-full">
                                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -213,15 +221,19 @@
                                 </svg>
                             </button>
                             <div id="menu-{{ post.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10">
+                                {% if post.user == request.user %}
                                 <button onclick="startEditPost({{ post.id }})" class="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg">
                                     ✏️ Modifier
                                 </button>
                                 <button onclick="deletePost({{ post.id }})" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
                                     🗑️ Supprimer
                                 </button>
+                                {% endif %}
+                                <button onclick="openReportModal({{ post_content_type_id }}, {{ post.id }})" class="block w-full text-left px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg">
+                                    🚩 Signaler
+                                </button>
                             </div>
                         </div>
-                        {% endif %}
                     </div>
 
                     <!-- Contenu texte -->
@@ -469,6 +481,7 @@
                                                 </div>
                                             </div>
                                             <button class="hover:underline">Répondre</button>
+                                            <button onclick="openReportModal({{ comment_content_type_id }}, {{ comment.id }})" class="hover:underline text-orange-600">🚩 Signaler</button>
                                             {% if comment.user == request.user %}
                                                 <button onclick="startEditComment({{ comment.id }})" class="hover:underline text-blue-600">✏️ Modifier</button>
                                                 <button onclick="deleteComment({{ comment.id }}, {{ post.id }})" class="hover:underline text-red-600">🗑️ Supprimer</button>
@@ -688,10 +701,54 @@
 
 </div>
 
+<!-- Modal Signalement -->
+<div id="report-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50">
+    <div class="bg-white w-full max-w-md rounded-xl shadow-lg">
+        <div class="px-5 py-4 border-b flex items-center justify-between">
+            <h3 class="font-semibold text-gray-800">🚩 Signaler ce contenu</h3>
+            <button onclick="closeReportModal()" class="text-gray-500 hover:text-gray-700">✖</button>
+        </div>
+        <form id="report-form" class="p-5 space-y-4" onsubmit="submitReport(event)">
+            {% csrf_token %}
+            <input type="hidden" name="content_type" id="report-content-type">
+            <input type="hidden" name="object_id" id="report-object-id">
+
+            <div class="space-y-2">
+                <label class="font-medium text-sm text-gray-700">Choisissez une raison</label>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2"><input type="radio" name="report_type" value="inappropriate" required> 🔞 Contenu inapproprié</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="report_type" value="spam"> 💬 Spam ou publicité</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="report_type" value="harassment"> 😡 Harcèlement</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="report_type" value="fake"> ⚠️ Fausse information</label>
+                    <label class="flex items-center gap-2"><input type="radio" name="report_type" value="other"> 🚫 Autre</label>
+                </div>
+            </div>
+
+            <div>
+                <label class="font-medium text-sm text-gray-700">Message (optionnel)</label>
+                <textarea name="message" rows="3" class="w-full mt-1 bg-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ajoutez des détails si nécessaire..."></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t">
+                <button type="button" onclick="closeReportModal()" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">Annuler</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700">Envoyer</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Close on backdrop click -->
+    <button class="absolute inset-0 w-full h-full" onclick="closeReportModal()" aria-label="Fermer" tabindex="-1"></button>
+    
+    <!-- Ensure form stays clickable -->
+    <style>
+      #report-modal > div { position: relative; z-index: 10; }
+      #report-modal > button { z-index: 0; }
+    </style>
+  </div>
+
 <!-- Scripts nécessaires pour les stories et les cartes -->
 <script src="{% static 'js/uikit.min.js' %}"></script>
 <script src="{% static 'js/simplebar.js' %}"></script>
-<script src="{% static 'js/script.js' %}"></script>
 <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 
@@ -710,6 +767,61 @@ function getCsrfToken() {
     }
     const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
     return csrfInput ? csrfInput.value : '';
+}
+
+// ============================================
+// REPORT CONTENT (MODAL + SUBMIT)
+// ============================================
+let currentReport = { contentTypeId: null, objectId: null };
+
+function openReportModal(contentTypeId, objectId) {
+    currentReport.contentTypeId = contentTypeId;
+    currentReport.objectId = objectId;
+    document.getElementById('report-content-type').value = contentTypeId;
+    document.getElementById('report-object-id').value = objectId;
+    const modal = document.getElementById('report-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeReportModal() {
+    const modal = document.getElementById('report-modal');
+    modal.classList.remove('flex');
+    modal.classList.add('hidden');
+    const form = document.getElementById('report-form');
+    form.reset();
+}
+
+async function submitReport(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new URLSearchParams(new FormData(form));
+    try {
+        const response = await fetch('/reports/report/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData.toString(),
+            credentials: 'same-origin'
+        });
+        if (response.status === 401 || response.status === 403) {
+            window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname);
+            return;
+        }
+        const data = await response.json();
+        if (data.success) {
+            closeReportModal();
+            showSuccessMessage('✅ Merci pour votre signalement.');
+        } else {
+            alert('❌ Une erreur est survenue.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('❌ Erreur de connexion');
+    }
 }
 
 // Afficher un message de succès temporaire
@@ -1034,9 +1146,16 @@ async function sharePost(postId) {
 // MODIFIER UN POST
 // ============================================
 function startEditPost(postId) {
-    document.getElementById(`post-content-${postId}`).classList.add('hidden');
-    document.getElementById(`post-edit-${postId}`).classList.remove('hidden');
-    toggleMenu(`menu-${postId}`);
+    const contentElement = document.getElementById(`post-content-${postId}`);
+    const editElement = document.getElementById(`post-edit-${postId}`);
+    
+    if (contentElement && editElement) {
+        contentElement.classList.add('hidden');
+        editElement.classList.remove('hidden');
+        toggleMenu(`menu-${postId}`);
+    } else {
+        alert("L'édition n'est disponible que pour les posts contenant du texte.");
+    }
 }
 
 function cancelPostEdit(postId) {

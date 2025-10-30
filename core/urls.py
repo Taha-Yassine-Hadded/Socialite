@@ -1,5 +1,8 @@
+
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     # Main page
@@ -44,6 +47,9 @@ urlpatterns = [
     # Videos
     path('video/', views.video, name='video'),
     path('video-watch/', views.video_watch, name='video_watch'),
+    
+    # API de détection de pays
+    path('api/ai/detect-country/', views.detect_country, name='detect_country'),
     
     # Blog
     path('blog/', views.blog, name='blog'),
@@ -99,4 +105,8 @@ urlpatterns = [
     # SHARE : Partage de posts
     # ============================================
     path('posts/<int:post_id>/share/', views.share_post, name='share_post'),
+
+    # Carte des souvenirs
+    path('memories-map/', views.memories_map, name='memories_map'),
+    path('api/geolocated-posts/', views.geolocated_posts, name='geolocated_posts'),
 ]
