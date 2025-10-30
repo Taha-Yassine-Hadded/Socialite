@@ -464,7 +464,7 @@
                             </div>
         
                             <!-- profile -->
-                            <a href="" class="rounded-full relative bg-secondery cursor-pointer shrink-0"> 
+                            <a href="{% if request.user.is_authenticated and request.user.profile.slug %}{% url 'profile' slug=request.user.profile.slug %}{% else %}#{% endif %}" class="rounded-full relative bg-secondery cursor-pointer shrink-0"> 
                                 {% if request.user.profile.avatar %}
                                     <img src="{{ request.user.profile.avatar.url }}" alt="" class="sm:w-9 sm:h-9 w-7 h-7 rounded-full shadow shrink-0 object-cover">
                                 {% else %}
@@ -474,7 +474,7 @@
                             <div class="hidden bg-white rounded-lg drop-shadow-xl dark:bg-slate-700 w-64 border2"
                                 uk-drop="offset:6;pos: bottom-right;animate-out: true; animation: uk-animation-scale-up uk-transform-origin-top-right ">
                                 
-                                <a href="">
+                                <a href="{% if request.user.is_authenticated and request.user.profile.slug %}{% url 'profile' slug=request.user.profile.slug %}{% else %}#{% endif %}">
                                     <div class="p-4 py-5 flex items-center gap-4">
                                         {% if request.user.profile.avatar %}
                                             <img src="{{ request.user.profile.avatar.url }}" alt="" class="w-10 h-10 rounded-full shadow object-cover" data-profile-img>
@@ -688,7 +688,7 @@
 
                             <li class="{% if request.resolver_match.url_name == 'work' %}active{% endif %}">
                                 <a href="{% url 'work' %}">
-                                    <img src="{% static 'images/icons/work.png' %}" alt="work" class="w-6">
+                                    <img src="{% static 'images/icons/page.webp' %}" alt="work" class="w-6">
                                     <span> Work </span> 
                                 </a>
                             </li>
@@ -998,6 +998,12 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
+                if (response.status === 401) {
+                    // Token expiré/invalide -> nettoyer et ignorer
+                    localStorage.removeItem('token');
+                    return null;
+                }
+
                 if (response.ok) {
                     const data = await response.json();
                     const user = data.user;
@@ -1020,7 +1026,8 @@
                     return user;
                 }
             } catch (error) {
-                console.error('Failed to load user info:', error);
+                // Eviter le bruit en console quand l'API n'est pas disponible
+                // ou si l'utilisateur n'est pas connecté
             }
             return null;
         }

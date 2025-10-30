@@ -21,7 +21,7 @@
                     <label class="cursor-pointer bg-gray-100 px-3 py-2 rounded-full text-sm">🎬<input type="file" name="video" accept="video/*" class="hidden"></label>
                     <button type="submit" class="bg-blue-600 text-white text-sm px-4 py-2 rounded-full hover:bg-blue-700">Publier</button>
                 </form>
-            </div>
+                            </div>
             <div class="flex items-center gap-4 overflow-x-auto no-scrollbar">
                 {% for s in stories %}
                 <button class="flex-shrink-0 w-16 text-center" data-story-id="{{ s.id }}">
@@ -33,14 +33,14 @@
                         {% else %}
                         <div class="w-full h-full bg-gray-200 grid place-items-center text-gray-600 text-xs">TXT</div>
                         {% endif %}
-                    </div>
+                                </div>
                     <div class="mt-1 text-[11px] text-gray-600 truncate">{{ s.user.first_name|default:s.user.username }}</div>
                 </button>
                 {% empty %}
                 <div class="text-sm text-gray-500">Aucune story pour le moment. Créez la vôtre !</div>
                 {% endfor %}
-            </div>
-        </div>
+                                </div>
+                                </div>
 
         <!-- Modal Story -->
         <div id="story-modal" class="fixed inset-0 hidden items-center justify-center bg-black/70 z-50">
@@ -48,16 +48,16 @@
                 <div class="flex items-center justify-between px-4 py-3 border-b">
                     <div class="flex items-center gap-2" id="story-user"></div>
                     <button class="text-gray-600 hover:text-black" onclick="closeStoryModal()">✖</button>
-                </div>
+                                </div>
                 <!-- Progress 10s -->
                 <div class="w-full h-1 bg-gray-200">
                     <div id="story-progress" class="h-1 bg-blue-600 w-0"></div>
-                </div>
+                                </div>
                 <div id="story-content" class="p-0"></div>
                 <div class="px-4 py-2 text-xs text-gray-500 flex justify-between">
                     <span id="story-time"></span>
                     <span id="story-views"></span>
-                </div>
+                                </div>
             </div>
         </div>
 
@@ -193,20 +193,25 @@
                                        {% endif %}">
                             <div class="flex items-center gap-3">
                                 <span class="text-lg">
+                                    {% if current_category == 'all' %}
+                                        🌍
+                                    {% else %}
                                     {% for category in categories %}
-                                        {% if current_category == category.id %}{{ category.icon }}{% endif %}
+                                            {% if category.id == current_category %}{{ category.icon }}{% endif %}
                                     {% endfor %}
+                                    {% endif %}
                                 </span>
                                 <span class="font-semibold text-sm">
                                     Filtrer : 
+                                    {% if current_category == 'all' %}
+                                        Tous <span class="text-blue-600 font-bold">({{ categories.0.count }})</span>
+                                    {% else %}
                                     {% for category in categories %}
-                                        {% if current_category == category.id %}
-                                            {{ category.name }}
-                                            <span class="{% if current_category != 'all' %}text-blue-100{% else %}text-blue-600{% endif %} font-bold">
-                                                ({{ category.count }})
-                                            </span>
+                                            {% if category.id == current_category %}
+                                                {{ category.name }} <span class="text-blue-100 font-bold">({{ category.count }})</span>
                                         {% endif %}
                                     {% endfor %}
+                                    {% endif %}
                                 </span>
                             </div>
                             <svg class="w-5 h-5 transition-transform duration-200" 
@@ -316,6 +321,11 @@
                                         <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">👥 Amis</span>
                                     {% elif post.visibility == 'private' %}
                                         <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">🔒 Privé</span>
+                                    {% endif %}
+                                    {% if post.image_category %}
+                                        <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded" title="Catégorie IA">
+                                            🏷️ {{ post.image_category }}
+                                        </span>
                                     {% endif %}
                 </div>
                         </div>
@@ -680,9 +690,9 @@
                                                 <button onclick="startEditComment({{ comment.id }})" class="hover:underline text-blue-600">✏️ Modifier</button>
                                                 <button onclick="deleteComment({{ comment.id }}, {{ post.id }})" class="hover:underline text-red-600">🗑️ Supprimer</button>
                                             {% endif %}
-                                            {% if comment.likes_count > 0 %}
-                                                <span class="text-blue-600 comment-likes-{{ comment.id }}">👍 {{ comment.likes_count }}</span>
-                                            {% endif %}
+                                            <span class="text-blue-600 comment-likes-{{ comment.id }}">
+                                                {% if comment.likes_count > 0 %}👍 {{ comment.likes_count }}{% endif %}
+                                            </span>
                                         </div>
                                         <!-- Inline reply form (hidden by default) -->
                                         <div id="reply-box-{{ comment.id }}" class="hidden mt-2 pl-12">
@@ -731,57 +741,57 @@
             <!-- Pro Members -->
 
             <!-- Pro Members -->
-<div class="box p-5 px-6 border1 dark:bg-dark2">
-    <div class="flex justify-between text-black dark:text-white">
-        <h3 class="font-bold text-base">Pro Members</h3>
-    </div>
-    <div class="relative capitalize font-normal text-sm mt-4 mb-2" tabindex="-1"
-         uk-slider="autoplay: true;finite: true">
-        <div class="overflow-hidden uk-slider-container">
-            <ul class="-ml-2 uk-slider-items w-[calc(100%+0.5rem)]">
+            <div class="box p-5 px-6 border1 dark:bg-dark2">
+                <div class="flex justify-between text-black dark:text-white">
+                    <h3 class="font-bold text-base">Pro Members</h3>
+                </div>
+                <div class="relative capitalize font-normal text-sm mt-4 mb-2" tabindex="-1"
+                    uk-slider="autoplay: true;finite: true">
+                    <div class="overflow-hidden uk-slider-container">
+                        <ul class="-ml-2 uk-slider-items w-[calc(100%+0.5rem)]">
                 {% for user in suggested_users %}
-                <li class="w-1/2 pr-2">
+                            <li class="w-1/2 pr-2">
                     <a href="{% url 'profile' slug=user.user_id %}">
-                        <div class="flex flex-col items-center shadow-sm p-2 rounded-xl border1">
-                            <div class="relative w-16 h-16 mx-auto mt-2">
+                                    <div class="flex flex-col items-center shadow-sm p-2 rounded-xl border1">
+                                        <div class="relative w-16 h-16 mx-auto mt-2">
                                 <img src="{% if user.profile_image %}{{ user.profile_image }}{% else %}{% static 'images/avatars/avatar-default.webp' %}{% endif %}" 
                                      alt="{{ user.first_name }} {{ user.last_name }}"
-                                     class="h-full object-cover rounded-full shadow w-full">
-                            </div>
-                            <div class="mt-5 text-center w-full">
+                                                class="h-full object-cover rounded-full shadow w-full">
+                                        </div>
+                                        <div class="mt-5 text-center w-full">
                                 <h5 class="font-semibold">{{ user.first_name }} {{ user.last_name }}</h5>
                                 <div class="text-xs text-gray-400 mt-0.5 font-medium">{{ user.follower_count }} Followers</div>
-                                <button type="button"
+                                            <button type="button"
                                         class="bg-secondery block font-semibold mt-4 py-1.5 rounded-lg text-sm w-full border1 follow-btn"
                                         data-user-id="{{ user.user_id }}"
                                         data-is-following="{% if user.is_following %}true{% else %}false{% endif %}">
                                     {% if user.is_following %}Unfollow{% else %}Follow{% endif %}
                                 </button>
-                            </div>
-                        </div>
-                    </a>
-                </li>
+                                        </div>
+                                    </div>
+                                </a>
+                            </li>
                 {% empty %}
                 <li class="w-full text-center">
                     <p class="text-gray-500">No top users available at the moment.</p>
-                </li>
+                            </li>
                 {% endfor %}
-            </ul>
+                        </ul>
             {% if suggested_users %}
-            <button type="button"
-                    class="absolute -translate-y-1/2 bg-slate-100 rounded-full top-1/2 -left-4 grid w-9 h-9 place-items-center dark:bg-dark3"
-                    uk-slider-item="previous">
-                <ion-icon name="chevron-back" class="text-2xl"></ion-icon>
-            </button>
-            <button type="button"
-                    class="absolute -right-4 -translate-y-1/2 bg-slate-100 rounded-full top-1/2 grid w-9 h-9 place-items-center dark:bg-dark3"
-                    uk-slider-item="next">
-                <ion-icon name="chevron-forward" class="text-2xl"></ion-icon>
-            </button>
+                        <button type="button"
+                            class="absolute -translate-y-1/2 bg-slate-100 rounded-full top-1/2 -left-4 grid w-9 h-9 place-items-center dark:bg-dark3"
+                            uk-slider-item="previous">
+                            <ion-icon name="chevron-back" class="text-2xl"></ion-icon>
+                        </button>
+                        <button type="button"
+                            class="absolute -right-4 -translate-y-1/2 bg-slate-100 rounded-full top-1/2 grid w-9 h-9 place-items-center dark:bg-dark3"
+                            uk-slider-item="next">
+                            <ion-icon name="chevron-forward" class="text-2xl"></ion-icon>
+                        </button>
             {% endif %}
-        </div>
-    </div>
-</div>
+                    </div>
+                </div>
+            </div>
 
 <!-- JavaScript pour Follow/Unfollow -->
 <script>
@@ -1264,8 +1274,9 @@ async function addComment(event, postId) {
     
     const content = formData.get('content');
     const image = formData.get('image');
+    const hasImage = image && typeof image === 'object' && 'size' in image && image.size > 0;
     
-    if (!content && !image.name) {
+    if (!content && !hasImage) {
         alert('❌ Veuillez écrire un commentaire ou ajouter une image');
         return;
     }

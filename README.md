@@ -102,13 +102,17 @@ python manage.py runserver
 
 ---
 
-##NEW FEATURES FOR PREMIUM/BUSINESS/FREEMIUM
+## NEW FEATURES FOR PREMIUM/BUSINESS/FREEMIUM
 - **🔒 Premium Features**: Exclusive content, ad-free experience.
 - **📈 Analytics**: Track community growth and engagement.
-- **🔒 Content Moderation**: Moderate posts and comments
-commands to run:
+- **🛡️ Content Moderation**: Moderate posts and comments.
+
+Commands to run (if your feature set needs them):
+```
 pip install python-dateutil
+pip install stripe requests
 python manage.py makemigrations
 python manage.py migrate
-pip install stripe requests python-dateutil
+# Optional: generative AI SDK
 pip install -q -U google-generativeai
+```

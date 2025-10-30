@@ -36,9 +36,28 @@ def can_user_perform_action(user, action_type):
     """
     try:
         subscription = user.subscription
+    except Subscription.DoesNotExist:
+        subscription, _ = Subscription.objects.get_or_create(
+            user=user,
+            defaults={
+                'plan': 'FREE',
+                'is_active': True,
+                'payment_method': 'MANUAL',
+            },
+        )
+    try:
         quota = user.quota
-    except (Subscription.DoesNotExist, UsageQuota.DoesNotExist):
-        return False, "Profil incomplet. Contactez le support."
+    except UsageQuota.DoesNotExist:
+        quota, _ = UsageQuota.objects.get_or_create(
+            user=user,
+            defaults={
+                'posts_this_month': 0,
+                'messages_this_month': 0,
+                'events_created_this_month': 0,
+                'trips_created': 0,
+                'groups_joined': 0,
+            },
+        )
     
     # Si l'utilisateur est Premium ou Business, tout est permis
     if subscription.is_premium:
@@ -84,7 +103,16 @@ def increment_usage(user, action_type):
     try:
         quota = user.quota
     except UsageQuota.DoesNotExist:
-        return
+        quota, _ = UsageQuota.objects.get_or_create(
+            user=user,
+            defaults={
+                'posts_this_month': 0,
+                'messages_this_month': 0,
+                'events_created_this_month': 0,
+                'trips_created': 0,
+                'groups_joined': 0,
+            },
+        )
     
     if action_type == 'post':
         quota.posts_this_month += 1

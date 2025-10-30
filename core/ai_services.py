@@ -323,14 +323,14 @@ def classify_travel_image(image_file):
         predicted_category = class_names[predicted_idx.item()]
         confidence_score = confidence.item()
         
-        # Noms en français
+        # Noms en français (alignés avec le dataset travel: buildings, forest, glacier, mountain, sea, street)
         category_names_fr = {
-            'beach': 'Plage',
+            'buildings': 'Bâtiments',
+            'forest': 'Forêt',
+            'glacier': 'Glacier',
             'mountain': 'Montagne',
-            'city': 'Ville',
-            'nature': 'Nature',
-            'monument': 'Monument',
-            'restaurant': 'Restaurant'
+            'sea': 'Mer',
+            'street': 'Rue'
         }
         
         # Tous les scores
@@ -383,14 +383,14 @@ def get_image_tags(image_file):
     if not result['success']:
         return []
     
-    # Tags basés sur la catégorie
+    # Tags basés sur la catégorie (alignés avec le dataset travel)
     category_tags = {
-        'beach': ['plage', 'mer', 'océan', 'sable', 'eau', 'été', 'vacances'],
-        'mountain': ['montagne', 'randonnée', 'nature', 'altitude', 'paysage', 'aventure'],
-        'city': ['ville', 'urbain', 'architecture', 'citytrip', 'culture'],
-        'nature': ['nature', 'forêt', 'lac', 'paysage', 'verdure', 'extérieur'],
-        'monument': ['monument', 'histoire', 'culture', 'patrimoine', 'tourisme'],
-        'restaurant': ['restaurant', 'nourriture', 'gastronomie', 'cuisine', 'repas']
+        'buildings': ['architecture', 'ville', 'urbain', 'batiment', 'cityscape'],
+        'forest': ['nature', 'foret', 'arbres', 'verdure', 'wildlife'],
+        'glacier': ['glacier', 'neige', 'froid', 'ice', 'montagne'],
+        'mountain': ['montagne', 'randonnee', 'altitude', 'paysage', 'hiking'],
+        'sea': ['mer', 'plage', 'ocean', 'sable', 'vacances'],
+        'street': ['rue', 'urbain', 'voyage', 'city', 'streetphotography']
     }
     
     tags = category_tags.get(result['category'], [])

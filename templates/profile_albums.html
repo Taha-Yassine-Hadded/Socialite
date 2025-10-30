@@ -24,8 +24,20 @@
         <details class="relative w-full">
           <summary class="cursor-pointer list-none w-full flex items-center justify-between px-4 py-2.5 rounded-lg border-2 bg-white text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-gray-50">
             <div class="flex items-center gap-3">
-              {% for c in categories %}{% if current_category == c.id %}<span class="text-lg">{{ c.icon }}</span>{% endif %}{% endfor %}
-              <span class="font-semibold text-sm">Filtrer : {% for c in categories %}{% if current_category == c.id %}{{ c.name }} <span class="text-blue-600 font-bold">({{ c.count }})</span>{% endif %}{% endfor %}</span>
+              <span class="text-lg">
+                {% if current_category == 'all' %}
+                  🌍
+                {% else %}
+                  {% for c in categories %}{% if c.id == current_category %}{{ c.icon }}{% endif %}{% endfor %}
+                {% endif %}
+              </span>
+              <span class="font-semibold text-sm">Filtrer :
+                {% if current_category == 'all' %}
+                  Tous <span class="text-blue-600 font-bold">({{ categories.0.count }})</span>
+                {% else %}
+                  {% for c in categories %}{% if c.id == current_category %}{{ c.name }} <span class="text-blue-600 font-bold">({{ c.count }})</span>{% endif %}{% endfor %}
+                {% endif %}
+              </span>
             </div>
             <span class="text-xl">▾</span>
           </summary>

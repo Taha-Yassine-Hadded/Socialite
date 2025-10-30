@@ -196,6 +196,7 @@ urlpatterns = [
     # ============================================
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
     path('api/analytics/', views.analytics_data, name='analytics_data'),
+    path('api/ai/status/', views.ai_status, name='ai_status'),
      # ============================================
     # PREMIUM/BUSINESS : WALLET
     # ============================================

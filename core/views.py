@@ -268,7 +268,7 @@ def register_page(request):
         nationality = request.POST.get('nationality', '').strip()
         interests = request.POST.getlist('interests')
         future_countries = request.POST.getlist('future_countries')
-        
+
         errors = []
         if not first_name or not last_name:
             errors.append('First name and last name are required.')
@@ -536,7 +536,7 @@ def feed(request):
         )
     except Exception:
         pass
-
+    
     context = {
         'posts': posts,
         'categories': categories,
@@ -1892,37 +1892,27 @@ def review_create(request, slug):
 @login_required
 def create_post(request):
     """
-    Vue pour créer un nouveau post avec vérification des quotas.
+    Vue pour créer un nouveau post avec vérification des quotas et traitements IA.
     Supporte : texte, image, vidéo, note vocale, localisation
     """
     if request.method == 'POST':
-        # ✅ VÉRIFIER LES QUOTAS AVANT DE CRÉER LE POST
+        # ✅ Vérifier quotas
         can_post, error_msg = can_user_perform_action(request.user, 'post')
         if not can_post:
-            return JsonResponse({
-                'success': False,
-                'error': error_msg,
-                'upgrade_url': '/upgrade/'
-            }, status=403)
-        
-        # Récupérer les données du formulaire
+            return JsonResponse({'success': False, 'error': error_msg, 'upgrade_url': '/upgrade/'}, status=403)
+
+        # Données formulaire
         content = request.POST.get('content', '').strip()
         location = request.POST.get('location', '').strip()
         visibility = request.POST.get('visibility', 'public')
-        
-        # Récupérer les fichiers uploadés
         image = request.FILES.get('image')
         video = request.FILES.get('video')
         voice_note = request.FILES.get('voice_note')
         
-        # Validation : Au moins un contenu doit être présent
         if not content and not image and not video and not voice_note:
-            return JsonResponse({
-                'success': False,
-                'error': 'Veuillez ajouter du contenu, une image, une vidéo ou une note vocale.'
-            }, status=400)
+            return JsonResponse({'success': False, 'error': 'Veuillez ajouter du contenu, une image, une vidéo ou une note vocale.'}, status=400)
         
-        # Créer le post
+        # Création du post
         post = Post.objects.create(
             user=request.user,
             content=content,
@@ -1930,55 +1920,13 @@ def create_post(request):
             video=video,
             voice_note=voice_note,
             location=location,
-            visibility=visibility
+            visibility=visibility,
         )
         
-        # ✅ INCRÉMENTER LE COMPTEUR DE QUOTAS
+        # ✅ Incrémenter quota
         increment_usage(request.user, 'post')
-        
-        # Retourner une réponse JSON (succès)
-        return JsonResponse({
-            'success': True,
-            'message': 'Post créé avec succès !',
-            'post_id': post.id
-        })
-    
-    # Si GET : afficher le formulaire de création
-    return render(request, 'create_post.html')
-    """
-    Vue pour créer un nouveau post.
-    Supporte : texte, image, vidéo, note vocale, localisation
-    """
-    if request.method == 'POST':
-        # Récupérer les données du formulaire
-        content = request.POST.get('content', '').strip()
-        location = request.POST.get('location', '').strip()
-        visibility = request.POST.get('visibility', 'public')
-        
-        # Récupérer les fichiers uploadés
-        image = request.FILES.get('image')
-        video = request.FILES.get('video')
-        voice_note = request.FILES.get('voice_note')
-        
-        # Validation : Au moins un contenu doit être présent
-        if not content and not image and not video and not voice_note:
-            return JsonResponse({
-                'success': False,
-                'error': 'Veuillez ajouter du contenu, une image, une vidéo ou une note vocale.'
-            }, status=400)
-        
-        # Créer le post
-        post = Post.objects.create(
-            user=request.user,
-            content=content,
-            image=image,
-            video=video,
-            voice_note=voice_note,
-            location=location,
-            visibility=visibility
-        )
-        
-        # ✅ IA : Transcription automatique avec Whisper (notes vocales ET vidéos)
+
+        # ✅ IA : Transcription automatique (notes vocales et vidéos)
         transcription_success = False
         media_to_transcribe = None
         media_type = None
@@ -2079,7 +2027,7 @@ def create_post(request):
                 )
         except Exception:
             pass
-
+        
         # Retourner une réponse JSON (succès)
         return JsonResponse({
             'success': True,
@@ -2312,6 +2260,24 @@ def analytics_data(request):
 
 
 # ============================================
+# API DIAGNOSTIC IA
+# ============================================
+@login_required(login_url='/login/')
+def ai_status(request):
+    """Retourne l'état des services IA (classifieur)."""
+    try:
+        from .ai_services import get_travel_classifier
+        model, class_names = get_travel_classifier()
+        status = {
+            'classifier_loaded': model is not None,
+            'classes': class_names or [],
+            'num_classes': len(class_names) if class_names else 0,
+        }
+        return JsonResponse({'success': True, 'status': status})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+# ============================================
 # STORIES
 # ============================================
 @login_required(login_url='/login/')
@@ -2532,9 +2498,9 @@ def add_reaction(request, post_id):
         if existing_reaction.reaction_type == reaction_type:
             existing_reaction.delete()
             
-            # Décrémenter le compteur
-            post.likes_count = max(0, post.likes_count - 1)
-            post.save()
+            # Recalibrer le compteur depuis la DB (évite les désynchronisations)
+            post.likes_count = post.reactions.count()
+            post.save(update_fields=['likes_count'])
             
             return JsonResponse({
                 'success': True,
@@ -2547,6 +2513,8 @@ def add_reaction(request, post_id):
             existing_reaction.reaction_type = reaction_type
             existing_reaction.save()
             
+            post.likes_count = post.reactions.count()
+            post.save(update_fields=['likes_count'])
             return JsonResponse({
                 'success': True,
                 'action': 'updated',
@@ -2562,9 +2530,9 @@ def add_reaction(request, post_id):
             reaction_type=reaction_type
         )
         
-        # Incrémenter le compteur
-        post.likes_count += 1
-        post.save()
+        # Recalibrer
+        post.likes_count = post.reactions.count()
+        post.save(update_fields=['likes_count'])
         
         return JsonResponse({
             'success': True,
@@ -2596,8 +2564,8 @@ def react_to_comment(request, comment_id):
         # Toggle : supprimer si même réaction
         if existing_reaction.reaction_type == reaction_type:
             existing_reaction.delete()
-            comment.likes_count = max(0, comment.likes_count - 1)
-            comment.save()
+            comment.likes_count = comment.reactions.count()
+            comment.save(update_fields=['likes_count'])
             
             return JsonResponse({
                 'success': True,
@@ -2609,6 +2577,8 @@ def react_to_comment(request, comment_id):
             existing_reaction.reaction_type = reaction_type
             existing_reaction.save()
             
+            comment.likes_count = comment.reactions.count()
+            comment.save(update_fields=['likes_count'])
             return JsonResponse({
                 'success': True,
                 'action': 'updated',
@@ -2623,8 +2593,8 @@ def react_to_comment(request, comment_id):
             reaction_type=reaction_type
         )
         
-        comment.likes_count += 1
-        comment.save()
+        comment.likes_count = comment.reactions.count()
+        comment.save(update_fields=['likes_count'])
         
         return JsonResponse({
             'success': True,
@@ -2648,13 +2618,12 @@ def share_post(request, post_id):
     # Récupérer le message optionnel
     message = request.POST.get('message', '').strip()
     
-    # Vérifier que l'utilisateur ne partage pas son propre post
-    # (optionnel : vous pouvez autoriser cela si vous voulez)
-    if original_post.user == request.user:
+    # Règles de visibilité: on interdit de partager un post privé d'un autre utilisateur
+    if original_post.visibility == 'private' and original_post.user != request.user:
         return JsonResponse({
             'success': False,
-            'error': 'Vous ne pouvez pas partager votre propre post.'
-        }, status=400)
+            'error': "Ce post est privé et ne peut pas être partagé."
+        }, status=403)
     
     # Créer un enregistrement de partage
     share = Share.objects.create(
@@ -2668,7 +2637,8 @@ def share_post(request, post_id):
         user=request.user,
         content=message,
         shared_post=original_post,
-        visibility='public'  # Ou selon vos besoins
+        # Si je partage mon propre post, on réutilise sa visibilité; sinon public
+        visibility=original_post.visibility if original_post.user == request.user else 'public'
     )
     
     # Incrémenter le compteur de partages
