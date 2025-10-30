@@ -4,608 +4,235 @@
 {% block title %}Socialite - Pages{% endblock %}
 
 {% block content %}
-
 <div class="flex max-lg:flex-col 2xl:gap-12 gap-10 2xl:max-w-[1220px] max-w-[1065px] mx-auto" id="js-oversized">
 
     <div class="flex-1">
-
         <div class="max-w-[680px] w-full mx-auto">
 
             <div class="page-heading">
-
-                <h1 class="page-title"> Pages </h1>
-
+                <h1 class="page-title">Pages</h1>
                 <nav class="nav__underline">
-
                     <ul class="group"
                         uk-switcher="connect: #page-tabs ; animation: uk-animation-slide-right-medium, uk-animation-slide-left-medium">
-
-                        <li> <a href="#"> Suggestions </a> </li>
-                        <li> <a href="#"> Popular </a> </li>
-                        <li> <a href="#"> My pages </a> </li>
-
+                        <li><a href="#">Find Your Travel Duo</a></li>
+                        <li><a href="#">People You Might Know</a></li>
+                        <li><a href="#">People You May Like</a></li>
                     </ul>
-
                 </nav>
-
             </div>
 
-            <!-- page featured -->
+            <!-- Featured Slider -->
             <div tabindex="-1" uk-slider="finite:true">
-
                 <div class="uk-slider-container pb-1">
-
                     <ul class="uk-slider-items grid-small">
-
+                        {% for user in travel_duo %}
                         <li class="lg:w-1/4 sm:w-1/3 w-1/2">
                             <div class="card uk-transition-toggle">
-                                <a href="{% url 'timeline_page' %}">
+                                <a href="{% url 'profile' user.slug %}">
                                     <div class="card-media sm:aspect-[2/1.9] h-40">
-                                        <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="">
+                                        <img src="{{ user.profile_image|default:'/static/images/avatars/avatar-default.webp' }}"
+                                             alt="{{ user.first_name }} {{ user.last_name }}"
+                                             class="object-cover w-full h-full">
                                         <div class="card-overly"></div>
                                     </div>
                                 </a>
                                 <div class="card-body p-3 w-full z-10 absolute bg-gradient-to-t bottom-0 from-black/60">
-                                    <p class="card-text text-xs text-white/80"> Japan </p>
-                                    <a href="{% url 'timeline_page' %}">
-                                        <h4 class="card-title text-sm mt-0.5 !text-white"> Jesse Steeve </h4>
+                                    <p class="card-text text-xs text-white/80">
+                                        Destinations: {% for flag in user.common_future_countries %}{{ flag }} {% endfor %}
+                                    </p>
+                                    <a href="{% url 'profile' user.slug %}">
+                                        <h4 class="card-title text-sm mt-0.5 !text-white">{{ user.first_name }} {{ user.last_name }}</h4>
                                     </a>
                                 </div>
-                                <!-- close -->
-                                <button type="button"
-                                    class="uk-transition-fade absolute top-0 right-0 m-2 z-10 bg-black/20 rounded-full flex p-1">
-                                    <ion-icon name="close" class="text-white"></ion-icon>
-                                </button>
                             </div>
                         </li>
-
+                        {% empty %}
                         <li class="lg:w-1/4 sm:w-1/3 w-1/2">
-                            <div class="card uk-transition-toggle">
-                                <a href="{% url 'timeline_page' %}">
-                                    <div class="card-media sm:aspect-[2/1.9] h-40">
-                                        <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="">
-                                        <div class="card-overly"></div>
-                                    </div>
-                                </a>
-                                <div class="card-body p-3 w-full z-10 absolute bg-gradient-to-t bottom-0 from-black/60">
-                                    <p class="card-text text-xs text-white/80"> Turkey</p>
-                                    <a href="{% url 'timeline_page' %}">
-                                        <h4 class="card-title text-sm mt-0.5 !text-white"> John Michael </h4>
-                                    </a>
+                            <div class="card">
+                                <div class="card-body p-3">
+                                    <p class="text-gray-500 text-sm">No travel companions found.</p>
                                 </div>
-                                <!-- close -->
-                                <button type="button"
-                                    class="uk-transition-fade absolute top-0 right-0 m-2 z-10 bg-black/20 rounded-full flex p-1">
-                                    <ion-icon name="close" class="text-white"></ion-icon>
-                                </button>
                             </div>
                         </li>
-
-                        <li class="lg:w-1/4 sm:w-1/3 w-1/2">
-                            <div class="card uk-transition-toggle">
-                                <a href="{% url 'timeline_page' %}">
-                                    <div class="card-media sm:aspect-[2/1.9] h-40">
-                                        <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="">
-                                        <div class="card-overly"></div>
-                                    </div>
-                                </a>
-                                <div class="card-body p-3 w-full z-10 absolute bg-gradient-to-t bottom-0 from-black/60">
-                                    <p class="card-text text-xs text-white/80"> Dubai</p>
-                                    <a href="{% url 'timeline_page' %}">
-                                        <h4 class="card-title text-sm mt-0.5 !text-white"> Monroe Parker </h4>
-                                    </a>
-                                </div>
-                                <!-- close -->
-                                <button type="button"
-                                    class="uk-transition-fade absolute top-0 right-0 m-2 z-10 bg-black/20 rounded-full flex p-1">
-                                    <ion-icon name="close" class="text-white"></ion-icon>
-                                </button>
-                            </div>
-                        </li>
-
-                        <li class="lg:w-1/4 sm:w-1/3 w-1/2">
-                            <div class="card uk-transition-toggle">
-                                <a href="{% url 'timeline_page' %}">
-                                    <div class="card-media sm:aspect-[2/1.9] h-40">
-                                        <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="">
-                                        <div class="card-overly"></div>
-                                    </div>
-                                </a>
-                                <div class="card-body p-3 w-full z-10 absolute bg-gradient-to-t bottom-0 from-black/60">
-                                    <p class="card-text text-xs text-white/80"> London</p>
-                                    <a href="{% url 'timeline_page' %}">
-                                        <h4 class="card-title text-sm mt-0.5 !text-white"> Martin Gray </h4>
-                                    </a>
-                                </div>
-                                <!-- close -->
-                                <button type="button"
-                                    class="uk-transition-fade absolute top-0 right-0 m-2 z-10 bg-black/20 rounded-full flex p-1">
-                                    <ion-icon name="close" class="text-white"></ion-icon>
-                                </button>
-                            </div>
-                        </li>
-
-                        <li class="lg:w-1/4 sm:w-1/3 w-1/2">
-                            <div class="card uk-transition-toggle">
-                                <a href="{% url 'timeline_page' %}">
-                                    <div class="card-media sm:aspect-[2/1.9] h-40">
-                                        <img src="{% static 'images/avatars/avatar-6.webp' %}" alt="">
-                                        <div class="card-overly"></div>
-                                    </div>
-                                </a>
-                                <div class="card-body p-3 w-full z-10 absolute bg-gradient-to-t bottom-0 from-black/60">
-                                    <p class="card-text text-xs text-white/80"> country6</p>
-                                    <a href="{% url 'timeline_page' %}">
-                                        <h4 class="card-title text-sm mt-0.5 !text-white"> Alexa stella </h4>
-                                    </a>
-                                </div>
-                                <!-- close -->
-                                <button type="button"
-                                    class="uk-transition-fade absolute top-0 right-0 m-2 z-10 bg-black/20 rounded-full flex p-1">
-                                    <ion-icon name="close" class="text-white"></ion-icon>
-                                </button>
-                            </div>
-                        </li>
-
+                        {% endfor %}
                     </ul>
-
                 </div>
-
-                <!-- slide nav icons -->
-                <a class="nav-prev" href="#" uk-slider-item="previous"> <ion-icon name="chevron-back"
-                        class="text-2xl"></ion-icon> </a>
-                <a class="nav-next" href="#" uk-slider-item="next"> <ion-icon name="chevron-forward"
-                        class="text-2xl"></ion-icon></a>
-
+                <a class="nav-prev" href="#" uk-slider-item="previous">
+                    <ion-icon name="chevron-back" class="text-2xl"></ion-icon>
+                </a>
+                <a class="nav-next" href="#" uk-slider-item="next">
+                    <ion-icon name="chevron-forward" class="text-2xl"></ion-icon>
+                </a>
             </div>
 
             <div id="page-tabs" class="uk-switcher mt-10">
 
-                <!-- pages card layout 1 (Suggestions) -->
+                <!-- Tab 1: Find Your Travel Duo -->
                 <div class="grid sm:grid-cols-3 grid-cols-2 gap-3"
-                    uk-scrollspy="target: > div; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
-
-
-
-                    {% for user in suggested_users %}
+                     uk-scrollspy="target: > div; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+                    {% for user in travel_duo %}
                     <div class="card">
-                        <a href="{% url 'timeline_page' %}?user_id={{ user.user_id }}">
+                        <a href="{% url 'profile' user.slug %}">
                             <div class="card-media sm:aspect-[2/1.7] h-40">
-                                <img src=" /media/{{ user.profile_image }}"||"{{ user.profile_image }}"
-                                
+                                <img src="{{ user.profile_image|default:'/static/images/avatars/avatar-default.webp' }}"
                                      alt="{{ user.first_name }} {{ user.last_name }}"
                                      class="object-cover w-full h-full rounded-t-lg">
                                 <div class="card-overly"></div>
                             </div>
                         </a>
                         <div class="card-body p-4">
-                            <a href="{% url 'timeline_page' %}?user_id={{ user.user_id }}">
+                            <a href="{% url 'profile' user.slug %}">
                                 <h4 class="card-title text-base font-semibold">{{ user.first_name }} {{ user.last_name }}</h4>
                             </a>
                             <p class="card-text text-sm text-gray-500">{{ user.follower_count }} Followers</p>
-                            <button type="button" class="button bg-primary text-white follow-btn mt-2 w-full"
+                            <p class="card-text text-sm text-gray-600">
+                                Destinations: {% for flag in user.common_future_countries %}{{ flag }} {% endfor %}
+                            </p>
+                            <button type="button"
+                                    class="button bg-primary text-white follow-btn mt-2 w-full"
                                     data-user-id="{{ user.user_id }}"
-                                    data-is-following="{% if user.is_following %}true{% else %}false{% endif %}">
-                                {% if user.is_following %}Unfollow{% else %}Follow{% endif %}
+                                    data-is-following="{{ user.is_following|yesno:'true,false' }}">
+                                {{ user.is_following|yesno:'Unfollow,Follow' }}
                             </button>
                         </div>
                     </div>
                     {% empty %}
                     <div class="col-span-3 text-center py-6">
-                        <p class="text-gray-500">No suggestions available at the moment.</p>
+                        <p class="text-gray-500">No travel companions found at the moment.</p>
                     </div>
                     {% endfor %}
-                    
-
-
-
-                    <!-- load more -->
                     <div class="flex justify-center my-6 lg:col-span-3 col-span-2">
                         <button type="button"
-                            class="bg-white py-2 px-5 rounded-full shadow-md font-semibold text-sm dark:bg-dark2">Load
-                            more...</button>
+                                class="bg-white py-2 px-5 rounded-full shadow-md font-semibold text-sm dark:bg-dark2">
+                            Load more...
+                        </button>
                     </div>
-
                 </div>
 
-                <!-- pages card layout 2 (Popular) -->
+                <!-- Tab 2: People You Might Know -->
                 <div class="grid sm:grid-cols-2 gap-3"
-                    uk-scrollspy="target: > div; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
-
+                     uk-scrollspy="target: > div; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+                    {% for user in might_know %}
                     <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
+                        <a href="{% url 'profile' user.slug %}">
                             <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="">
+                                <img src="{{ user.profile_image|default:'/static/images/avatars/avatar-default.webp' }}"
+                                     alt="{{ user.first_name }} {{ user.last_name }}"
+                                     class="object-cover w-full h-full">
                                 <div class="card-overly"></div>
                             </div>
                         </a>
                         <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> Jesse Steeve </h4>
+                            <a href="{% url 'profile' user.slug %}">
+                                <h4 class="card-title">{{ user.first_name }} {{ user.last_name }}</h4>
                             </a>
-                            <p class="card-text"> 162k Following </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
+                            <p class="card-text">{{ user.follower_count }} Followers</p>
+                            <p class="card-text text-sm text-gray-600">
+                                {% if user.common_visited_countries %}
+                                    Visited Countries: {% for flag in user.common_visited_countries %}{{ flag }} {% endfor %}
+                                {% endif %}
+                                {% if user.nationality_match %}
+                                    {% if user.common_visited_countries %}<br>{% endif %}
+                                    Same Nationality
+                                {% endif %}
+                            </p>
+                            <button type="button"
+                                    class="button bg-primary-soft text-primary dark:text-white follow-btn mt-1"
+                                    data-user-id="{{ user.user_id }}"
+                                    data-is-following="{{ user.is_following|yesno:'true,false' }}">
+                                {{ user.is_following|yesno:'Unfollow,Follow' }}
+                            </button>
                         </div>
                     </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> John Michael </h4>
-                            </a>
-                            <p class="card-text"> 260k Following </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
+                    {% empty %}
+                    <div class="col-span-2 text-center py-6">
+                        <p class="text-gray-500">No people you might know at the moment.</p>
                     </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> Monroe Parker </h4>
-                            </a>
-                            <p class="card-text"> 125k Following</p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-4.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> Martin Gray</h4>
-                            </a>
-                            <p class="card-text"> 320k Following </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-5.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> James Lewis</h4>
-                            </a>
-                            <p class="card-text"> 320k Following </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-6.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> Alexa stella</h4>
-                            </a>
-                            <p class="card-text"> flow6 </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> Jesse Steeve </h4>
-                            </a>
-                            <p class="card-text"> 162k Following </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
 
-                <!-- pages card layout 3 (My pages) -->
+                <!-- Tab 3: People You May Like -->
                 <div class="grid sm:grid-cols-2 gap-3"
-                    uk-scrollspy="target: > div; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
-
+                     uk-scrollspy="target: > div; cls: uk-animation-scale-up; delay: 100 ;repeat: true">
+                    {% for user in may_like %}
                     <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
+                        <a href="{% url 'profile' user.slug %}">
                             <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-1.webp' %}" alt="">
+                                <img src="{{ user.profile_image|default:'/static/images/avatars/avatar-default.webp' }}"
+                                     alt="{{ user.first_name }} {{ user.last_name }}"
+                                     class="object-cover w-full h-full">
                                 <div class="card-overly"></div>
                             </div>
                         </a>
                         <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> Jesse Steeve </h4>
+                            <a href="{% url 'profile' user.slug %}">
+                                <h4 class="card-title">{{ user.first_name }} {{ user.last_name }}</h4>
                             </a>
-                            <p class="card-text"> 162k Following </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
+                            <p class="card-text">{{ user.follower_count }} Followers</p>
+                            <p class="card-text text-sm text-gray-600">
+                                Compatibility Score: {{ user.score }}
+                            </p>
+                            <button type="button"
+                                    class="button bg-primary-soft text-primary dark:text-white follow-btn mt-1"
+                                    data-user-id="{{ user.user_id }}"
+                                    data-is-following="{{ user.is_following|yesno:'true,false' }}">
+                                {{ user.is_following|yesno:'Unfollow,Follow' }}
+                            </button>
                         </div>
                     </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> John Michael </h4>
-                            </a>
-                            <p class="card-text"> 260k Following </p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
+                    {% empty %}
+                    <div class="col-span-2 text-center py-6">
+                        <p class="text-gray-500">No suggestions at the moment.</p>
                     </div>
-                    <div class="card flex space-x-5 p-5">
-                        <a href="{% url 'timeline_page' %}">
-                            <div class="card-media w-16 h-16 shrink-0 rounded-full">
-                                <img src="{% static 'images/avatars/avatar-3.webp' %}" alt="">
-                                <div class="card-overly"></div>
-                            </div>
-                        </a>
-                        <div class="card-body flex-1 p-0">
-                            <a href="{% url 'timeline_page' %}">
-                                <h4 class="card-title"> Monroe Parker </h4>
-                            </a>
-                            <p class="card-text"> 125k Following</p>
-                            <div class="flex gap-1 mt-1">
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path
-                                            d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z" />
-                                    </svg>
-                                    Liked
-                                </button>
-                                <button type="button" class="button bg-primary-soft text-primary dark:text-white">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-                                        class="w-6 h-6">
-                                        <path fill-rule="evenodd"
-                                            d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97zM6.75 8.25a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5H12a.75.75 0 000-1.5H7.5z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    Message
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
-
             </div>
-
         </div>
-
     </div>
 
-    <!-- sidebar -->
+    <!-- Sidebar -->
     <div class="lg:w-[380px]">
-
         <div class="lg:space-y-6 space-y-4 lg:pb-8 max-lg:grid sm:grid-cols-2 gap-6">
-
-            <!-- search -->
+            <!-- Search -->
             <div>
                 <div class="relative">
                     <div class="flex absolute inset-y-0 left-0 items-center pl-3.5 pointer-events-none">
                         <ion-icon name="search" class="text-2xl text-gray-400"></ion-icon>
                     </div>
                     <input type="text"
-                        class="bg-gray-100 dark:bg-dark2 rounded-full w-full pl-12 !py-2 !font-normal !text-base placeholder-gray-400 dark:placeholder-gray-300"
-                        placeholder="Search Pages">
+                           class="bg-gray-100 dark:bg-dark2 rounded-full w-full pl-12 !py-2 !font-normal !text-base placeholder-gray-400 dark:placeholder-gray-300"
+                           placeholder="Search Pages">
                 </div>
             </div>
 
-            <!-- pages you manage -->
+            <!-- Pages You Manage -->
             <div>
                 <div class="card p-5">
-                    <h4 class="text-base font-semibold mb-3"> Pages you manage </h4>
+                    <h4 class="text-base font-semibold mb-3">Pages You Manage</h4>
                     <div class="space-y-4">
+                        {% for user in might_know|slice:":2" %}
                         <div class="flex items-center gap-3">
-                            <a href="{% url 'timeline_page' %}">
-                                <img src="{% static 'images/avatars/avatar-3.webp' %}" alt=""
-                                    class="w-10 h-10 rounded-full object-cover">
+                            <a href="{% url 'profile' user.slug %}">
+                                <img src="{{ user.profile_image|default:'/static/images/avatars/avatar-default.webp' }}"
+                                     alt="{{ user.first_name }} {{ user.last_name }}"
+                                     class="w-10 h-10 rounded-full object-cover">
                             </a>
                             <div>
-                                <a href="{% url 'timeline_page' %}">
-                                    <h4 class="font-semibold text-sm"> Monroe Parker </h4>
+                                <a href="{% url 'profile' user.slug %}">
+                                    <h4 class="font-semibold text-sm">{{ user.first_name }} {{ user.last_name }}</h4>
                                 </a>
-                                <div class="text-xs text-gray-500 mt-0.5"> 125k Following </div>
+                                <div class="text-xs text-gray-500 mt-0.5">{{ user.follower_count }} Followers</div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <a href="{% url 'timeline_page' %}">
-                                <img src="{% static 'images/avatars/avatar-2.webp' %}" alt=""
-                                    class="w-10 h-10 rounded-full object-cover">
-                            </a>
-                            <div>
-                                <a href="{% url 'timeline_page' %}">
-                                    <h4 class="font-semibold text-sm"> John Michael </h4>
-                                </a>
-                                <div class="text-xs text-gray-500 mt-0.5"> 260k Following </div>
-                            </div>
-                        </div>
+                        {% empty %}
+                        <p class="text-gray-500 text-sm">No managed pages at the moment.</p>
+                        {% endfor %}
                     </div>
                     <div class="flex justify-center mt-4">
                         <button type="button"
-                            class="bg-gray-100 dark:bg-dark2 py-2 px-5 rounded-full font-semibold text-sm">See all</button>
+                                class="bg-gray-100 dark:bg-dark2 py-2 px-5 rounded-full font-semibold text-sm">
+                            See All
+                        </button>
                     </div>
                 </div>
             </div>
@@ -613,103 +240,96 @@
             <!-- Discover -->
             <div>
                 <div class="card p-5">
-                    <h4 class="text-base font-semibold mb-3"> Discover </h4>
+                    <h4 class="text-base font-semibold mb-3">Discover</h4>
                     <div class="space-y-4">
+                        {% for user in may_like|slice:":2" %}
                         <div class="flex items-center gap-3">
-                            <a href="{% url 'timeline_page' %}">
-                                <img src="{% static 'images/avatars/avatar-4.webp' %}" alt=""
-                                    class="w-10 h-10 rounded-full object-cover">
+                            <a href="{% url 'profile' user.slug %}">
+                                <img src="{{ user.profile_image|default:'/static/images/avatars/avatar-default.webp' }}"
+                                     alt="{{ user.first_name }} {{ user.last_name }}"
+                                     class="w-10 h-10 rounded-full object-cover">
                             </a>
                             <div>
-                                <a href="{% url 'timeline_page' %}">
-                                    <h4 class="font-semibold text-sm"> Martin Gray </h4>
+                                <a href="{% url 'profile' user.slug %}">
+                                    <h4 class="font-semibold text-sm">{{ user.first_name }} {{ user.last_name }}</h4>
                                 </a>
-                                <div class="text-xs text-gray-500 mt-0.5"> 320k Following </div>
+                                <div class="text-xs text-gray-500 mt-0.5">{{ user.follower_count }} Followers</div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <a href="{% url 'timeline_page' %}">
-                                <img src="{% static 'images/avatars/avatar-5.webp' %}" alt=""
-                                    class="w-10 h-10 rounded-full object-cover">
-                            </a>
-                            <div>
-                                <a href="{% url 'timeline_page' %}">
-                                    <h4 class="font-semibold text-sm"> James Lewis </h4>
-                                </a>
-                                <div class="text-xs text-gray-500 mt-0.5"> 320k Following </div>
-                            </div>
-                        </div>
+                        {% empty %}
+                        <p class="text-gray-500 text-sm">No suggestions at the moment.</p>
+                        {% endfor %}
                     </div>
                     <div class="flex justify-center mt-4">
                         <button type="button"
-                            class="bg-gray-100 dark:bg-dark2 py-2 px-5 rounded-full font-semibold text-sm">See all</button>
+                                class="bg-gray-100 dark:bg-dark2 py-2 px-5 rounded-full font-semibold text-sm">
+                            See All
+                        </button>
                     </div>
                 </div>
             </div>
-
         </div>
-
     </div>
-
 </div>
 
 <!-- JavaScript for Follow/Unfollow -->
-<!-- JavaScript pour Follow/Unfollow -->
-<!-- JavaScript pour Follow/Unfollow -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const followButtons = document.querySelectorAll('.follow-btn');
-        const token = localStorage.getItem('token'); // Récupérer le token depuis localStorage
-    
-        if (!token) {
-            console.error('Aucun token trouvé dans localStorage');
-            alert('Veuillez vous reconnecter pour suivre/désuivre un utilisateur.');
-            return;
-        }
-    
-        followButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const userId = this.getAttribute('data-user-id');
-                const isFollowing = this.getAttribute('data-is-following') === 'true';
-    
-                fetch('/follow-unfollow/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'Authorization': `Bearer ${token}` // Ajouter le token JWT
-                    },
-                    body: `target_user_id=${userId}`
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        if (response.status === 401) {
-                            throw new Error('Non autorisé : Token invalide ou expiré');
-                        }
-                        throw new Error('Erreur réseau : ' + response.status);
+document.addEventListener('DOMContentLoaded', function() {
+    const followButtons = document.querySelectorAll('.follow-btn');
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        console.error('No token found in localStorage');
+        alert('Please log in again to follow/unfollow a user.');
+        return;
+    }
+
+    followButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const isFollowing = this.getAttribute('data-is-following') === 'true';
+
+            fetch('/follow-unfollow/', {  // Updated endpoint to match previous version
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: `target_user_id=${userId}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('Unauthorized: Invalid or expired token');
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        if (data.action === 'followed') {
-                            this.textContent = 'Unfollow';
-                            this.setAttribute('data-is-following', 'true');
-                        } else {
-                            this.textContent = 'Follow';
-                            this.setAttribute('data-is-following', 'false');
-                        }
+                    throw new Error(`Network error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    if (data.action === 'followed') {
+                        this.textContent = 'Unfollow';
+                        this.setAttribute('data-is-following', 'true');
+                        this.classList.remove('bg-primary', 'text-white');
+                        this.classList.add('bg-gray-200', 'text-gray-700');
                     } else {
-                        alert(data.message || 'Une erreur s\'est produite');
+                        this.textContent = 'Follow';
+                        this.setAttribute('data-is-following', 'false');
+                        this.classList.remove('bg-gray-200', 'text-gray-700');
+                        this.classList.add('bg-primary', 'text-white');
                     }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    alert(error.message || 'Une erreur s\'est produite lors du traitement de votre requête');
-                });
+                } else {
+                    alert(data.message || 'An error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while processing your request');
             });
         });
     });
-    </script>
-
+});
+</script>
 {% endblock %}

@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Socialite - Work{% endblock %}
+
+{% block content %}
+
+<!-- main contents -->
+<div class="2xl:max-w-[1220px] max-w-[1065px] mx-auto">
+
+    <div class="page-heading">
+        <h1 class="page-title">Work-Friendly Destinations</h1>
+        <nav class="nav__underline">
+            <ul uk-tab class="group"
+                uk-switcher="connect: #ttabs ; animation: uk-animation-slide-right-medium, uk-animation-slide-left-medium">
+                <li><a href="#">Suggestions</a></li>
+                <li><a href="#">Popular</a></li>
+                <li><a href="#">My Events</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Recommended Work Destinations -->
+    <div class="relative" tabindex="-1" uk-slider="finite:true">
+        <div class="uk-slider-container pb-1">
+            <ul class="uk-slider-items grid-small">
+                {% if recommended_places %}
+                    {% for place in recommended_places %}
+                        <li class="lg:w-1/4 sm:w-1/3 w-1/2">
+                            <div class="card">
+                                <a href="{% url 'timeline_event' %}">
+                                    <div class="card-media h-32">
+                                        <img src="{{ place.image }}" alt="{{ place.city }}" class="object-cover w-full h-full">
+                                        <div class="card-overly"></div>
+                                    </div>
+                                </a>
+                                <div class="card-body">
+                                    <p class="text-xs font-medium text-blue-600 mb-1">Work Score: {{ place.work_score }}</p>
+                                    <a href="{% url 'timeline_event' %}">
+                                        <h4 class="card-title text-sm">{{ place.city }}</h4>
+                                    </a>
+                                    <a href="#">
+                                        <p class="card-text text-black mt-2">{{ place.country }}</p>
+                                    </a>
+                                    <div class="card-list-info text-xs mt-1">
+                                        <div>WiFi: {{ place.wifi_speed }} Mbps</div>
+                                        <div class="md:block hidden">·</div>
+                                        <div>Coworking: {{ place.coworking_spaces }}</div>
+                                    </div>
+                                    <div class="card-list-info text-xs mt-1">
+                                        <div>Coffee: ${{ place.coffee_price }}</div>
+                                        <div class="md:block hidden">·</div>
+                                        <div>Apartment: ${{ place.accommodation_price }}/mo</div>
+                                    </div>
+                                    <div class="flex gap-2 mt-2">
+                                        <button type="button" class="button bg-primary text-white flex-1">Interested</button>
+                                        <button type="button" class="button bg-secondery !w-auto">
+                                            <ion-icon name="arrow-redo" class="text-lg"></ion-icon>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="w-full">
+                        <div class="text-center py-12">
+                            <div class="max-w-md mx-auto">
+                                <i class="fas fa-briefcase text-6xl text-gray-300 mb-4"></i>
+                                <h3 class="text-xl font-semibold mb-2">No Work Destinations Yet</h3>
+                                <p class="text-gray-500">Add countries you'd like to visit or specify your nationality in your profile.</p>
+                                <a href="{% url 'edit_profile' %}" class="button bg-primary text-white mt-4 inline-block">Update Profile</a>
+                            </div>
+                        </div>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- slide nav icons -->
+        <a class="nav-prev !top-20" href="#" uk-slider-item="previous">
+            <ion-icon name="chevron-back" class="text-2xl"></ion-icon>
+        </a>
+        <a class="nav-next !top-20" href="#" uk-slider-item="next">
+            <ion-icon name="chevron-forward" class="text-2xl"></ion-icon>
+        </a>
+    </div>
+
+    <div class="sm:my-6 my-3 flex items-center justify-between md:mt-10">
+        <div>
+            <h2 class="text-xl font-semibold">Lists You May Like</h2>
+            <p class="font-normal text-sm text-gray-500 leading-6">Find a group by browsing top categories.</p>
+        </div>
+        <a href="#" class="text-blue-500 sm:block hidden text-sm">See all</a>
+    </div>
+
+    <!-- listing slider -->
+    <div class="mt-4" tabindex="-1" uk-slider="finite:true">
+        <div class="uk-slider-container pb-1">
+            <ul class="uk-slider-items grid-small">
+                <li class="md:w-1/5 sm:w-1/3 w-1/2">
+                    <a href="#">
+                        <div class="relative rounded-lg overflow-hidden">
+                            <img src="{% static 'images/events/listing-1.webp' %}" alt=""
+                                class="h-36 w-full object-cover">
+                            <div class="w-full bottom-0 absolute left-0 bg-gradient-to-t from-black/60 pt-10">
+                                <div class="text-white p-5">
+                                    <div class="text-sm font-light">Miami</div>
+                                    <div class="text-lg leading-3 mt-1.5">Hotels</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                <li class="md:w-1/5 sm:w-1/3 w-1/2">
+                    <a href="#">
+                        <div class="relative rounded-lg overflow-hidden">
+                            <img src="{% static 'images/events/listing-2.webp' %}" alt=""
+                                class="h-36 w-full object-cover">
+                            <div class="w-full bottom-脂肪-0 absolute left-0 bg-gradient-to-t from-black/60 pt-10">
+                                <div class="text-white p-5">
+                                    <div class="text-sm font-light">Florida</div>
+                                    <div class="text-lg leading-3 mt-1.5">Hotels</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                <li class="md:w-1/5 sm:w-1/3 w-1/2">
+                    <a href="#">
+                        <div class="relative rounded-lg overflow-hidden">
+                            <img src="{% static 'images/events/listing-3.webp' %}" alt=""
+                                class="h-36 w-full object-cover">
+                            <div class="w-full bottom-0 absolute left-0 bg-gradient-to-t from-black/60 pt-10">
+                                <div class="text-white p-5">
+                                    <div class="text-sm font-light">London</div>
+                                    <div class="text-lg leading-3 mt-1.5">Hotels</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                <li class="md:w-1/5 sm:w-1/3 w-1/2">
+                    <a href="#">
+                        <div class="relative rounded-lg overflow-hidden">
+                            <img src="{% static 'images/events/listing-4.webp' %}" alt=""
+                                class="h-36 w-full object-cover">
+                            <div class="w-full bottom-0 absolute left-0 bg-gradient-to-t from-black/60 pt-10">
+                                <div class="text-white p-5">
+                                    <div class="text-sm font-light">Dubai</div>
+                                    <div class="text-lg leading-3 mt-1.5">Hotels</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                <li class="md:w-1/5 sm:w-1/3 w-1/2">
+                    <a href="#">
+                        <div class="relative rounded-lg overflow-hidden">
+                            <img src="{% static 'images/events/listing-5.webp' %}" alt=""
+                                class="h-36 w-full object-cover">
+                            <div class="w-full bottom-0 absolute left-0 bg-gradient-to-t from-black/60 pt-10">
+                                <div class="text-white p-5">
+                                    <div class="text-sm font-light">Turkey</div>
+                                    <div class="text-lg leading-3 mt-1.5">Resturent</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                <li class="md:w-1/5 sm:w-1/3 w-1/2">
+                    <a href="#">
+                        <div class="relative rounded-lg overflow-hidden">
+                            <img src="{% static 'images/events/listing-1.webp' %}" alt=""
+                                class="h-36 w-full object-cover">
+                            <div class="w-full bottom-0 absolute left-0 bg-gradient-to-t from-black/60 pt-10">
+                                <div class="text-white p-5">
+                                    <div class="text-sm font-light">Miami</div>
+                                    <div class="text-lg leading-3 mt-1.5">Hotels</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- slide nav icons -->
+        <a class="nav-prev" href="#" uk-slider-item="previous">
+            <ion-icon name="chevron-back" class="text-2xl"></ion-icon>
+        </a>
+        <a class="nav-next" href="#" uk-slider-item="next">
+            <ion-icon name="chevron-forward" class="text-2xl"></ion-icon>
+        </a>
+    </div>
+
+    <div class="flex items-center justify-between text-black dark:text-white py-3 mt-6">
+        <h3 class="text-xl font-semibold">Other Work-Friendly Destinations</h3>
+        <a href="#" class="text-sm text-blue-500">See all</a>
+    </div>
+
+    <!-- Other Work Destinations -->
+    <div class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 gap-2.5 mt-4">
+        {% if other_places %}
+            {% for place in other_places %}
+                <div class="card">
+                    <a href="{% url 'timeline_event' %}">
+                        <div class="card-media h-32">
+                            <img src="{{ place.image }}" alt="{{ place.city }}" class="object-cover w-full h-full">
+                            <div class="card-overly"></div>
+                        </div>
+                    </a>
+                    <div class="card-body">
+                        <p class="text-xs font-medium text-blue-600 mb-1">Work Score: {{ place.work_score }}</p>
+                        <a href="{% url 'timeline_event' %}">
+                            <h4 class="card-title text-sm">{{ place.city }}</h4>
+                        </a>
+                        <a href="#">
+                            <p class="card-text text-black mt-2">{{ place.country }}</p>
+                        </a>
+                        <div class="card-list-info text-xs mt-1">
+                            <div>WiFi: {{ place.wifi_speed }} Mbps</div>
+                            <div class="md:block hidden">·</div>
+                            <div>Coworking: {{ place.coworking_spaces }}</div>
+                        </div>
+                        <div class="card-list-info text-xs mt-1">
+                            <div>Coffee: ${{ place.coffee_price }}</div>
+                            <div class="md:block hidden">·</div>
+                            <div>Apartment: ${{ place.accommodation_price }}/mo</div>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <button type="button" class="button bg-primary text-white flex-1">Interested</button>
+                            <button type="button" class="button bg-secondery !w-auto">
+                                <ion-icon name="arrow-redo" class="text-lg"></ion-icon>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-12 col-span-full">
+                <div class="max-w-md mx-auto">
+                    <i class="fas fa-briefcase text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">No Other Work Destinations</h3>
+                    <p class="text-gray-500">Explore more destinations or update your profile to see suggestions.</p>
+                    <a href="{% url 'edit_profile' %}" class="button bg-primary text-white mt-4 inline-block">Update Profile</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
