@@ -839,3 +839,196 @@ def create_user_wallet(sender, instance, created, **kwargs):
                 print(f"✅ [WALLET] Portefeuille créé pour {instance.username}")
         except Exception as e:
             print(f"⚠️ [WALLET] Impossible de créer le wallet : {e}")
+
+
+# ============================================
+# CHAT MODELS
+# ============================================
+
+class ChatRoom(models.Model):
+    """
+    Modèle pour les salles de chat (privées ou de groupe)
+    """
+    ROOM_TYPES = [
+        ('private', 'Chat privé'),
+        ('group', 'Chat de groupe'),
+    ]
+    
+    # Informations de base
+    name = models.CharField(max_length=200, blank=True, null=True, help_text="Nom du groupe (optionnel pour les chats privés)")
+    room_type = models.CharField(max_length=10, choices=ROOM_TYPES, default='private')
+    
+    # Participants
+    participants = models.ManyToManyField(User, related_name='chat_rooms', help_text="Utilisateurs dans ce chat")
+    
+    # Métadonnées
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_chats')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Dernier message (pour l'affichage dans la liste)
+    last_message = models.TextField(blank=True, null=True)
+    last_message_at = models.DateTimeField(blank=True, null=True)
+    last_message_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='last_messages')
+    
+    class Meta:
+        verbose_name = 'Salon de chat'
+        verbose_name_plural = 'Salons de chat'
+        ordering = ['-last_message_at', '-updated_at']
+    
+    def __str__(self):
+        if self.room_type == 'group' and self.name:
+            return f"Groupe: {self.name}"
+        elif self.room_type == 'private':
+            participants = list(self.participants.all())
+            if len(participants) == 2:
+                return f"Chat: {participants[0].username} & {participants[1].username}"
+        return f"Chat #{self.id}"
+    
+    def get_other_participant(self, user):
+        """Pour les chats privés, retourne l'autre participant"""
+        if self.room_type == 'private':
+            return self.participants.exclude(id=user.id).first()
+        return None
+    
+    def get_unread_count(self, user):
+        """Retourne le nombre de messages non lus pour un utilisateur"""
+        return self.messages.exclude(
+            sender=user
+        ).exclude(
+            read_by=user
+        ).count()
+
+
+class Message(models.Model):
+    """
+    Modèle pour les messages dans les chats
+    """
+    MESSAGE_TYPES = [
+        ('text', 'Texte'),
+        ('image', 'Image'),
+        ('file', 'Fichier'),
+        ('voice', 'Message vocal'),
+    ]
+    
+    # Relations
+    chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    
+    # Contenu du message
+    message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES, default='text')
+    content = models.TextField(blank=True, null=True, help_text="Contenu textuel du message")
+    
+    # Fichiers attachés
+    image = models.ImageField(upload_to='chat/images/', blank=True, null=True)
+    file = models.FileField(upload_to='chat/files/', blank=True, null=True)
+    voice_note = models.FileField(upload_to='chat/voice/', blank=True, null=True)
+    
+    # ✨ NEW: Sentiment Analysis Fields
+    sentiment_label = models.CharField(
+        max_length=20, 
+        default='NEUTRAL',
+        choices=[('POSITIVE', 'Positive'), ('NEGATIVE', 'Negative'), ('NEUTRAL', 'Neutral')],
+        help_text="Sentiment détecté du message"
+    )
+    sentiment_score = models.FloatField(default=0.0, help_text="Score de confiance du sentiment")
+    sentiment_emoji = models.CharField(max_length=10, default='😐', help_text="Emoji représentant le sentiment")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Statut de lecture
+    read_by = models.ManyToManyField(User, blank=True, related_name='read_messages', help_text="Utilisateurs qui ont lu ce message")
+    
+    class Meta:
+        verbose_name = 'Message'
+        verbose_name_plural = 'Messages'
+        ordering = ['created_at']
+    
+    def __str__(self):
+        if self.message_type == 'text':
+            content_preview = self.content[:50] + "..." if self.content and len(self.content) > 50 else self.content
+            return f"{self.sender.username}: {content_preview}"
+        else:
+            return f"{self.sender.username}: [{self.get_message_type_display()}]"
+    
+    def mark_as_read(self, user):
+        """Marque le message comme lu par un utilisateur"""
+        self.read_by.add(user)
+    
+    def is_read_by(self, user):
+        """Vérifie si le message a été lu par un utilisateur"""
+        return self.read_by.filter(id=user.id).exists()
+
+
+class MessageFile(models.Model):
+    """
+    Modèle pour les fichiers attachés aux messages (support de plusieurs fichiers par message)
+    """
+    # Relations
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='files')
+    
+    # Fichier
+    file = models.FileField(upload_to='chat/attachments/')
+    original_name = models.CharField(max_length=255, help_text="Nom original du fichier")
+    file_type = models.CharField(max_length=100, help_text="Type MIME du fichier")
+    file_size = models.PositiveIntegerField(help_text="Taille du fichier en bytes")
+    
+    # Métadonnées
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Fichier de message'
+        verbose_name_plural = 'Fichiers de messages'
+        ordering = ['uploaded_at']
+    
+    def __str__(self):
+        return f"{self.original_name} - {self.message}"
+    
+    @property
+    def file_url(self):
+        """Retourne l'URL du fichier"""
+        if self.file:
+            return self.file.url
+        return None
+    
+    @property
+    def is_image(self):
+        """Vérifie si le fichier est une image"""
+        return self.file_type.startswith('image/')
+    
+    @property
+    def is_video(self):
+        """Vérifie si le fichier est une vidéo"""
+        return self.file_type.startswith('video/')
+    
+    @property
+    def is_audio(self):
+        """Vérifie si le fichier est un audio"""
+        return self.file_type.startswith('audio/')
+
+
+class ChatRoomMembership(models.Model):
+    """
+    Modèle pour gérer l'appartenance aux salles de chat avec des métadonnées
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE)
+    
+    # Métadonnées d'appartenance
+    joined_at = models.DateTimeField(auto_now_add=True)
+    is_admin = models.BooleanField(default=False, help_text="Administrateur du groupe")
+    is_muted = models.BooleanField(default=False, help_text="Notifications désactivées")
+    
+    # Dernière activité
+    last_seen = models.DateTimeField(auto_now=True)
+    last_read_message = models.ForeignKey(Message, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['user', 'chat_room']
+        verbose_name = 'Appartenance au chat'
+        verbose_name_plural = 'Appartenances aux chats'
+    
+    def __str__(self):
+        return f"{self.user.username} dans {self.chat_room}"

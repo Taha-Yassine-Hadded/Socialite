@@ -11,6 +11,7 @@ urlpatterns = [
     # AUTHENTICATION
     # ============================================
     path('api/user/', views.user_info, name='user_info'),
+    path('api/user/session/', views.user_info_session, name='user_info_session'),
     path('login/', views.login_page, name='login_page'),
     path('register/', views.register_page, name='register_page'),
     path('logout/', views.logout_view, name='logout'),
@@ -46,9 +47,18 @@ urlpatterns = [
     path('pages/', views.pages, name='pages'),
     
     # ============================================
-    # MESSAGES
+    # MESSAGES & CHAT
     # ============================================
     path('messages/', views.messages_view, name='messages'),
+    
+    # Chat API endpoints
+    path('api/chats/', views.get_user_chats, name='get_user_chats'),
+    path('api/chats/session/', views.get_user_chats_session, name='get_user_chats_session'),
+    path('api/chats/create/', views.create_private_chat, name='create_private_chat'),
+    path('api/chats/<int:chat_id>/messages/', views.get_chat_messages, name='get_chat_messages'),
+    path('api/chats/<int:chat_id>/send/', views.send_message, name='send_message'),
+    path('api/chats/<int:chat_id>/messages/<int:message_id>/delete/', views.delete_message, name='delete_message'),
+    path('api/users/search/', views.search_users_for_chat, name='search_users'),
     
     # ============================================
     # EVENTS

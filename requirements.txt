@@ -13,12 +13,13 @@ torchvision==0.17.0
 ffmpeg-python==0.2.0
 numpy<2.0  # Compatibilité avec PyTorch 2.1.0
 
+# Real-time support with Django Channels
+channels==4.1.0
+transformers==4.35.0
+
 # IA - Classification d'images de voyage
 # (Utilise PyTorch déjà installé ci-dessus)
 # Dataset requis : À télécharger depuis Kaggle
-
-
-
 asgiref==3.10.0
 certifi==2025.10.5
 charset-normalizer==3.4.4

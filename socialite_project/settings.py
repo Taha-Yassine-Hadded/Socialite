@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'core.apps.CoreConfig',
@@ -68,6 +69,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'socialite_project.wsgi.application'
+ASGI_APPLICATION = 'socialite_project.asgi.application'
+
+# Channel layers configuration for development
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Database
 DATABASES = {
@@ -103,6 +112,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'public' / 'assets',
+    BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 

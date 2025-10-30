@@ -161,3 +161,8 @@ coverage/
 ai_datasets/
 models/*.pth
 models/*.pt
+
+
+
+**/model_cache/
+**/__pycache__/

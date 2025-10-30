@@ -33,6 +33,9 @@ from core.utils.subscription import can_user_perform_action, increment_usage
 from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from .models import Subscription, UsageQuota, PaymentHistory
+from core.ml_models.sentiment_analyzer import sentiment_analyzer  # Add this import at the top
+import logging
+
 # Liste des intérêts pour le formulaire
 INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation']
 
@@ -160,6 +163,35 @@ def calculate_similarity(user_profile, other_profile):
 @permission_classes([IsAuthenticated])
 def user_info(request):
     """Returns the connected user's info"""
+    user = request.user
+    
+    # Fetch MongoDB profile
+    db = get_db()
+    profile = db.profiles.find_one({'user_id': user.id})
+    
+    return JsonResponse({
+        'success': True,
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'profile_image': profile.get('profile_image') if profile else None,
+            'date_of_birth': profile.get('date_of_birth') if profile else None,
+            'is_staff': user.is_staff,
+            'travel_type': profile.get('travel_type') if profile else None,
+            'travel_budget': profile.get('travel_budget') if profile else None,
+            'gender': profile.get('gender') if profile else None,
+            'languages': profile.get('languages') if profile else None,
+            'nationality': profile.get('nationality') if profile else None,
+            'interests': profile.get('interests') if profile else None,
+            'follower_count': format_follower_count(profile.get('follower_count', 0)) if profile else 0,
+        }
+    })
+
+@login_required(login_url='/login/')
+def user_info_session(request):
+    """Returns the connected user's info using session authentication"""
     user = request.user
     
     # Fetch MongoDB profile
@@ -2767,3 +2799,524 @@ def ai_add_to_bucket_list(request):
             'success': False,
             'error': str(e)
         }, status=400)
+
+
+# ============================================
+# CHAT API ENDPOINTS
+# ============================================
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_chats(request):
+    """Récupère la liste des chats de l'utilisateur"""
+    try:
+        from .models import ChatRoom
+        
+        # Récupérer tous les chats de l'utilisateur
+        user_chats = ChatRoom.objects.filter(
+            participants=request.user
+        ).prefetch_related('participants', 'last_message_by').order_by('-last_message_at', '-updated_at')
+        
+        chats_data = []
+        for chat in user_chats:
+            # Pour les chats privés, récupérer l'autre participant
+            if chat.room_type == 'private':
+                other_participant = chat.get_other_participant(request.user)
+                if other_participant:
+                    chat_name = f"{other_participant.first_name} {other_participant.last_name}".strip() or other_participant.username
+                    avatar_url = None
+                    if hasattr(other_participant, 'profile') and other_participant.profile.avatar:
+                        avatar_url = other_participant.profile.avatar.url
+                else:
+                    chat_name = "Chat supprimé"
+                    avatar_url = None
+            else:
+                chat_name = chat.name or f"Groupe #{chat.id}"
+                avatar_url = None  # TODO: Ajouter avatar de groupe
+            
+            # Compter les messages non lus
+            unread_count = chat.get_unread_count(request.user)
+            
+            chat_data = {
+                'id': chat.id,
+                'name': chat_name,
+                'room_type': chat.room_type,
+                'last_message': chat.last_message,
+                'last_message_at': chat.last_message_at.isoformat() if chat.last_message_at else None,
+                'last_message_by': chat.last_message_by.username if chat.last_message_by else None,
+                'unread_count': unread_count,
+                'avatar_url': avatar_url,
+                'participants_count': chat.participants.count()
+            }
+            
+            # Add other participant data for private chats
+            if chat.room_type == 'private' and other_participant:
+                chat_data['other_participant'] = {
+                    'id': other_participant.id,
+                    'username': other_participant.username,
+                    'first_name': other_participant.first_name,
+                    'last_name': other_participant.last_name,
+                    'avatar': avatar_url
+                }
+            
+            chats_data.append(chat_data)
+        
+        return JsonResponse(chats_data, safe=False)
+        
+    except Exception as e:
+        return JsonResponse([], safe=False)
+
+
+@login_required(login_url='/login/')
+def get_user_chats_session(request):
+    """Récupère la liste des chats de l'utilisateur avec authentification par session"""
+    try:
+        from .models import ChatRoom
+        
+        # Récupérer tous les chats de l'utilisateur
+        user_chats = ChatRoom.objects.filter(
+            participants=request.user
+        ).prefetch_related('participants', 'last_message_by').order_by('-last_message_at', '-updated_at')
+        
+        chats_data = []
+        for chat in user_chats:
+            # Pour les chats privés, récupérer l'autre participant
+            if chat.room_type == 'private':
+                other_participant = chat.get_other_participant(request.user)
+                if other_participant:
+                    chat_name = f"{other_participant.first_name} {other_participant.last_name}".strip() or other_participant.username
+                    avatar_url = None
+                    if hasattr(other_participant, 'profile') and other_participant.profile.avatar:
+                        avatar_url = other_participant.profile.avatar.url
+                else:
+                    chat_name = "Chat supprimé"
+                    avatar_url = None
+            else:
+                chat_name = chat.name or f"Groupe #{chat.id}"
+                avatar_url = None  # TODO: Ajouter avatar de groupe
+            
+            # Compter les messages non lus
+            unread_count = chat.get_unread_count(request.user)
+            
+            chat_data = {
+                'id': chat.id,
+                'name': chat_name,
+                'room_type': chat.room_type,
+                'last_message': chat.last_message,
+                'last_message_at': chat.last_message_at.isoformat() if chat.last_message_at else None,
+                'last_message_by': chat.last_message_by.username if chat.last_message_by else None,
+                'unread_count': unread_count,
+                'avatar_url': avatar_url,
+                'participants_count': chat.participants.count()
+            }
+            
+            # Add other participant data for private chats
+            if chat.room_type == 'private' and other_participant:
+                chat_data['other_participant'] = {
+                    'id': other_participant.id,
+                    'username': other_participant.username,
+                    'first_name': other_participant.first_name,
+                    'last_name': other_participant.last_name,
+                    'avatar': avatar_url
+                }
+            
+            chats_data.append(chat_data)
+        
+        return JsonResponse(chats_data, safe=False)
+        
+    except Exception as e:
+        return JsonResponse([], safe=False)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_private_chat(request):
+    """Crée un chat privé avec un autre utilisateur"""
+    try:
+        from .models import ChatRoom
+        
+        other_user_id = request.data.get('user_id')
+        if not other_user_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'ID utilisateur requis'
+            }, status=400)
+        
+        try:
+            other_user = User.objects.get(id=other_user_id)
+        except User.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Utilisateur introuvable'
+            }, status=404)
+        
+        # Vérifier si un chat privé existe déjà entre ces deux utilisateurs
+        existing_chat = ChatRoom.objects.filter(
+            room_type='private',
+            participants=request.user
+        ).filter(
+            participants=other_user
+        ).first()
+        
+        if existing_chat:
+            return JsonResponse({
+                'success': True,
+                'chat_id': existing_chat.id,
+                'message': 'Chat existant trouvé'
+            })
+        
+        # Créer un nouveau chat privé
+        chat_room = ChatRoom.objects.create(
+            room_type='private',
+            created_by=request.user
+        )
+        chat_room.participants.add(request.user, other_user)
+        
+        return JsonResponse({
+            'success': True,
+            'chat_id': chat_room.id,
+            'message': 'Chat privé créé'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_chat_messages(request, chat_id):
+    """Récupère les messages d'un chat avec sentiment"""
+    try:
+        from .models import ChatRoom, Message
+        
+        # Vérifier l'accès au chat
+        try:
+            chat_room = ChatRoom.objects.get(id=chat_id, participants=request.user)
+        except ChatRoom.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Chat introuvable ou accès refusé'
+            }, status=404)
+        
+        # Récupérer les messages avec pagination
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 50))
+        
+        messages = Message.objects.filter(
+            chat_room=chat_room
+        ).select_related('sender', 'sender__profile').prefetch_related('files').order_by('-created_at')
+        
+        paginator = Paginator(messages, page_size)
+        page_obj = paginator.get_page(page)
+        
+        messages_data = []
+        for message in page_obj:
+            avatar_url = None
+            if hasattr(message.sender, 'profile') and message.sender.profile.avatar:
+                avatar_url = message.sender.profile.avatar.url
+            
+            # Prepare files data
+            files_data = []
+            for message_file in message.files.all():
+                files_data.append({
+                    'id': message_file.id,
+                    'url': message_file.file_url,
+                    'original_name': message_file.original_name,
+                    'file_type': message_file.file_type,
+                    'file_size': message_file.file_size,
+                    'is_image': message_file.is_image,
+                    'is_video': message_file.is_video,
+                    'is_audio': message_file.is_audio
+                })
+            
+            messages_data.append({
+                'id': message.id,
+                'content': message.content,
+                'message_type': message.message_type,
+                'sender': {
+                    'id': message.sender.id,
+                    'username': message.sender.username,
+                    'full_name': f"{message.sender.first_name} {message.sender.last_name}".strip() or message.sender.username,
+                    'avatar_url': avatar_url
+                },
+                'created_at': message.created_at.isoformat(),
+                'is_read': message.is_read_by(request.user),
+                'files': files_data,
+                'image_url': message.image.url if message.image else None,
+                'file_url': message.file.url if message.file else None,
+                'voice_url': message.voice_note.url if message.voice_note else None,
+                # ✨ Include sentiment in response
+                'sentiment': {
+                    'label': message.sentiment_label,
+                    'score': message.sentiment_score,
+                    'emoji': message.sentiment_emoji
+                }
+            })
+        
+        # Marquer les messages comme lus
+        unread_messages = messages.filter(chat_room=chat_room).exclude(sender=request.user)
+        for message in unread_messages:
+            message.mark_as_read(request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'messages': list(reversed(messages_data)),  # Inverser pour avoir les plus anciens en premier
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+            'total_pages': paginator.num_pages,
+            'current_page': page
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_message(request, chat_id):
+    """Envoie un message dans un chat avec analyse de sentiment"""
+    try:
+        from .models import ChatRoom, Message, MessageFile
+        import mimetypes
+        
+        # Vérifier l'accès au chat
+        try:
+            chat_room = ChatRoom.objects.get(id=chat_id, participants=request.user)
+        except ChatRoom.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Chat introuvable ou accès refusé'
+            }, status=404)
+        
+        content = request.data.get('content', '').strip() if hasattr(request, 'data') else request.POST.get('content', '').strip()
+        message_type = request.data.get('message_type', 'text') if hasattr(request, 'data') else request.POST.get('message_type', 'text')
+        
+        # Get uploaded files
+        uploaded_files = request.FILES.getlist('files') if 'files' in request.FILES else []
+        
+        # Check if we have content or files
+        if not content and not uploaded_files and message_type == 'text':
+            return JsonResponse({
+                'success': False,
+                'error': 'Le contenu du message ou des fichiers sont requis'
+            }, status=400)
+        
+        # Determine message type based on files
+        if uploaded_files:
+            # Check if all files are images
+            all_images = all(file.content_type.startswith('image/') for file in uploaded_files)
+            message_type = 'image' if all_images else 'file'
+        
+        # ✨ Analyze sentiment for text messages
+        sentiment = {'label': 'NEUTRAL', 'score': 0.0, 'emoji': '😐'}
+        if content.strip():  # Only analyze if there's text content
+            try:
+                sentiment = sentiment_analyzer.analyze(content)
+                logger.info(f"💬 Sentiment analyzed for message: {sentiment['label']} ({sentiment['score']}) {sentiment['emoji']}")
+            except Exception as e:
+                logger.error(f"Sentiment analysis failed: {e}")
+                # Continue without sentiment if analysis fails
+        
+        # Créer le message avec sentiment
+        message = Message.objects.create(
+            chat_room=chat_room,
+            sender=request.user,
+            content=content,
+            message_type=message_type,
+            sentiment_label=sentiment['label'],
+            sentiment_score=sentiment['score'],
+            sentiment_emoji=sentiment['emoji']
+        )
+        
+        # Handle multiple file uploads
+        message_files = []
+        for uploaded_file in uploaded_files:
+            # Get file type
+            file_type = uploaded_file.content_type or mimetypes.guess_type(uploaded_file.name)[0] or 'application/octet-stream'
+            
+            # Create MessageFile instance
+            message_file = MessageFile.objects.create(
+                message=message,
+                file=uploaded_file,
+                original_name=uploaded_file.name,
+                file_type=file_type,
+                file_size=uploaded_file.size
+            )
+            message_files.append(message_file)
+        
+        # Gérer les fichiers uploadés (legacy support)
+        if 'image' in request.FILES:
+            message.image = request.FILES['image']
+            message.message_type = 'image'
+        elif 'file' in request.FILES:
+            message.file = request.FILES['file']
+            message.message_type = 'file'
+        elif 'voice_note' in request.FILES:
+            message.voice_note = request.FILES['voice_note']
+            message.message_type = 'voice'
+        
+        message.save()
+        
+        # Mettre à jour le dernier message du chat
+        chat_room.last_message = content or f"[{message.get_message_type_display()}]"
+        chat_room.last_message_at = message.created_at
+        chat_room.last_message_by = request.user
+        chat_room.save()
+        
+        # Préparer la réponse
+        avatar_url = None
+        if hasattr(request.user, 'profile') and request.user.profile.avatar:
+            avatar_url = request.user.profile.avatar.url
+        
+        # Prepare files data for response
+        files_data = []
+        for message_file in message_files:
+            files_data.append({
+                'id': message_file.id,
+                'url': message_file.file_url,
+                'original_name': message_file.original_name,
+                'file_type': message_file.file_type,
+                'file_size': message_file.file_size,
+                'is_image': message_file.is_image,
+                'is_video': message_file.is_video,
+                'is_audio': message_file.is_audio
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'message': {
+                'id': message.id,
+                'content': message.content,
+                'message_type': message.message_type,
+                'sender': {
+                    'id': request.user.id,
+                    'username': request.user.username,
+                    'full_name': f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username,
+                    'avatar_url': avatar_url
+                },
+                'created_at': message.created_at.isoformat(),
+                'files': files_data,
+                'image_url': message.image.url if message.image else None,
+                'file_url': message.file.url if message.file else None,
+                'voice_url': message.voice_note.url if message.voice_note else None,
+                # ✨ Include sentiment in response
+                'sentiment': {
+                    'label': message.sentiment_label,
+                    'score': message.sentiment_score,
+                    'emoji': message.sentiment_emoji
+                }
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error sending message: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_message(request, chat_id, message_id):
+    """Supprime un message dans un chat"""
+    try:
+        from .models import ChatRoom, Message
+        
+        # Vérifier l'accès au chat
+        try:
+            chat_room = ChatRoom.objects.get(id=chat_id, participants=request.user)
+        except ChatRoom.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Chat introuvable ou accès refusé'
+            }, status=404)
+        
+        # Vérifier que le message existe et appartient à l'utilisateur
+        try:
+            message = Message.objects.get(
+                id=message_id,
+                chat_room=chat_room,
+                sender=request.user
+            )
+        except Message.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Message introuvable ou vous n\'êtes pas autorisé à le supprimer'
+            }, status=404)
+        
+        # Supprimer le message
+        message.delete()
+        
+        # Mettre à jour le dernier message du chat si nécessaire
+        last_message = Message.objects.filter(chat_room=chat_room).order_by('-created_at').first()
+        if last_message:
+            chat_room.last_message = last_message.content or f"[{last_message.get_message_type_display()}]"
+            chat_room.last_message_at = last_message.created_at
+            chat_room.last_message_by = last_message.sender
+        else:
+            chat_room.last_message = ""
+            chat_room.last_message_at = None
+            chat_room.last_message_by = None
+        chat_room.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Message supprimé avec succès'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_users_for_chat(request):
+    """Recherche d'utilisateurs pour créer un chat"""
+    try:
+        query = request.GET.get('q', '').strip()
+        if len(query) < 2:
+            return JsonResponse([], safe=False)
+        
+        # Rechercher les utilisateurs
+        users = User.objects.filter(
+            Q(username__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query)
+        ).exclude(id=request.user.id)[:20]  # Limiter à 20 résultats
+        
+        users_data = []
+        for user in users:
+            avatar_url = None
+            if hasattr(user, 'profile') and user.profile.avatar:
+                avatar_url = user.profile.avatar.url
+            
+            users_data.append({
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'avatar': avatar_url
+            })
+        
+        return JsonResponse(users_data, safe=False)
+        
+    except Exception as e:
+        return JsonResponse([], safe=False)

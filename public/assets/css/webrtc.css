@@ -1,0 +1,299 @@
+/* WebRTC Call Interface Styles */
+
+.call-interface {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: none;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.call-overlay {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.video-container {
+    flex: 1;
+    position: relative;
+    background: #000;
+}
+
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #1a1a1a;
+}
+
+.local-video {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    height: 150px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid #fff;
+    background: #2a2a2a;
+    z-index: 10;
+}
+
+.call-controls {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
+}
+
+.control-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.control-btn.muted {
+    background: #ef4444;
+}
+
+.control-btn.disabled {
+    background: #6b7280;
+}
+
+.control-btn.end-call {
+    background: #ef4444;
+}
+
+.control-btn.end-call:hover {
+    background: #dc2626;
+}
+
+/* Incoming Call Interface */
+.incoming-call {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: none;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.incoming-call-overlay {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.incoming-call-container {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.caller-info {
+    margin-bottom: 40px;
+}
+
+.caller-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    color: #6b7280;
+}
+
+.caller-info h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #1f2937;
+}
+
+.caller-info p {
+    font-size: 16px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.call-actions {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+}
+
+.accept-btn,
+.decline-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.accept-btn {
+    background: #10b981;
+    color: white;
+}
+
+.accept-btn:hover {
+    background: #059669;
+    transform: scale(1.1);
+}
+
+.decline-btn {
+    background: #ef4444;
+    color: white;
+}
+
+.decline-btn:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+/* Voice-only call styles */
+.call-interface.call-outgoing .video-container,
+.call-interface.call-active .video-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-interface.call-outgoing .remote-video,
+.call-interface.call-outgoing .local-video {
+    display: none;
+}
+
+.call-status {
+    color: white;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 300;
+}
+
+.call-status h2 {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.call-status p {
+    opacity: 0.8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .local-video {
+        width: 120px;
+        height: 90px;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .call-controls {
+        bottom: 20px;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .control-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+    
+    .incoming-call-container {
+        padding: 30px 20px;
+    }
+    
+    .caller-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 48px;
+    }
+    
+    .accept-btn,
+    .decline-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+}
+
+/* Animation for incoming call */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.incoming-call-container {
+    animation: pulse 2s infinite;
+}
+
+/* Call button hover effects */
+.button__ico:hover {
+    background: rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
+}
+
+.button__ico {
+    transition: all 0.2s ease;
+}
