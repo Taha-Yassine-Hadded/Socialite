@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from .models import UserProfile
+from .models import UserProfile,Wallet, WalletTransaction, BucketList, Trip
 from datetime import date
 from PIL import Image
 from django.contrib.auth.forms import PasswordChangeForm
@@ -222,4 +222,256 @@ class CustomPasswordChangeForm(PasswordChangeForm):
             'placeholder': '••••••••',
         }),
         help_text='Saisissez à nouveau votre nouveau mot de passe'
+    )
+
+    # ============================================
+# FORMULAIRES WALLET
+# ============================================
+
+class WalletForm(forms.ModelForm):
+    """
+    Formulaire pour modifier le wallet
+    """
+    class Meta:
+        model = Wallet
+        fields = ['currency']
+        widgets = {
+            'currency': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+        }
+        labels = {
+            'currency': 'Devise',
+        }
+
+
+class WalletTransactionForm(forms.ModelForm):
+    """
+    Formulaire pour ajouter une transaction
+    """
+    class Meta:
+        model = WalletTransaction
+        fields = ['transaction_type', 'amount', 'description']
+        widgets = {
+            'transaction_type': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': 'Montant'
+            }),
+            'description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Description de la transaction'
+            }),
+        }
+        labels = {
+            'transaction_type': 'Type de transaction',
+            'amount': 'Montant',
+            'description': 'Description',
+        }
+
+
+class AddFundsForm(forms.Form):
+    """
+    Formulaire simple pour ajouter des fonds
+    """
+    amount = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Montant à ajouter',
+            'step': '0.01'
+        }),
+        label='Montant'
+    )
+
+
+# ============================================
+# FORMULAIRES BUCKET LIST
+# ============================================
+
+class BucketListForm(forms.ModelForm):
+    """
+    Formulaire pour créer/modifier un élément de bucket list
+    """
+    class Meta:
+        model = BucketList
+        fields = [
+            'destination', 'country', 'city', 'image',
+            'description', 'estimated_budget', 'currency',
+            'target_date', 'status', 'priority', 'notes'
+        ]
+        widgets = {
+            'destination': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: Paris, Tokyo, New York...'
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Pays'
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ville (optionnel)'
+            }),
+            'image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Pourquoi cette destination vous attire-t-elle ?'
+            }),
+            'estimated_budget': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'currency': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'target_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'priority': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Notes personnelles...'
+            }),
+        }
+        labels = {
+            'destination': 'Destination',
+            'country': 'Pays',
+            'city': 'Ville',
+            'image': 'Photo',
+            'description': 'Description',
+            'estimated_budget': 'Budget estimé',
+            'currency': 'Devise',
+            'target_date': 'Date souhaitée',
+            'status': 'Statut',
+            'priority': 'Priorité',
+            'notes': 'Notes',
+        }
+
+
+# ============================================
+# FORMULAIRES TRIP
+# ============================================
+
+class TripForm(forms.ModelForm):
+    """
+    Formulaire pour créer/modifier un voyage
+    """
+    class Meta:
+        model = Trip
+        fields = [
+            'title', 'destination', 'description',
+            'start_date', 'end_date',
+            'estimated_budget', 'currency',
+            'status', 'bucket_list_item'
+        ]
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Titre du voyage'
+            }),
+            'destination': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Destination'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Description du voyage...'
+            }),
+            'start_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'end_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'estimated_budget': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'currency': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'bucket_list_item': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+        }
+        labels = {
+            'title': 'Titre',
+            'destination': 'Destination',
+            'description': 'Description',
+            'start_date': 'Date de départ',
+            'end_date': 'Date de retour',
+            'estimated_budget': 'Budget estimé',
+            'currency': 'Devise',
+            'status': 'Statut',
+            'bucket_list_item': 'Lié à une destination de rêve',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Limiter les bucket list items à ceux de l'utilisateur
+        if user:
+            self.fields['bucket_list_item'].queryset = BucketList.objects.filter(user=user)
+            self.fields['bucket_list_item'].required = False
+
+
+class TripExpenseForm(forms.Form):
+    """
+    Formulaire pour ajouter une dépense à un voyage
+    """
+    amount = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=0.01,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Montant',
+            'step': '0.01'
+        }),
+        label='Montant'
+    )
+    
+    description = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Description de la dépense'
+        }),
+        label='Description'
+    )
+    
+    deduct_from_wallet = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label='Déduire du portefeuille'
     )

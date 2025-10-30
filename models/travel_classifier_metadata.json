@@ -1,0 +1,14 @@
+{
+  "class_names": [
+    "buildings",
+    "forest",
+    "glacier",
+    "mountain",
+    "sea",
+    "street"
+  ],
+  "num_classes": 6,
+  "accuracy": 0.9236666666666666,
+  "model_architecture": "ResNet18",
+  "trained_date": "2025-10-27 23:10:42"
+}

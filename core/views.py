@@ -29,6 +29,20 @@ from .models import Post, Comment, Reaction, Share, UserProfile
 from sklearn.ensemble import RandomForestRegressor
 import numpy as np
 import pandas as pd
+from django.db.models import Q, Avg, Count
+from django.core.paginator import Paginator
+from .models import Post, Comment, Reaction, Share, UserProfile, Avis, AnalyticsEvent, Story, StoryView
+from django.db.utils import OperationalError as DBOperationalError
+from .ai_services import transcribe_voice_note, classify_travel_image, get_image_tags
+import json
+import stripe
+import requests
+from django.conf import settings
+from decimal import Decimal
+from core.utils.subscription import can_user_perform_action, increment_usage
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from .models import Subscription, UsageQuota, PaymentHistory
 # Liste des intérêts pour le formulaire
 INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation', 'work']
 
@@ -198,6 +212,16 @@ def login_page(request):
             login(request, user)
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
+            # Ensure a profile exists and has a slug for clean URLs
+            try:
+                profile = user.profile
+            except Exception:
+                from .models import UserProfile
+                profile = UserProfile.objects.create(user=user)
+            if not getattr(profile, 'slug', None):
+                # Trigger slug generation in model's save()
+                profile.save()
+            profile_slug = getattr(profile, 'slug', None)
             
             return JsonResponse({
                 'success': True,
@@ -209,6 +233,7 @@ def login_page(request):
                     'username': user.username,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
+                    'profile_slug': user.profile.slug,  # Ajout du slug pour redirection
                 }
             })
         else:
@@ -432,14 +457,61 @@ def feed(request):
     """
     Vue pour afficher le fil d'actualité (feed).
     Affiche tous les posts publics + posts de l'utilisateur.
+    Supporte le filtrage par catégorie d'image.
     """
+    # Récupérer le filtre de catégorie depuis les paramètres GET
+    category_filter = request.GET.get('category', 'all')
+    
     # Récupérer tous les posts publics + posts de l'utilisateur
-    posts = Post.objects.filter(
+    posts_query = Post.objects.filter(
         Q(visibility='public') | Q(user=request.user)
-    ).select_related('user', 'user__profile').prefetch_related(
+    )
+    
+    # 🔍 Filtrage par catégorie d'image
+    if category_filter and category_filter != 'all':
+        posts_query = posts_query.filter(image_category=category_filter)
+    
+    posts = posts_query.select_related('user', 'user__profile').prefetch_related(
         'comments', 'comments__user', 'comments__user__profile', 
         'comments__reactions', 'reactions', 'post_shares'
     ).order_by('-created_at')
+
+    # Stories actives (24h)
+    from django.utils import timezone
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(hours=24)
+    try:
+        active_stories_qs = (
+            Story.objects.filter(created_at__gte=cutoff)
+            .select_related('user', 'user__profile')
+            .order_by('-created_at')
+        )
+        # Force l'évaluation ici pour attraper l'erreur DB avant le template
+        active_stories = list(active_stories_qs)
+    except DBOperationalError:
+        # Table non migrée encore → éviter de casser le feed
+        active_stories = []
+    
+    # 📊 Compter les posts par catégorie (pour les badges de comptage)
+    from django.db.models import Count
+    category_counts = Post.objects.filter(
+        Q(visibility='public') | Q(user=request.user),
+        image_category__isnull=False
+    ).values('image_category').annotate(count=Count('id'))
+    
+    # Transformer en dictionnaire pour faciliter l'accès
+    counts_dict = {item['image_category']: item['count'] for item in category_counts}
+    
+    # Mapping des catégories avec leurs informations
+    categories = [
+        {'id': 'all', 'name': 'Tous', 'icon': '🌍', 'count': posts_query.count()},
+        {'id': 'sea', 'name': 'Mer', 'icon': '🌊', 'count': counts_dict.get('sea', 0)},
+        {'id': 'mountain', 'name': 'Montagne', 'icon': '⛰️', 'count': counts_dict.get('mountain', 0)},
+        {'id': 'forest', 'name': 'Forêt', 'icon': '🌲', 'count': counts_dict.get('forest', 0)},
+        {'id': 'buildings', 'name': 'Ville', 'icon': '🏢', 'count': counts_dict.get('buildings', 0)},
+        {'id': 'street', 'name': 'Rue', 'icon': '🛣️', 'count': counts_dict.get('street', 0)},
+        {'id': 'glacier', 'name': 'Glacier', 'icon': '❄️', 'count': counts_dict.get('glacier', 0)},
+    ]
     
     # Pour chaque post, vérifier si l'utilisateur a déjà réagi
     for post in posts:
@@ -454,8 +526,22 @@ def feed(request):
         for comment in post.comments.all():
             comment.user_reaction = comment.reactions.filter(user=request.user).first()
     
+    # 🔎 Log vue du feed (une ligne par appel, pas par post)
+    try:
+        AnalyticsEvent.objects.create(
+            event_type='view_feed',
+            user=request.user if request.user.is_authenticated else None,
+            media_type='mixed',
+            success=True
+        )
+    except Exception:
+        pass
+
     context = {
         'posts': posts,
+        'categories': categories,
+        'current_category': category_filter,
+        'stories': active_stories,
     }
 
     # Ne modifie pas ces trois lignes et ne les supprime pas ines dahmani :)
@@ -1369,10 +1455,22 @@ def upgrade(request):
 @login_required(login_url='/login/')
 def single(request):
     return render(request, 'single.html')
-@login_required
+@login_required(login_url='/login/')
 def profile_view(request, slug=None):
     """Affiche le profil d'un utilisateur avec ses posts (via son slug unique)"""
     if slug:
+        # Si l'URL contient un email par erreur, rediriger vers le bon slug
+        if '@' in slug:
+            # Essayer de retrouver l'utilisateur par username/email
+            try:
+                usr = User.objects.get(username=slug)
+            except User.DoesNotExist:
+                try:
+                    usr = User.objects.get(email=slug)
+                except User.DoesNotExist:
+                    usr = None
+            if usr and hasattr(usr, 'profile') and usr.profile.slug:
+                return redirect('profile', slug=usr.profile.slug)
         # Récupérer le profil par son slug, puis l'utilisateur
         profile = UserProfile.objects.select_related('user').get(slug=slug)
         user = profile.user
@@ -1398,13 +1496,131 @@ def profile_view(request, slug=None):
             for comment in post.comments.all():
                 comment.user_reaction = comment.reactions.filter(user=request.user).first()
     
+    # Avis stats for profile badge
+    avis_qs = Avis.objects.filter(reviewee=user)
+    stats = avis_qs.aggregate(
+        avg_note=Avg('note'),
+        avg_comm=Avg('communication'),
+        avg_fiab=Avg('fiabilite'),
+        avg_symp=Avg('sympathie'),
+        reviews_count=Count('id')
+    )
     context = {
         'user': user,
         'profile': user.profile,
         'user_posts': user_posts,
         'posts_count': user_posts.count(),
+        'avg_review_note': round(stats['avg_note'] or 0, 2),
+        'reviews_count': stats['reviews_count'] or 0,
     }
     return render(request, 'profile.html', context)
+
+
+@login_required(login_url='/login/')
+def profile_albums(request, slug):
+    """Affiche les albums automatiques d'un utilisateur, groupés par image_category."""
+    # Identifier l'utilisateur par son slug
+    profile = UserProfile.objects.select_related('user').get(slug=slug)
+    user = profile.user
+
+    # Filtre actif
+    category_filter = request.GET.get('category', 'all')
+
+    # Base queryset: uniquement les posts avec image et catégorie connue
+    # Attention: certains FileField peuvent être non nuls mais vides -> exclure image=""
+    base_qs = Post.objects.filter(user=user, image__isnull=False).exclude(image="")
+
+    # Comptages par catégorie pour les badges
+    counts = base_qs.exclude(image_category__isnull=True).values('image_category').annotate(count=Count('id'))
+    counts_dict = {row['image_category']: row['count'] for row in counts}
+
+    categories = [
+        {'id': 'all', 'name': 'Tous', 'icon': '🌍', 'count': base_qs.count()},
+        {'id': 'sea', 'name': 'Mer', 'icon': '🌊', 'count': counts_dict.get('sea', 0)},
+        {'id': 'mountain', 'name': 'Montagne', 'icon': '⛰️', 'count': counts_dict.get('mountain', 0)},
+        {'id': 'forest', 'name': 'Forêt', 'icon': '🌲', 'count': counts_dict.get('forest', 0)},
+        {'id': 'buildings', 'name': 'Ville', 'icon': '🏢', 'count': counts_dict.get('buildings', 0)},
+        {'id': 'street', 'name': 'Rue', 'icon': '🛣️', 'count': counts_dict.get('street', 0)},
+        {'id': 'glacier', 'name': 'Glacier', 'icon': '❄️', 'count': counts_dict.get('glacier', 0)},
+    ]
+
+    # Appliquer le filtre si choisi
+    images_qs = base_qs
+    if category_filter != 'all':
+        images_qs = images_qs.filter(image_category=category_filter)
+
+    images_qs = images_qs.only('id', 'image', 'image_category').order_by('-created_at')
+
+    # Pagination
+    paginator = Paginator(images_qs, 24)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'categories': categories,
+        'current_category': category_filter,
+        'page_obj': page_obj,
+        'images': page_obj.object_list,
+    }
+    return render(request, 'profile_albums.html', context)
+
+
+@login_required(login_url='/login/')
+def profile_analytics(request, slug):
+    """
+    Tableau de bord analytique IA pour un utilisateur (dans son profil).
+    Montre ses stats: types de médias, catégories d'images, langues détectées,
+    et engagement (likes, commentaires, partages).
+    """
+    profile = UserProfile.objects.select_related('user').get(slug=slug)
+    user = profile.user
+
+    # Posts de l'utilisateur
+    user_posts = Post.objects.filter(user=user)
+
+    # KPIs
+    total_posts = user_posts.count()
+    total_images = user_posts.filter(image__isnull=False).exclude(image="").count()
+    total_videos = user_posts.filter(video__isnull=False).exclude(video="").count()
+    total_voice = user_posts.filter(voice_note__isnull=False).exclude(voice_note="").count()
+
+    # Engagement
+    total_likes = user_posts.aggregate(c=Count('reactions'))['c'] or 0
+    total_comments = user_posts.aggregate(c=Count('comments'))['c'] or 0
+    total_shares = user_posts.aggregate(c=Count('post_shares'))['c'] or 0
+
+    # Répartition catégories et langues
+    cat_counts = (
+        user_posts.exclude(image_category__isnull=True)
+        .values('image_category')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    lang_counts = (
+        user_posts.exclude(detected_language__isnull=True)
+        .values('detected_language')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'kpis': {
+            'total_posts': total_posts,
+            'total_images': total_images,
+            'total_videos': total_videos,
+            'total_voice': total_voice,
+            'total_likes': total_likes,
+            'total_comments': total_comments,
+            'total_shares': total_shares,
+        },
+        'category_counts': list(cat_counts),
+        'lang_counts': list(lang_counts),
+    }
+    return render(request, 'profile_analytics.html', context)
 def get_country_flag(country_code):
     """Convertir un code pays (ex: 'FR') en emoji drapeau (ex: '🇫🇷')"""
     OFFSET = 127397
@@ -1435,8 +1651,12 @@ def edit_profile(request):
                 user_form.save()
                 profile_form.save()
                 
-                # Mettre à jour les données MongoDB
+                # Mettre à jour les données MongoDB (avec upsert pour créer si n'existe pas)
                 mongo_updates = {
+                    'user_id': request.user.id,  # Ajout de l'user_id pour la création
+                    'email': request.user.email,
+                    'first_name': request.user.first_name,
+                    'last_name': request.user.last_name,
                     'travel_type': request.POST.getlist('travel_type'),
                     'travel_budget': request.POST.get('travel_budget', ''),
                     'gender': request.POST.get('gender', ''),
@@ -1446,9 +1666,11 @@ def edit_profile(request):
                     'visited_countries': request.POST.getlist('visited_countries'),
                 }
                 
+                # upsert=True : crée le document s'il n'existe pas, sinon le met à jour
                 db.profiles.update_one(
                     {'user_id': request.user.id},
-                    {'$set': mongo_updates}
+                    {'$set': mongo_updates},
+                    upsert=True
                 )
                 
                 messages.success(request, '✅ Votre profil a été mis à jour avec succès ! Toutes vos modifications ont été enregistrées.')
@@ -1515,11 +1737,214 @@ def change_password(request):
         form = CustomPasswordChangeForm(user=request.user)
     
     return render(request, 'change_password.html', {'form': form})
+
+# ============================================
+# REVIEWS
+# ============================================
+@login_required(login_url='/login/')
+def reviews_list(request, slug):
+    # target user by slug
+    target_profile = UserProfile.objects.select_related('user').get(slug=slug)
+    target_user = target_profile.user
+    # Ensure profile has a slug
+    if not target_profile.slug:
+        target_profile.save()
+
+    qs = Avis.objects.filter(reviewee=target_user)
+
+    # filters
+    def clamp_int(param):
+        try:
+            v = int(request.GET.get(param, 0))
+            return min(5, max(0, v))
+        except (TypeError, ValueError):
+            return 0
+    min_note = clamp_int('min_note')
+    min_comm = clamp_int('min_comm')
+    min_fiab = clamp_int('min_fiab')
+    min_symp = clamp_int('min_symp')
+    if min_note:
+        qs = qs.filter(note__gte=min_note)
+    if min_comm:
+        qs = qs.filter(communication__gte=min_comm)
+    if min_fiab:
+        qs = qs.filter(fiabilite__gte=min_fiab)
+    if min_symp:
+        qs = qs.filter(sympathie__gte=min_symp)
+
+    # sort
+    sort = request.GET.get('sort', 'recent')
+    order_map = {
+        'recent': '-created_at',
+        'oldest': 'created_at',
+        'note_desc': '-note',
+        'note_asc': 'note',
+        'comm_desc': '-communication',
+        'fiab_desc': '-fiabilite',
+        'symp_desc': '-sympathie',
+    }
+    qs = qs.order_by(order_map.get(sort, '-created_at'))
+
+    # stats
+    stats = Avis.objects.filter(reviewee=target_user).aggregate(
+        avg_note=Avg('note'),
+        avg_comm=Avg('communication'),
+        avg_fiab=Avg('fiabilite'),
+        avg_symp=Avg('sympathie'),
+        reviews_count=Count('id')
+    )
+    def pct(v):
+        return int(round(((v or 0) / 5) * 100))
+
+    # pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 6)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    # flags: can_review and existing_by_me
+    existing_by_me = None
+    can_review = False
+    if request.user.is_authenticated and request.user != target_user:
+        existing_by_me = Avis.objects.filter(reviewer=request.user, reviewee=target_user).first()
+        # mutual follow check via mongo
+        try:
+            db = get_db()
+            me = db.profiles.find_one({'user_id': request.user.id}) or {}
+            him = db.profiles.find_one({'user_id': target_user.id}) or {}
+            can_review = (
+                (target_user.id in (me.get('following', []))) and
+                (request.user.id in (him.get('following', []))) and
+                (existing_by_me is None)
+            )
+        except Exception:
+            can_review = False
+
+    context = {
+        'target_user': target_user,
+        'target_profile': target_profile,
+        'profile': target_profile,
+        'slug': target_profile.slug,
+        'page_obj': page_obj,
+        'avis_page': page_obj,
+        'sort': sort,
+        'min_note': min_note,
+        'min_comm': min_comm,
+        'min_fiab': min_fiab,
+        'min_symp': min_symp,
+        'avg_note': round(stats['avg_note'] or 0, 2),
+        'avg_comm': round(stats['avg_comm'] or 0, 2),
+        'avg_fiab': round(stats['avg_fiab'] or 0, 2),
+        'avg_symp': round(stats['avg_symp'] or 0, 2),
+        'avg_note_pct': pct(stats['avg_note']),
+        'avg_comm_pct': pct(stats['avg_comm']),
+        'avg_fiab_pct': pct(stats['avg_fiab']),
+        'avg_symp_pct': pct(stats['avg_symp']),
+        'reviews_count': stats['reviews_count'] or 0,
+        'avis_count': stats['reviews_count'] or 0,
+        'can_review': can_review,
+        'existing_by_me': existing_by_me,
+    }
+    return render(request, 'reviews/list.html', context)
+
+@login_required(login_url='/login/')
+def review_create(request, slug):
+    target_profile = UserProfile.objects.select_related('user').get(slug=slug)
+    target_user = target_profile.user
+    if not target_profile.slug:
+        target_profile.save()
+    if request.method == 'POST':
+        try:
+            note = int(request.POST.get('note'))
+            communication = int(request.POST.get('communication'))
+            fiabilite = int(request.POST.get('fiabilite'))
+            sympathie = int(request.POST.get('sympathie'))
+        except (TypeError, ValueError):
+            messages.error(request, 'Notes invalides.')
+            return redirect('review_create', slug=slug)
+        commentaire = request.POST.get('commentaire', '').strip()
+
+        avis = Avis(
+            reviewer=request.user,
+            reviewee=target_user,
+            note=note,
+            communication=communication,
+            fiabilite=fiabilite,
+            sympathie=sympathie,
+            commentaire=commentaire or None,
+        )
+        try:
+            avis.save()
+            messages.success(request, 'Votre avis a été enregistré.')
+            return redirect('reviews_list', slug=slug)
+        except Exception as e:
+            messages.error(request, str(e))
+            return redirect('review_create', slug=slug)
+
+    return render(request, 'reviews/create.html', {
+        'target_user': target_user,
+        'target_profile': target_profile,
+        'profile': target_profile,
+        'slug': target_profile.slug,
+    })
     # ============================================
 # VUE : CRÉER UN POST
 # ============================================
 @login_required
 def create_post(request):
+    """
+    Vue pour créer un nouveau post avec vérification des quotas.
+    Supporte : texte, image, vidéo, note vocale, localisation
+    """
+    if request.method == 'POST':
+        # ✅ VÉRIFIER LES QUOTAS AVANT DE CRÉER LE POST
+        can_post, error_msg = can_user_perform_action(request.user, 'post')
+        if not can_post:
+            return JsonResponse({
+                'success': False,
+                'error': error_msg,
+                'upgrade_url': '/upgrade/'
+            }, status=403)
+        
+        # Récupérer les données du formulaire
+        content = request.POST.get('content', '').strip()
+        location = request.POST.get('location', '').strip()
+        visibility = request.POST.get('visibility', 'public')
+        
+        # Récupérer les fichiers uploadés
+        image = request.FILES.get('image')
+        video = request.FILES.get('video')
+        voice_note = request.FILES.get('voice_note')
+        
+        # Validation : Au moins un contenu doit être présent
+        if not content and not image and not video and not voice_note:
+            return JsonResponse({
+                'success': False,
+                'error': 'Veuillez ajouter du contenu, une image, une vidéo ou une note vocale.'
+            }, status=400)
+        
+        # Créer le post
+        post = Post.objects.create(
+            user=request.user,
+            content=content,
+            image=image,
+            video=video,
+            voice_note=voice_note,
+            location=location,
+            visibility=visibility
+        )
+        
+        # ✅ INCRÉMENTER LE COMPTEUR DE QUOTAS
+        increment_usage(request.user, 'post')
+        
+        # Retourner une réponse JSON (succès)
+        return JsonResponse({
+            'success': True,
+            'message': 'Post créé avec succès !',
+            'post_id': post.id
+        })
+    
+    # Si GET : afficher le formulaire de création
+    return render(request, 'create_post.html')
     """
     Vue pour créer un nouveau post.
     Supporte : texte, image, vidéo, note vocale, localisation
@@ -1553,15 +1978,206 @@ def create_post(request):
             visibility=visibility
         )
         
+        # ✅ IA : Transcription automatique avec Whisper (notes vocales ET vidéos)
+        transcription_success = False
+        media_to_transcribe = None
+        media_type = None
+        
+        # Déterminer quel média doit être transcrit
+        if voice_note:
+            media_to_transcribe = post.voice_note
+            media_type = "note vocale"
+        elif video:
+            media_to_transcribe = post.video
+            media_type = "vidéo"
+        
+        # Lancer la transcription si un média audio/vidéo est présent
+        if media_to_transcribe:
+            print(f"🎤 [IA] Lancement de la transcription Whisper ({media_type})...")
+            result = transcribe_voice_note(media_to_transcribe)
+            
+            if result['success']:
+                # Sauvegarder la transcription dans le post
+                post.voice_transcription = result['text']
+                post.detected_language = result['language']
+                post.save()
+                transcription_success = True
+                print(f"✅ [IA] Transcription sauvegardée : {result['language_name']} ({result['language']})")
+            else:
+                print(f"❌ [IA] Erreur de transcription : {result.get('error', 'Erreur inconnue')}")
+        
+        # ✅ IA : Classification automatique d'images de voyage (ResNet18)
+        classification_success = False
+        if image:
+            print(f"🖼️ [IA] Lancement de la classification d'image...")
+            classification_result = classify_travel_image(post.image)
+            
+            if classification_result['success']:
+                # Sauvegarder la classification dans le post
+                post.image_category = classification_result['category']
+                post.image_category_fr = classification_result['category_fr']
+                post.image_confidence = classification_result['confidence']
+                
+                # Générer les tags automatiques
+                post.image_tags = get_image_tags(post.image)
+                
+                post.save()
+                classification_success = True
+                print(f"✅ [IA] Image classifiée : {classification_result['category_fr']} ({classification_result['confidence']*100:.1f}%)")
+                print(f"   Tags générés : {', '.join(post.image_tags)}")
+            else:
+                print(f"❌ [IA] Erreur de classification : {classification_result.get('error', 'Erreur inconnue')}")
+        
+        # 📊 Analytics: log création + résultats IA
+        try:
+            media_type = 'text'
+            if image and video:
+                media_type = 'mixed'
+            elif image:
+                media_type = 'image'
+            elif video:
+                media_type = 'video'
+            elif voice_note:
+                media_type = 'voice'
+
+            # create_post event
+            AnalyticsEvent.objects.create(
+                event_type='create_post',
+                user=request.user,
+                post=post,
+                media_type=media_type,
+                image_category=post.image_category,
+                detected_language=post.detected_language,
+                success=True,
+                meta={
+                    'has_transcription': transcription_success,
+                    'has_classification': classification_success,
+                }
+            )
+
+            # whisper result
+            if media_to_transcribe is not None:
+                AnalyticsEvent.objects.create(
+                    event_type='whisper_ok' if transcription_success else 'whisper_fail',
+                    user=request.user,
+                    post=post,
+                    media_type='voice' if voice_note else 'video',
+                    detected_language=post.detected_language,
+                    success=transcription_success
+                )
+
+            # classify result
+            if image is not None:
+                AnalyticsEvent.objects.create(
+                    event_type='classify_ok' if classification_success else 'classify_fail',
+                    user=request.user,
+                    post=post,
+                    media_type='image',
+                    image_category=post.image_category,
+                    success=classification_success,
+                    meta={'confidence': post.image_confidence}
+                )
+        except Exception:
+            pass
+
         # Retourner une réponse JSON (succès)
         return JsonResponse({
             'success': True,
             'message': 'Post créé avec succès !',
-            'post_id': post.id
+            'post_id': post.id,
+            'has_transcription': transcription_success,
+            'transcription': post.voice_transcription if transcription_success else None,
+            'has_classification': classification_success,
+            'image_category': post.image_category_fr if classification_success else None,
+            'image_confidence': post.image_confidence if classification_success else None,
+            'image_tags': post.image_tags if classification_success else None
         })
     
     # Si GET : afficher le formulaire de création
     return render(request, 'create_post.html')
+
+
+# ============================================
+# API : ANALYSER UNE IMAGE POUR GÉNÉRER DES TAGS
+# ============================================
+@csrf_exempt
+@login_required(login_url='/login/')
+def analyze_image_for_tags(request):
+    """
+    API pour analyser une image et retourner des tags automatiques
+    AVANT la création du post.
+    
+    Utilisé par JavaScript en temps réel quand l'utilisateur sélectionne une image.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Méthode non autorisée'}, status=405)
+    
+    if 'image' not in request.FILES:
+        return JsonResponse({'error': 'Aucune image fournie'}, status=400)
+    
+    try:
+        # Récupérer l'image uploadée
+        image = request.FILES['image']
+        
+        print(f"📥 [API] Réception d'une image pour analyse : {image.name}")
+        
+        # Sauvegarder temporairement l'image
+        import tempfile
+        import os
+        
+        # Créer un fichier temporaire avec la bonne extension
+        file_extension = os.path.splitext(image.name)[1] or '.jpg'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+            for chunk in image.chunks():
+                temp_file.write(chunk)
+            temp_path = temp_file.name
+        
+        print(f"💾 [API] Image sauvegardée temporairement : {temp_path}")
+        
+        # Importer les fonctions d'analyse
+        from .ai_services import classify_travel_image_from_path, get_image_tags_from_classification
+        
+        # Analyser l'image avec l'IA
+        classification = classify_travel_image_from_path(temp_path)
+        
+        # Nettoyer le fichier temporaire
+        try:
+            os.unlink(temp_path)
+            print(f"🗑️ [API] Fichier temporaire supprimé")
+        except Exception as e:
+            print(f"⚠️ [API] Impossible de supprimer le fichier temporaire : {e}")
+        
+        # Vérifier si la classification a réussi
+        if not classification.get('success'):
+            return JsonResponse({
+                'success': False,
+                'error': classification.get('error', 'Erreur d\'analyse')
+            }, status=500)
+        
+        # Générer les tags basés sur la classification
+        tags = get_image_tags_from_classification(classification)
+        
+        print(f"✅ [API] Tags générés : {', '.join(tags)}")
+        
+        # Retourner les résultats
+        return JsonResponse({
+            'success': True,
+            'category': classification.get('category_fr', ''),
+            'confidence': round(classification.get('confidence', 0) * 100, 1),  # Convertir en %
+            'tags': tags
+        })
+    
+    except Exception as e:
+        print(f"❌ [API] Erreur : {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
     # ============================================
 # VUE : AFFICHER LE FIL D'ACTUALITÉ
 # ============================================
@@ -1592,6 +2208,183 @@ def list_posts(request):
         'posts': posts,
     }
     return render(request, 'feed.html', context)
+
+
+# ============================================
+# DASHBOARD ANALYTIQUE IA
+# ============================================
+@login_required(login_url='/login/')
+def analytics_dashboard(request):
+    """
+    Page tableau de bord analytique IA (graphiques + métriques clés).
+    """
+    # KPIs rapides (synchro)
+    total_posts = Post.objects.count()
+    total_images = Post.objects.filter(image__isnull=False).exclude(image="").count()
+    total_videos = Post.objects.filter(video__isnull=False).exclude(video="").count()
+    total_voice = Post.objects.filter(voice_note__isnull=False).exclude(voice_note="").count()
+
+    whisper_ok = AnalyticsEvent.objects.filter(event_type='whisper_ok').count()
+    whisper_fail = AnalyticsEvent.objects.filter(event_type='whisper_fail').count()
+    classify_ok = AnalyticsEvent.objects.filter(event_type='classify_ok').count()
+    classify_fail = AnalyticsEvent.objects.filter(event_type='classify_fail').count()
+
+    # Répartition par catégories IA (top)
+    category_counts = (
+        Post.objects.exclude(image_category__isnull=True)
+        .values('image_category')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    # Répartition par langues détectées (top)
+    lang_counts = (
+        Post.objects.exclude(detected_language__isnull=True)
+        .values('detected_language')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    context = {
+        'kpis': {
+            'total_posts': total_posts,
+            'total_images': total_images,
+            'total_videos': total_videos,
+            'total_voice': total_voice,
+            'whisper_ok': whisper_ok,
+            'whisper_fail': whisper_fail,
+            'classify_ok': classify_ok,
+            'classify_fail': classify_fail,
+        },
+        'category_counts': list(category_counts),
+        'lang_counts': list(lang_counts),
+    }
+    return render(request, 'analytics_dashboard.html', context)
+
+
+@login_required(login_url='/login/')
+def analytics_data(request):
+    """
+    API JSON pour alimenter Chart.js (données dynamiques).
+    """
+    # séries temporelles simples (7 derniers jours)
+    from django.utils import timezone
+    from datetime import timedelta
+
+    today = timezone.now().date()
+    days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+
+    def count_on(day, qs):
+        start = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.min.time()))
+        end = timezone.make_aware(timezone.datetime.combine(day, timezone.datetime.max.time()))
+        return qs.filter(created_at__gte=start, created_at__lte=end).count()
+
+    events = AnalyticsEvent.objects.all()
+    create_counts = [count_on(d, events.filter(event_type='create_post')) for d in days]
+    whisper_ok_counts = [count_on(d, events.filter(event_type='whisper_ok')) for d in days]
+    classify_ok_counts = [count_on(d, events.filter(event_type='classify_ok')) for d in days]
+
+    # Répartition courante par catégories et langues
+    cat = (
+        Post.objects.exclude(image_category__isnull=True)
+        .values('image_category')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    lang = (
+        Post.objects.exclude(detected_language__isnull=True)
+        .values('detected_language')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    return JsonResponse({
+        'success': True,
+        'series': {
+            'days': [d.strftime('%d/%m') for d in days],
+            'create_posts': create_counts,
+            'whisper_ok': whisper_ok_counts,
+            'classify_ok': classify_ok_counts,
+        },
+        'categories': list(cat),
+        'languages': list(lang),
+    })
+
+
+# ============================================
+# STORIES
+# ============================================
+@login_required(login_url='/login/')
+@require_http_methods(["POST"])
+def create_story(request):
+    """Créer une story (texte/image/vidéo) valable 24h."""
+    content_text = request.POST.get('content_text', '').strip() or None
+    image = request.FILES.get('image')
+    video = request.FILES.get('video')
+
+    if not content_text and not image and not video:
+        return JsonResponse({'success': False, 'error': 'Ajoutez un texte, une image ou une vidéo.'}, status=400)
+
+    story = Story.objects.create(user=request.user, content_text=content_text, image=image, video=video)
+    return JsonResponse({'success': True, 'story_id': story.id})
+
+
+@login_required(login_url='/login/')
+def list_stories(request):
+    """Lister les stories actives (24h) pour affichage léger."""
+    from django.utils import timezone
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(hours=24)
+    stories = Story.objects.filter(created_at__gte=cutoff).select_related('user', 'user__profile').order_by('-created_at')
+    data = []
+    for s in stories:
+        data.append({
+            'id': s.id,
+            'user': {
+                'id': s.user.id,
+                'name': f"{s.user.first_name} {s.user.last_name}".strip() or s.user.username,
+                'avatar': s.user.profile.avatar.url if s.user.profile.avatar else None,
+            },
+            'content_text': s.content_text,
+            'image': s.image.url if s.image else None,
+            'video': s.video.url if s.video else None,
+            'created_at': s.created_at.strftime('%d/%m/%Y %H:%M')
+        })
+    return JsonResponse({'success': True, 'stories': data})
+
+
+@login_required(login_url='/login/')
+def story_detail(request, story_id):
+    """Retourne le contenu d'une story et enregistre la vue."""
+    from django.utils import timezone
+    from datetime import timedelta
+    cutoff = timezone.now() - timedelta(hours=24)
+    try:
+        story = Story.objects.select_related('user', 'user__profile').get(id=story_id, created_at__gte=cutoff)
+    except Story.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Story expirée ou introuvable'}, status=404)
+
+    # Enregistrer la vue (sauf pour l'auteur)
+    if request.user != story.user:
+        StoryView.objects.get_or_create(story=story, viewer=request.user)
+
+    return JsonResponse({
+        'success': True,
+        'story': {
+            'id': story.id,
+            'user': {
+                'id': story.user.id,
+                'name': f"{story.user.first_name} {story.user.last_name}".strip() or story.user.username,
+                'avatar': story.user.profile.avatar.url if story.user.profile.avatar else None,
+            },
+            'content_text': story.content_text,
+            'image': story.image.url if story.image else None,
+            'video': story.video.url if story.video else None,
+            'created_at': story.created_at.strftime('%d/%m/%Y %H:%M'),
+            'expires_at': (story.created_at + timezone.timedelta(hours=24)).strftime('%d/%m/%Y %H:%M'),
+            'views_count': story.views.count()
+        }
+    })
 # ============================================
 # VUE : SUPPRIMER UN POST
 # ============================================
@@ -2185,3 +2978,757 @@ def plan_together(request):
         })
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
+# ============================================
+# ABONNEMENTS : VUES
+# ============================================
+
+@login_required(login_url='/login/')
+def subscription_status(request):
+    """Affiche le statut de l'abonnement de l'utilisateur"""
+    try:
+        subscription = request.user.subscription
+        quota = request.user.quota
+    except (Subscription.DoesNotExist, UsageQuota.DoesNotExist):
+        return JsonResponse({
+            'success': False,
+            'error': 'Profil incomplet'
+        }, status=500)
+    
+    return JsonResponse({
+        'success': True,
+        'subscription': {
+            'plan': subscription.plan,
+            'plan_display': subscription.get_plan_display(),
+            'is_active': subscription.is_active,
+            'is_premium': subscription.is_premium,
+            'is_business': subscription.is_business,
+            'end_date': subscription.end_date.isoformat() if subscription.end_date else None,
+            'auto_renew': subscription.auto_renew,
+        },
+        'quota': {
+            'posts_this_month': quota.posts_this_month,
+            'messages_this_month': quota.messages_this_month,
+            'trips_created': quota.trips_created,
+            'groups_joined': quota.groups_joined,
+            'events_created_this_month': quota.events_created_this_month,
+        },
+        'limits': settings.SUBSCRIPTION_LIMITS[subscription.plan]
+    })
+
+
+@login_required(login_url='/login/')
+def manage_subscription(request):
+    """Page de gestion de l'abonnement"""
+    try:
+        subscription = request.user.subscription
+        payments = PaymentHistory.objects.filter(user=request.user).order_by('-created_at')[:10]
+    except Subscription.DoesNotExist:
+        return redirect('upgrade')
+    
+    context = {
+        'subscription': subscription,
+        'payments': payments,
+    }
+    return render(request, 'subscription/manage.html', context)
+
+
+@login_required(login_url='/login/')
+@require_http_methods(["POST"])
+def cancel_subscription(request):
+    """Annuler le renouvellement automatique"""
+    try:
+        subscription = request.user.subscription
+        subscription.cancel()
+        
+        messages.success(request, '✅ Le renouvellement automatique a été annulé. Votre abonnement restera actif jusqu\'à la date d\'expiration.')
+        return redirect('manage_subscription')
+    except Subscription.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Aucun abonnement trouvé'
+        }, status=404)
+# ============================================
+# PAIEMENTS : STRIPE UNIQUEMENT
+# ============================================
+
+# Initialiser Stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+@login_required(login_url='/login/')
+def checkout(request, plan, duration='monthly'):
+    """
+    Page de checkout pour le paiement Stripe uniquement
+    """
+    # Calculer le prix
+    if plan.lower() == 'premium':
+        price_eur = 9.99 if duration == 'monthly' else 99
+        duration_months = 1 if duration == 'monthly' else 12
+    elif plan.lower() == 'business':
+        price_eur = 29.99 if duration == 'monthly' else 299
+        duration_months = 1 if duration == 'monthly' else 12
+    else:
+        messages.error(request, '❌ Plan invalide')
+        return redirect('upgrade')
+    
+    # IMPORTANT: Vérifier que la clé publique Stripe existe
+    stripe_public_key = settings.STRIPE_PUBLIC_KEY
+    if not stripe_public_key:
+        messages.error(request, '❌ Configuration Stripe manquante. Contactez le support.')
+        return redirect('upgrade')
+    
+    # Debug log
+    print(f"[CHECKOUT] Rendering checkout for {plan} - {duration}")
+    print(f"[CHECKOUT] Stripe public key: {stripe_public_key[:20]}...")
+    
+    context = {
+        'plan': plan.upper(),
+        'plan_display': 'Premium' if plan.lower() == 'premium' else 'Business',
+        'duration': duration,
+        'duration_display': 'Mensuel' if duration == 'monthly' else 'Annuel',
+        'duration_months': duration_months,
+        'price_eur': price_eur,
+        'stripe_public_key': stripe_public_key,
+    }
+    return render(request, 'subscription/checkout.html', context)
+
+
+@login_required(login_url='/login/')
+@require_http_methods(["POST"])
+def process_stripe_payment(request):
+    """
+    Traiter le paiement Stripe avec gestion d'erreurs détaillée
+    """
+    try:
+        # Vérifier la configuration Stripe
+        if not settings.STRIPE_SECRET_KEY:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Configuration Stripe manquante'
+            }, status=500)
+        
+        # Récupérer les données
+        plan = request.POST.get('plan', '').upper()
+        duration = request.POST.get('duration', 'monthly')
+        
+        print(f"[STRIPE] Processing payment for {request.user.username}: {plan} - {duration}")
+        
+        # Validation du plan
+        if plan not in ['PREMIUM', 'BUSINESS']:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Plan invalide'
+            }, status=400)
+        
+        # Calculer le prix et la durée
+        if plan == 'PREMIUM':
+            amount = 999 if duration == 'monthly' else 9900  # en centimes
+            duration_months = 1 if duration == 'monthly' else 12
+        elif plan == 'BUSINESS':
+            amount = 2999 if duration == 'monthly' else 29900
+            duration_months = 1 if duration == 'monthly' else 12
+        
+        # Créer ou récupérer le client Stripe
+        subscription = request.user.subscription
+        
+        if not subscription.stripe_customer_id:
+            print(f"[STRIPE] Creating new customer for {request.user.email}")
+            try:
+                customer = stripe.Customer.create(
+                    email=request.user.email,
+                    name=f"{request.user.first_name} {request.user.last_name}",
+                    metadata={'user_id': request.user.id}
+                )
+                subscription.stripe_customer_id = customer.id
+                subscription.save()
+                print(f"[STRIPE] Customer created: {customer.id}")
+            except stripe.error.StripeError as e:
+                print(f"[STRIPE ERROR] Customer creation failed: {str(e)}")
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Erreur Stripe: {str(e)}'
+                }, status=500)
+        
+        # Créer le PaymentIntent
+        print(f"[STRIPE] Creating PaymentIntent: {amount} cents")
+        try:
+            intent = stripe.PaymentIntent.create(
+                amount=amount,
+                currency='eur',
+                customer=subscription.stripe_customer_id,
+                metadata={
+                    'user_id': request.user.id,
+                    'plan': plan,
+                    'duration_months': duration_months
+                },
+                automatic_payment_methods={'enabled': True},
+            )
+            print(f"[STRIPE] PaymentIntent created: {intent.id}")
+        except stripe.error.StripeError as e:
+            print(f"[STRIPE ERROR] PaymentIntent failed: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Erreur création paiement: {str(e)}'
+            }, status=500)
+        
+        # Créer l'historique de paiement
+        payment = PaymentHistory.objects.create(
+            user=request.user,
+            subscription=subscription,
+            amount=Decimal(amount) / 100,
+            currency='EUR',
+            status='PENDING',
+            stripe_payment_intent_id=intent.id,
+            plan_purchased=plan,
+            duration_months=duration_months,
+            payment_method='STRIPE'
+        )
+        print(f"[STRIPE] Payment history created: {payment.id}")
+        
+        return JsonResponse({
+            'success': True,
+            'client_secret': intent.client_secret,
+            'payment_intent_id': intent.id
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Unexpected error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur serveur: {str(e)}'
+        }, status=500)
+
+
+@login_required(login_url='/login/')
+def payment_success(request):
+    """Page de succès après paiement"""
+    messages.success(request, '✅ Paiement réussi ! Votre abonnement a été activé.')
+    return redirect('manage_subscription')
+
+
+@login_required(login_url='/login/')
+def payment_failure(request):
+    """Page d'échec après paiement"""
+    messages.error(request, '❌ Le paiement a échoué. Veuillez réessayer.')
+    return redirect('upgrade')
+
+
+# ============================================
+# WEBHOOKS - STRIPE UNIQUEMENT
+# ============================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stripe_webhook(request):
+    """
+    Webhook Stripe pour gérer les événements de paiement
+    """
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        print("[WEBHOOK ERROR] Invalid payload")
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError:
+        print("[WEBHOOK ERROR] Invalid signature")
+        return JsonResponse({'error': 'Invalid signature'}, status=400)
+    
+    print(f"[WEBHOOK] Received event: {event['type']}")
+    
+    # Gérer les différents types d'événements
+    if event['type'] == 'payment_intent.succeeded':
+        payment_intent = event['data']['object']
+        
+        # Récupérer les métadonnées
+        user_id = int(payment_intent['metadata']['user_id'])
+        plan = payment_intent['metadata']['plan']
+        duration_months = int(payment_intent['metadata']['duration_months'])
+        
+        print(f"[WEBHOOK] Payment succeeded for user {user_id}: {plan} - {duration_months} months")
+        
+        try:
+            user = User.objects.get(id=user_id)
+            subscription = user.subscription
+            
+            # Mettre à jour l'abonnement
+            if plan == 'PREMIUM':
+                subscription.upgrade_to_premium(duration_months=duration_months, payment_method='STRIPE')
+            elif plan == 'BUSINESS':
+                subscription.upgrade_to_business(duration_months=duration_months, payment_method='STRIPE')
+            
+            subscription.stripe_subscription_id = payment_intent.get('subscription')
+            subscription.save()
+            
+            print(f"[WEBHOOK] Subscription updated for user {user_id}")
+            
+            # Mettre à jour l'historique de paiement
+            payment = PaymentHistory.objects.filter(
+                stripe_payment_intent_id=payment_intent['id']
+            ).first()
+            if payment:
+                payment.status = 'COMPLETED'
+                payment.save()
+                print(f"[WEBHOOK] Payment history updated: {payment.id}")
+                
+        except User.DoesNotExist:
+            print(f"[WEBHOOK ERROR] User {user_id} not found")
+    
+    elif event['type'] == 'payment_intent.payment_failed':
+        payment_intent = event['data']['object']
+        
+        print(f"[WEBHOOK] Payment failed: {payment_intent['id']}")
+        
+        # Marquer le paiement comme échoué
+        payment = PaymentHistory.objects.filter(
+            stripe_payment_intent_id=payment_intent['id']
+        ).first()
+        if payment:
+            payment.status = 'FAILED'
+            payment.save()
+            print(f"[WEBHOOK] Payment marked as failed: {payment.id}")
+    
+    return JsonResponse({'status': 'success'})
+
+
+# ============================================
+# TEST ENDPOINT (Development only)
+# ============================================
+
+@login_required
+def test_stripe(request):
+    """Test endpoint to verify Stripe configuration"""
+    try:
+        # Test API key
+        customers = stripe.Customer.list(limit=1)
+        return JsonResponse({
+            'success': True,
+            'message': 'Stripe API working correctly',
+            'api_key_prefix': settings.STRIPE_SECRET_KEY[:7] + '...',
+            'public_key_prefix': settings.STRIPE_PUBLIC_KEY[:7] + '...'
+        })
+    except stripe.error.AuthenticationError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid API key'
+        }, status=401)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+    
+    # ============================================
+# VUES PREMIUM/BUSINESS : WALLET
+# ============================================
+
+from core.decorators import premium_required, business_required
+from .forms import (WalletForm, WalletTransactionForm, AddFundsForm, 
+                    BucketListForm, TripForm, TripExpenseForm)
+from .models import Wallet, WalletTransaction, BucketList, Trip
+from .ai_services_gemini import (generate_destination_recommendations, 
+                                  generate_bucket_list_description,
+                                  generate_trip_itinerary,
+                                  generate_travel_tips,
+                                  analyze_spending_pattern)
+
+@login_required(login_url='/login/')
+@premium_required
+def wallet_dashboard(request):
+    """
+    Tableau de bord du portefeuille (PREMIUM/BUSINESS uniquement)
+    """
+    # Récupérer ou créer le wallet
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
+    
+    # Récupérer les transactions
+    transactions = wallet.transactions.all()[:20]
+    
+    # Statistiques
+    total_transactions = wallet.transactions.count()
+    total_deposits = wallet.transactions.filter(transaction_type='DEPOSIT').aggregate(
+        total=models.Sum('amount')
+    )['total'] or 0
+    
+    total_expenses = wallet.transactions.filter(transaction_type='EXPENSE').aggregate(
+        total=models.Sum('amount')
+    )['total'] or 0
+    
+    # Analyse IA des dépenses
+    ai_analysis = None
+    if total_transactions > 5:
+        ai_analysis = analyze_spending_pattern(wallet.transactions.all()[:20])
+    
+    context = {
+        'wallet': wallet,
+        'transactions': transactions,
+        'total_transactions': total_transactions,
+        'total_deposits': total_deposits,
+        'total_expenses': total_expenses,
+        'ai_analysis': ai_analysis,
+    }
+    return render(request, 'premium/wallet_dashboard.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def wallet_add_funds(request):
+    """
+    Ajouter des fonds au portefeuille
+    """
+    form = AddFundsForm(request.POST)
+    
+    if form.is_valid():
+        amount = form.cleaned_data['amount']
+        wallet = request.user.wallet
+        
+        # Ajouter les fonds
+        wallet.add_funds(amount)
+        
+        # Créer une transaction
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            transaction_type='DEPOSIT',
+            amount=amount,
+            description=f'Dépôt de fonds'
+        )
+        
+        messages.success(request, f'✅ {amount} {wallet.currency} ajoutés à votre portefeuille !')
+        return redirect('wallet_dashboard')
+    
+    messages.error(request, '❌ Montant invalide')
+    return redirect('wallet_dashboard')
+
+
+@login_required(login_url='/login/')
+@premium_required
+def wallet_transactions(request):
+    """
+    Liste complète des transactions
+    """
+    wallet = request.user.wallet
+    transactions = wallet.transactions.all()
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'wallet': wallet,
+        'page_obj': page_obj,
+    }
+    return render(request, 'premium/wallet_transactions.html', context)
+
+
+# ============================================
+# VUES PREMIUM/BUSINESS : BUCKET LIST
+# ============================================
+
+@login_required(login_url='/login/')
+@premium_required
+def bucket_list(request):
+    """
+    Liste des destinations de rêve (PREMIUM/BUSINESS uniquement)
+    """
+    items = BucketList.objects.filter(user=request.user)
+    
+    # Filtres
+    status_filter = request.GET.get('status', 'all')
+    if status_filter != 'all':
+        items = items.filter(status=status_filter)
+    
+    # Statistiques
+    total_destinations = items.count()
+    completed = items.filter(status='COMPLETED').count()
+    planned = items.filter(status='PLANNED').count()
+    
+    context = {
+        'bucket_items': items,
+        'status_filter': status_filter,
+        'total_destinations': total_destinations,
+        'completed': completed,
+        'planned': planned,
+    }
+    return render(request, 'premium/bucket_list.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def bucket_list_create(request):
+    """
+    Créer un nouvel élément de bucket list
+    """
+    if request.method == 'POST':
+        form = BucketListForm(request.POST, request.FILES)
+        if form.is_valid():
+            item = form.save(commit=False)
+            item.user = request.user
+            
+            # Générer une description IA si vide
+            if not item.description:
+                item.description = generate_bucket_list_description(
+                    item.destination, 
+                    item.country
+                )
+            
+            item.save()
+            messages.success(request, f'✅ {item.destination} ajouté à votre bucket list !')
+            return redirect('bucket_list')
+    else:
+        form = BucketListForm()
+    
+    context = {'form': form}
+    return render(request, 'premium/bucket_list_form.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def bucket_list_edit(request, item_id):
+    """
+    Modifier un élément de bucket list
+    """
+    item = get_object_or_404(BucketList, id=item_id, user=request.user)
+    
+    if request.method == 'POST':
+        form = BucketListForm(request.POST, request.FILES, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '✅ Destination mise à jour !')
+            return redirect('bucket_list')
+    else:
+        form = BucketListForm(instance=item)
+    
+    context = {'form': form, 'item': item}
+    return render(request, 'premium/bucket_list_form.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def bucket_list_delete(request, item_id):
+    """
+    Supprimer un élément de bucket list
+    """
+    item = get_object_or_404(BucketList, id=item_id, user=request.user)
+    destination_name = item.destination
+    item.delete()
+    
+    messages.success(request, f'✅ {destination_name} supprimé de votre bucket list')
+    return redirect('bucket_list')
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def bucket_list_mark_visited(request, item_id):
+    """
+    Marquer une destination comme visitée
+    """
+    item = get_object_or_404(BucketList, id=item_id, user=request.user)
+    item.mark_as_visited()
+    
+    messages.success(request, f'🎉 Félicitations ! Vous avez visité {item.destination} !')
+    return redirect('bucket_list')
+
+
+# ============================================
+# VUES PREMIUM/BUSINESS : TRIPS
+# ============================================
+
+@login_required(login_url='/login/')
+@premium_required
+def trips_list(request):
+    """
+    Liste des voyages (PREMIUM/BUSINESS uniquement)
+    """
+    trips = Trip.objects.filter(user=request.user)
+    
+    # Statistiques
+    total_trips = trips.count()
+    ongoing = trips.filter(status='ONGOING').count()
+    completed = trips.filter(status='COMPLETED').count()
+    
+    context = {
+        'trips': trips,
+        'total_trips': total_trips,
+        'ongoing': ongoing,
+        'completed': completed,
+    }
+    return render(request, 'premium/trips_list.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def trip_create(request):
+    """
+    Créer un nouveau voyage
+    """
+    if request.method == 'POST':
+        form = TripForm(request.POST, user=request.user)
+        if form.is_valid():
+            trip = form.save(commit=False)
+            trip.user = request.user
+            trip.save()
+            
+            messages.success(request, f'✅ Voyage "{trip.title}" créé avec succès !')
+            return redirect('trips_list')
+    else:
+        form = TripForm(user=request.user)
+    
+    context = {'form': form}
+    return render(request, 'premium/trip_form.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def trip_detail(request, trip_id):
+    """
+    Détails d'un voyage avec itinéraire IA
+    """
+    trip = get_object_or_404(Trip, id=trip_id, user=request.user)
+    
+    # Générer un itinéraire IA
+    from .mongo import get_db
+    db = get_db()
+    user_profile = db.profiles.find_one({'user_id': request.user.id})
+    interests = user_profile.get('interests', []) if user_profile else []
+    
+    itinerary = generate_trip_itinerary(
+        trip.destination, 
+        trip.duration_days, 
+        interests
+    )
+    
+    # Conseils de voyage
+    nationality = user_profile.get('nationality', '') if user_profile else ''
+    travel_tips = generate_travel_tips(trip.destination, nationality)
+    
+    context = {
+        'trip': trip,
+        'itinerary': itinerary,
+        'travel_tips': travel_tips,
+    }
+    return render(request, 'premium/trip_detail.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def trip_add_expense(request, trip_id):
+    """
+    Ajouter une dépense à un voyage
+    """
+    trip = get_object_or_404(Trip, id=trip_id, user=request.user)
+    form = TripExpenseForm(request.POST)
+    
+    if form.is_valid():
+        amount = form.cleaned_data['amount']
+        description = form.cleaned_data['description']
+        deduct_from_wallet = form.cleaned_data['deduct_from_wallet']
+        
+        # Ajouter la dépense au voyage
+        trip.actual_spent += amount
+        trip.save()
+        
+        # Déduire du wallet si demandé
+        if deduct_from_wallet and hasattr(request.user, 'wallet'):
+            wallet = request.user.wallet
+            if wallet.withdraw_funds(amount):
+                # Créer une transaction
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type='EXPENSE',
+                    amount=amount,
+                    description=description,
+                    related_trip=trip
+                )
+                messages.success(request, f'✅ Dépense ajoutée et déduite du portefeuille')
+            else:
+                messages.warning(request, '⚠️ Dépense ajoutée mais solde insuffisant dans le portefeuille')
+        else:
+            messages.success(request, f'✅ Dépense ajoutée au voyage')
+        
+        return redirect('trip_detail', trip_id=trip.id)
+    
+    messages.error(request, '❌ Formulaire invalide')
+    return redirect('trip_detail', trip_id=trip.id)
+
+
+# ============================================
+# VUE IA : RECOMMANDATIONS DE DESTINATIONS
+# ============================================
+
+@login_required(login_url='/login/')
+@premium_required
+def ai_recommendations(request):
+    """
+    Recommandations IA de destinations (PREMIUM/BUSINESS uniquement)
+    """
+    from .mongo import get_db
+    db = get_db()
+    user_profile = db.profiles.find_one({'user_id': request.user.id})
+    
+    # Récupérer le solde du wallet
+    wallet_balance = None
+    if hasattr(request.user, 'wallet'):
+        wallet_balance = float(request.user.wallet.balance)
+    
+    # Générer les recommandations
+    recommendations_result = generate_destination_recommendations(
+        user_profile or {},
+        wallet_balance=wallet_balance,
+        max_recommendations=6
+    )
+    
+    context = {
+        'recommendations': recommendations_result.get('recommendations', []),
+        'success': recommendations_result.get('success', False),
+        'error': recommendations_result.get('error'),
+        'wallet_balance': wallet_balance,
+    }
+    return render(request, 'premium/ai_recommendations.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def ai_add_to_bucket_list(request):
+    """
+    Ajouter une recommandation IA directement à la bucket list
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # Créer l'élément de bucket list depuis la recommandation
+        item = BucketList.objects.create(
+            user=request.user,
+            destination=data.get('destination'),
+            country=data.get('country'),
+            description=data.get('description'),
+            estimated_budget=data.get('estimated_budget'),
+            currency=data.get('currency', 'EUR'),
+            priority=data.get('priority', 3),
+            ai_tags=data.get('tags', []),
+            ai_recommendations=data.get('why_recommended', ''),
+            status='PLANNED'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{item.destination} ajouté à votre bucket list !',
+            'item_id': item.id
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
