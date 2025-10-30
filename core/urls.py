@@ -53,12 +53,14 @@ urlpatterns = [
     # ============================================
     path('groups/', views.groups, name='groups'),
     path('groups-2/', views.groups_2, name='groups_2'),
-    
+    path('follow-user/', views.follow_unfollow_user, name='follow_unfollow_user'),
+
     # ============================================
     # PAGES
     # ============================================
     path('pages/', views.pages, name='pages'),
-    
+    path('profile/<slug:slug>/followers/', views.followers_list, name='followers_list'),
+    path('profile/<slug:slug>/following/', views.following_list, name='following_list'),
     # ============================================
     # MESSAGES
     # ============================================
