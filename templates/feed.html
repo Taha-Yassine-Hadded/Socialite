@@ -729,76 +729,116 @@
         <div class="lg:space-y-4 lg:pb-8 max-lg:grid sm:grid-cols-2 max-lg:gap-6"
             uk-sticky="media: 1024; end: #js-oversized; offset: 80">
             <!-- Pro Members -->
-            <div class="box p-5 px-6 border1 dark:bg-dark2">
-                <div class="flex justify-between text-black dark:text-white">
-                    <h3 class="font-bold text-base">Pro Members</h3>
-                </div>
-                <div class="relative capitalize font-normal text-sm mt-4 mb-2" tabindex="-1"
-                    uk-slider="autoplay: true;finite: true">
-                    <div class="overflow-hidden uk-slider-container">
-                        <ul class="-ml-2 uk-slider-items w-[calc(100%+0.5rem)]">
-                            <li class="w-1/2 pr-2">
-                                <a href="{% url 'timeline' %}">
-                                    <div class="flex flex-col items-center shadow-sm p-2 rounded-xl border1">
-                                        <div class="relative w-16 h-16 mx-auto mt-2">
-                                            <img src="{% static 'images/avatars/avatar-5.webp' %}" alt=""
-                                                class="h-full object-cover rounded-full shadow w-full">
-                                        </div>
-                                        <div class="mt-5 text-center w-full">
-                                            <h5 class="font-semibold">Martin Gray</h5>
-                                            <div class="text-xs text-gray-400 mt-0.5 font-medium">12K Followers</div>
-                                            <button type="button"
-                                                class="bg-secondery block font-semibold mt-4 py-1.5 rounded-lg text-sm w-full border1">Follow</button>
-                                        </div>
-                                    </div>
-                                </a>
-                            </li>
-                            <li class="w-1/2 pr-2">
-                                <a href="{% url 'timeline' %}">
-                                    <div class="flex flex-col items-center shadow-sm p-2 rounded-xl border1">
-                                        <div class="relative w-16 h-16 mx-auto mt-2">
-                                            <img src="{% static 'images/avatars/avatar-4.webp' %}" alt=""
-                                                class="h-full object-cover rounded-full shadow w-full">
-                                        </div>
-                                        <div class="mt-5 text-center w-full">
-                                            <h5 class="font-semibold">Alexa Park</h5>
-                                            <div class="text-xs text-gray-400 mt-0.5 font-medium">12K Followers</div>
-                                            <button type="button"
-                                                class="bg-secondery block font-semibold mt-4 py-1.5 rounded-lg text-sm w-full border1">Follow</button>
-                                        </div>
-                                    </div>
-                                </a>
-                            </li>
-                            <li class="w-1/2 pr-2">
-                                <a href="{% url 'timeline' %}">
-                                    <div class="flex flex-col items-center shadow-sm p-2 rounded-xl border1">
-                                        <div class="relative w-16 h-16 mx-auto mt-2">
-                                            <img src="{% static 'images/avatars/avatar-4.webp' %}" alt=""
-                                                class="h-full object-cover rounded-full shadow w-full">
-                                        </div>
-                                        <div class="mt-5 text-center w-full">
-                                            <h5 class="font-semibold">James Lewis</h5>
-                                            <div class="text-xs text-gray-400 mt-0.5 font-medium">15K Followers</div>
-                                            <button type="button"
-                                                class="bg-secondery block font-semibold mt-4 py-1.5 rounded-lg text-sm w-full border1">Follow</button>
-                                        </div>
-                                    </div>
-                                </a>
-                            </li>
-                        </ul>
-                        <button type="button"
-                            class="absolute -translate-y-1/2 bg-slate-100 rounded-full top-1/2 -left-4 grid w-9 h-9 place-items-center dark:bg-dark3"
-                            uk-slider-item="previous">
-                            <ion-icon name="chevron-back" class="text-2xl"></ion-icon>
-                        </button>
-                        <button type="button"
-                            class="absolute -right-4 -translate-y-1/2 bg-slate-100 rounded-full top-1/2 grid w-9 h-9 place-items-center dark:bg-dark3"
-                            uk-slider-item="next">
-                            <ion-icon name="chevron-forward" class="text-2xl"></ion-icon>
-                        </button>
-                    </div>
-                </div>
-            </div>
+
+            <!-- Pro Members -->
+<div class="box p-5 px-6 border1 dark:bg-dark2">
+    <div class="flex justify-between text-black dark:text-white">
+        <h3 class="font-bold text-base">Pro Members</h3>
+    </div>
+    <div class="relative capitalize font-normal text-sm mt-4 mb-2" tabindex="-1"
+         uk-slider="autoplay: true;finite: true">
+        <div class="overflow-hidden uk-slider-container">
+            <ul class="-ml-2 uk-slider-items w-[calc(100%+0.5rem)]">
+                {% for user in suggested_users %}
+                <li class="w-1/2 pr-2">
+                    <a href="{% url 'profile' slug=user.user_id %}">
+                        <div class="flex flex-col items-center shadow-sm p-2 rounded-xl border1">
+                            <div class="relative w-16 h-16 mx-auto mt-2">
+                                <img src="{% if user.profile_image %}{{ user.profile_image }}{% else %}{% static 'images/avatars/avatar-default.webp' %}{% endif %}" 
+                                     alt="{{ user.first_name }} {{ user.last_name }}"
+                                     class="h-full object-cover rounded-full shadow w-full">
+                            </div>
+                            <div class="mt-5 text-center w-full">
+                                <h5 class="font-semibold">{{ user.first_name }} {{ user.last_name }}</h5>
+                                <div class="text-xs text-gray-400 mt-0.5 font-medium">{{ user.follower_count }} Followers</div>
+                                <button type="button"
+                                        class="bg-secondery block font-semibold mt-4 py-1.5 rounded-lg text-sm w-full border1 follow-btn"
+                                        data-user-id="{{ user.user_id }}"
+                                        data-is-following="{% if user.is_following %}true{% else %}false{% endif %}">
+                                    {% if user.is_following %}Unfollow{% else %}Follow{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                {% empty %}
+                <li class="w-full text-center">
+                    <p class="text-gray-500">No top users available at the moment.</p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if suggested_users %}
+            <button type="button"
+                    class="absolute -translate-y-1/2 bg-slate-100 rounded-full top-1/2 -left-4 grid w-9 h-9 place-items-center dark:bg-dark3"
+                    uk-slider-item="previous">
+                <ion-icon name="chevron-back" class="text-2xl"></ion-icon>
+            </button>
+            <button type="button"
+                    class="absolute -right-4 -translate-y-1/2 bg-slate-100 rounded-full top-1/2 grid w-9 h-9 place-items-center dark:bg-dark3"
+                    uk-slider-item="next">
+                <ion-icon name="chevron-forward" class="text-2xl"></ion-icon>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript pour Follow/Unfollow -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const followButtons = document.querySelectorAll('.follow-btn');
+        const token = localStorage.getItem('token'); // Récupérer le token depuis localStorage
+    
+        if (!token) {
+            console.error('Aucun token trouvé dans localStorage');
+            alert('Veuillez vous reconnecter pour suivre/désuivre un utilisateur.');
+            return;
+        }
+    
+        followButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                const isFollowing = this.getAttribute('data-is-following') === 'true';
+    
+                fetch('{% url 'follow_unfollow' %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Authorization': `Bearer ${token}` // Ajouter le token JWT
+                    },
+                    body: `target_user_id=${userId}`
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            throw new Error('Non autorisé : Token invalide ou expiré');
+                        }
+                        throw new Error('Erreur réseau : ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (data.action === 'followed') {
+                            this.textContent = 'Unfollow';
+                            this.setAttribute('data-is-following', 'true');
+                        } else {
+                            this.textContent = 'Follow';
+                            this.setAttribute('data-is-following', 'false');
+                        }
+                    } else {
+                        alert(data.message || 'Une erreur s\'est produite');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert(error.message || 'Une erreur s\'est produite lors du traitement de votre requête');
+                });
+            });
+        });
+    });
+</script>
 
             <!-- People you may know -->
             <div class="box p-5 px-6 border1 dark:bg-dark2 mt-4">
@@ -852,6 +892,42 @@
                     </ul>
                                 </div>
                                     </div>
+
+
+
+            <!-- Find Your Adventure Duo -->
+<div class="box p-5 px-6 border1 dark:bg-dark2 mt-4">
+    <div class="flex justify-between text-black dark:text-white">
+        <h3 class="font-bold text-base">Find Your Adventure Duo</h3>
+    </div>
+    <div class="mt-4">
+        <ul class="space-y-4">
+            {% for companion in travel_companions %}
+            <li>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="{{ companion.profile_image }}" alt="{{ companion.first_name }} {{ companion.last_name }}"
+                            class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <h5 class="font-semibold text-sm">{{ companion.first_name }} {{ companion.last_name }}</h5>
+                            <div class="text-xs text-gray-400">{{ companion.follower_count }} Followers {% if companion.score > 0 %}| Score: {{ companion.score|floatformat:0 }}%{% endif %}</div>
+                        </div>
+                    </div>
+                    <form action="{% url 'plan_together' %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="target_user_id" value="{{ companion.user_id }}">
+                        <button type="button"
+                        class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Co-Plan</button>
+                    </form>
+                </div>
+            </li>
+            {% empty %}
+            <li class="text-center text-gray-500">No travel companions found at the moment.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
 
             <!-- Suggested Groups -->
             <div class="box p-5 px-6 border1 dark:bg-dark2 mt-4">

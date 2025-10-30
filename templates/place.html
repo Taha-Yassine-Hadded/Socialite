@@ -1,0 +1,1202 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Socialite - Travel Recommendations{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --secondary-color: #e5e7eb;
+        --secondary-hover: #d1d5db;
+        --danger-color: #ef4444;
+        --danger-hover: #dc2626;
+        --success-color: #271bc4;
+        --success-hover: #2916a3;
+        --text-primary: #1f2937;
+        --text-secondary: #6b7280;
+        --bg-light: #f9fafb;
+        --bg-dark: #1f2937;
+        --border-light: #d1d5db;
+        --border-dark: #4b5563;
+        --bg-card: #ffffff;
+    }
+
+    .dark {
+        --primary-color: #0c6bde;
+        --primary-hover: #145ed6;
+        --secondary-color: #4b5563;
+        --secondary-hover: #6b7280;
+        --danger-color: #f87171;
+        --danger-hover: #ef4444;
+        --success-color: #0c6bde;
+        --success-hover: #145ed6;
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        --bg-light: #1f2937;
+        --bg-dark: #111827;
+        --border-light: #4b5563;
+        --border-dark: #374151;
+        --bg-card: #111827;
+    }
+
+    /* Message styles */
+    .message {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: opacity 0.3s ease;
+    }
+    .message.success {
+        background: var(--success-color);
+    }
+    .message.error {
+        background: var(--danger-color);
+    }
+    .message i {
+        font-size: 1rem;
+    }
+
+    /* Page Header */
+    .page-heading {
+        margin-bottom: 1.5rem;
+    }
+    .page-heading h1 {
+        font-size: 1.875rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .filter-bar .filter-item {
+        flex: 1;
+        min-width: 150px;
+    }
+    .filter-bar select {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        background: var(--bg-light);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all 0.2s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
+    }
+    .dark .filter-bar select {
+        border-color: var(--border-dark);
+        background: var(--bg-dark);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    }
+    .filter-bar select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+    .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    .filter-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 20px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+    .filter-tag button {
+        margin-left: 0.25rem;
+        padding: 0.125rem;
+        border-radius: 50%;
+        transition: background 0.2s;
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+    }
+    .filter-tag button:hover {
+        background: rgba(255,255,255,0.2);
+    }
+    .clear-filters-btn {
+        padding: 0.625rem 1.25rem;
+        background: var(--secondary-color);
+        color: var(--text-primary);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+    .clear-filters-btn:hover {
+        background: var(--secondary-hover);
+    }
+    .filter-count {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* Card Styles */
+    .card {
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: all 0.3s ease;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+    .card-media {
+        height: 180px;
+        position: relative;
+        overflow: hidden;
+    }
+    .card-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+    .card:hover .card-media img {
+        transform: scale(1.08);
+    }
+    .favorite-btn, .delete-btn {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.95);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .delete-btn {
+        right: 3rem;
+    }
+    .favorite-btn.active i {
+        color: #ef4444;
+    }
+    .card-body {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        color: var(--text-primary);
+    }
+    .card-subtitle {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+    }
+    .card-details {
+        flex: 1;
+    }
+    .card-details .description {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        max-height: 3.6rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        margin-bottom: 0.75rem;
+    }
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.625rem;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        margin: 0.25rem 0.25rem 0 0;
+    }
+    .tag-culture { background: #dbeafe; color: #1e40af; }
+    .tag-adventure { background: #dcfce7; color: #166534; }
+    .tag-nature { background: #d1fae5; color: #065f46; }
+    .tag-beaches { background: #cffafe; color: #0e7490; }
+    .tag-nightlife { background: #f3e8ff; color: #6b21a8; }
+    .tag-cuisine { background: #ffedd5; color: #c2410c; }
+    .tag-wellness { background: #fce7f3; color: #9d174d; }
+    .tag-urban { background: #e5e7eb; color: #374151; }
+    .tag-seclusion { background: #fef3c7; color: #a16207; }
+    .button {
+        padding: 0.625rem 1rem;
+        font-size: 0.8125rem;
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+    }
+    .button.bg-primary {
+        background: var(--success-color);
+        color: #fff;
+    }
+    .button.bg-primary:hover {
+        background: var(--success-hover);
+    }
+    .button.bg-secondery {
+        background: var(--secondary-color);
+        color: var(--text-primary);
+    }
+    .button.bg-secondery:hover {
+        background: var(--secondary-hover);
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+        display: flex;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        border-bottom: 2px solid var(--border-light);
+    }
+    .nav-tab {
+        padding: 0.75rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .nav-tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-secondary);
+        opacity: 0.5;
+        margin-bottom: 1rem;
+    }
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    .empty-state p {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+    }
+    .empty-state-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: var(--primary-color);
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .empty-state-btn:hover {
+        background: var(--primary-hover);
+        color: white;
+    }
+</style>
+
+<div class="2xl:max-w-[1280px] max-w-[1100px] mx-auto px-4">
+    <!-- Page Heading -->
+    <div class="page-heading">
+        <h1>Explore Your Next Adventure</h1>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="filter-item">
+            <select id="continentSelect">
+                <option value="">🌍 Continent</option>
+                <option value="africa">Africa</option>
+                <option value="asia">Asia</option>
+                <option value="europe">Europe</option>
+                <option value="north america">North America</option>
+                <option value="south america">South America</option>
+                <option value="oceania">Oceania</option>
+            </select>
+            <div id="continentTags" class="filter-tags"></div>
+        </div>
+        <div class="filter-item">
+            <select id="budgetSelect">
+                <option value="">💰 Budget</option>
+                <option value="budget">Budget</option>
+                <option value="mid-range">Mid-range</option>
+                <option value="luxury">Luxury</option>
+            </select>
+            <div id="budgetTags" class="filter-tags"></div>
+        </div>
+        <div class="filter-item">
+            <select id="monthSelect">
+                <option value="">📅 Best Month</option>
+                <option value="january">January</option>
+                <option value="february">February</option>
+                <option value="march">March</option>
+                <option value="april">April</option>
+                <option value="may">May</option>
+                <option value="june">June</option>
+                <option value="july">July</option>
+                <option value="august">August</option>
+                <option value="september">September</option>
+                <option value="october">October</option>
+                <option value="november">November</option>
+                <option value="december">December</option>
+            </select>
+            <div id="monthTags" class="filter-tags"></div>
+        </div>
+        <div class="filter-item">
+            <select id="activitySelect">
+                <option value="">🎯 Activities</option>
+                <option value="culture">Culture</option>
+                <option value="adventure">Adventure</option>
+                <option value="nature">Nature</option>
+                <option value="beaches">Beaches</option>
+                <option value="nightlife">Nightlife</option>
+                <option value="cuisine">Cuisine</option>
+                <option value="wellness">Wellness</option>
+                <option value="urban">Urban</option>
+                <option value="seclusion">Seclusion</option>
+            </select>
+            <div id="activityTags" class="filter-tags"></div>
+        </div>
+        <button type="button" id="clearFilters" class="clear-filters-btn">
+            <i class="fas fa-times-circle mr-1"></i> Clear All
+        </button>
+    </div>
+    <div id="filterCount" class="filter-count hidden">
+        <i class="fas fa-check-circle text-green-600"></i>
+        <span id="filterCountText">0 filters active</span>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+        <a href="#" class="nav-tab active" data-tab="homeCountry">Discover Your Country</a>
+        <a href="#" class="nav-tab" data-tab="forYou">For You</a>
+        <a href="#" class="nav-tab" data-tab="similarPlaces">Places You Might Like</a>
+        <a href="#" class="nav-tab" data-tab="favorites">Favorites</a>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Tab 1: Discover Home Country -->
+        <div id="homeCountryContainer" class="container mx-auto px-4 py-8">
+            {% if home_country_places %}
+            <div class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6 mb-12">
+                {% for place in home_country_places %}
+                <div class="card place-card"
+                     data-continent="{{ place.continent|lower }}"
+                     data-budget="{{ place.budget|lower }}"
+                     data-activities="{% for activity, score in place.top_activities %}{{ activity|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     data-temps='{{ place.monthly_temps_json|safe }}'>
+                    <img src="{{ place.flag|default:'/static/images/avatars/avatar-default.webp' }}" 
+                         alt="Flag of {{ place.country }}" 
+                         class="w-10 h-10 rounded-full shadow absolute top-3 left-3 z-10 border-2 border-white dark:border-slate-800 object-cover">
+                    
+                    <button type="button" class="favorite-btn {% if place.is_favorite %}active{% endif %}" 
+                            data-city="{{ place.city }}"
+                            data-country="{{ place.country }}">
+                        <i class="{% if place.is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
+                    </button>
+                    
+                    <div class="card-media">
+                        <img src="{{ place.continent_image|default:'/static/images/group/group-cover-1.webp' }}" 
+                             alt="{{ place.city }}" 
+                             class="w-full h-full object-cover">
+                    </div>
+                    
+                    <div class="card-body">
+                        <h4 class="card-title">{{ place.city }}</h4>
+                        <p class="card-subtitle">{{ place.country }} • {{ place.continent }}</p>
+                        
+                        <div class="card-details">
+                            <p><span class="font-semibold">Budget:</span> {{ place.budget }}</p>
+                            <p><span class="font-semibold">Duration:</span> {{ place.ideal_durations|join:", " }}</p>
+                            <p><span class="font-semibold">Temperature:</span> <span class="temperature-display"></span></p>
+                            <p class="description">{{ place.description|default:"Discover this amazing destination" }}</p>
+                            
+                            <div class="activity-tags-wrapper mt-2">
+                                {% for activity, score in place.top_activities %}
+                                <span class="tag tag-{{ activity|lower }}">#{{ activity }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-3">
+                            <button type="button" class="button bg-primary flex-1 interested-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-star mr-1"></i>Interested
+                            </button>
+                            <button type="button" class="button bg-secondery flex-1 pass-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-times mr-1"></i>Pass
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-map-marked-alt"></i>
+                <h3>Discover Your Country</h3>
+                {% if user_nationality %}
+                <p>No destinations found for {{ user_nationality|title }}.</p>
+                {% else %}
+                <p>Please set your nationality in your profile.</p>
+                {% endif %}
+                <a href="{% url 'edit_profile' %}" class="empty-state-btn">
+                    <i class="fas fa-user-edit"></i> Update Profile
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab 2: For You -->
+        <div id="forYouContainer" class="container mx-auto px-4 py-8" style="display: none;">
+            {% if future_places %}
+            <div class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                {% for place in future_places %}
+                <div class="card place-card"
+                     data-continent="{{ place.continent|lower }}"
+                     data-budget="{{ place.budget|lower }}"
+                     data-activities="{% for activity, score in place.top_activities %}{{ activity|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     data-temps='{{ place.monthly_temps_json|safe }}'>
+                    <img src="{{ place.flag|default:'/static/images/avatars/avatar-default.webp' }}" 
+                         alt="Flag of {{ place.country }}" 
+                         class="w-10 h-10 rounded-full shadow absolute top-3 left-3 z-10 border-2 border-white dark:border-slate-800 object-cover">
+                    
+                    <button type="button" class="favorite-btn {% if place.is_favorite %}active{% endif %}" 
+                            data-city="{{ place.city }}"
+                            data-country="{{ place.country }}">
+                        <i class="{% if place.is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
+                    </button>
+                    
+                    <div class="card-media">
+                        <img src="{{ place.continent_image|default:'/static/images/group/group-cover-1.webp' }}" 
+                             alt="{{ place.city }}" 
+                             class="w-full h-full object-cover">
+                    </div>
+                    
+                    <div class="card-body">
+                        <h4 class="card-title">{{ place.city }}</h4>
+                        <p class="card-subtitle">{{ place.country }} • {{ place.continent }}</p>
+                        
+                        <div class="card-details">
+                            <p><span class="font-semibold">Budget:</span> {{ place.budget }}</p>
+                            <p><span class="font-semibold">Duration:</span> {{ place.ideal_durations|join:", " }}</p>
+                            <p><span class="font-semibold">Temperature:</span> <span class="temperature-display"></span></p>
+                            <p class="description">{{ place.description|default:"Discover this amazing destination" }}</p>
+                            
+                            <div class="activity-tags-wrapper mt-2">
+                                {% for activity, score in place.top_activities %}
+                                <span class="tag tag-{{ activity|lower }}">#{{ activity }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-3">
+                            <button type="button" class="button bg-primary flex-1 interested-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-star mr-1"></i>Interested
+                            </button>
+                            <button type="button" class="button bg-secondery flex-1 pass-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-times mr-1"></i>Pass
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-globe"></i>
+                <h3>No Recommendations Yet</h3>
+                <p>Add preferences to your profile to see personalized recommendations.</p>
+                <a href="{% url 'edit_profile' %}" class="empty-state-btn">
+                    <i class="fas fa-user-edit"></i> Update Profile
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab 3: Places You Might Like -->
+        <div id="similarPlacesContainer" class="container mx-auto px-4 py-8" style="display: none;">
+            {% if similar_places %}
+            <div class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6">
+                {% for place in similar_places %}
+                <div class="card place-card"
+                     data-continent="{{ place.continent|lower }}"
+                     data-budget="{{ place.budget|lower }}"
+                     data-activities="{% for activity, score in place.top_activities %}{{ activity|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     data-temps='{{ place.monthly_temps_json|safe }}'>
+                    <img src="{{ place.flag|default:'/static/images/avatars/avatar-default.webp' }}" 
+                         alt="Flag of {{ place.country }}" 
+                         class="w-10 h-10 rounded-full shadow absolute top-3 left-3 z-10 border-2 border-white dark:border-slate-800 object-cover">
+                    
+                    <button type="button" class="favorite-btn {% if place.is_favorite %}active{% endif %}" 
+                            data-city="{{ place.city }}"
+                            data-country="{{ place.country }}">
+                        <i class="{% if place.is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
+                    </button>
+                    
+                    <div class="card-media">
+                        <img src="{{ place.continent_image|default:'/static/images/group/group-cover-1.webp' }}" 
+                             alt="{{ place.city }}" 
+                             class="w-full h-full object-cover">
+                    </div>
+                    
+                    <div class="card-body">
+                        <h4 class="card-title">{{ place.city }}</h4>
+                        <p class="card-subtitle">{{ place.country }} • {{ place.continent }}</p>
+                        
+                        <div class="card-details">
+                            <p><span class="font-semibold">Budget:</span> {{ place.budget }}</p>
+                            <p><span class="font-semibold">Duration:</span> {{ place.ideal_durations|join:", " }}</p>
+                            <p><span class="font-semibold">Temperature:</span> <span class="temperature-display"></span></p>
+                            <p class="description">{{ place.description|default:"Discover this amazing destination" }}</p>
+                            
+                            <div class="activity-tags-wrapper mt-2">
+                                {% for activity, score in place.top_activities %}
+                                <span class="tag tag-{{ activity|lower }}">#{{ activity }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-3">
+                            <button type="button" class="button bg-primary flex-1 interested-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-star mr-1"></i>Interested
+                            </button>
+                            <button type="button" class="button bg-secondery flex-1 pass-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-times mr-1"></i>Pass
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-globe"></i>
+                <h3>No Recommendations Yet</h3>
+                <p>Explore more destinations or update your profile.</p>
+                <a href="{% url 'edit_profile' %}" class="empty-state-btn">
+                    <i class="fas fa-user-edit"></i> Update Profile
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab 4: Favorites -->
+        <div id="favoritesContainer" class="container mx-auto px-4 py-8" style="display: none;">
+            {% if favorite_places %}
+            <div class="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6" id="favoritesGrid">
+                {% for place in favorite_places %}
+                <div class="card place-card favorite-card"
+                     data-continent="{{ place.continent|lower }}"
+                     data-budget="{{ place.budget|lower }}"
+                     data-activities="{% for activity, score in place.top_activities %}{{ activity|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                     data-temps='{{ place.monthly_temps_json|safe }}'
+                     data-city="{{ place.city }}"
+                     data-country="{{ place.country }}">
+                    <img src="{{ place.flag|default:'/static/images/avatars/avatar-default.webp' }}" 
+                         alt="Flag of {{ place.country }}" 
+                         class="w-10 h-10 rounded-full shadow absolute top-3 left-3 z-10 border-2 border-white dark:border-slate-800 object-cover">
+                    
+                    <button type="button" class="favorite-btn active" 
+                            data-city="{{ place.city }}"
+                            data-country="{{ place.country }}">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    
+                    <button type="button" class="delete-btn" 
+                            data-city="{{ place.city }}"
+                            data-country="{{ place.country }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    
+                    <div class="card-media">
+                        <img src="{{ place.continent_image|default:'/static/images/group/group-cover-1.webp' }}" 
+                             alt="{{ place.city }}" 
+                             class="w-full h-full object-cover">
+                    </div>
+                    
+                    <div class="card-body">
+                        <h4 class="card-title">{{ place.city }}</h4>
+                        <p class="card-subtitle">{{ place.country }} • {{ place.continent }}</p>
+                        
+                        <div class="card-details">
+                            <p><span class="font-semibold">Budget:</span> {{ place.budget }}</p>
+                            <p><span class="font-semibold">Duration:</span> {{ place.ideal_durations|join:", " }}</p>
+                            <p><span class="font-semibold">Temperature:</span> <span class="temperature-display"></span></p>
+                            <p class="description">{{ place.description|default:"Discover this amazing destination" }}</p>
+                            
+                            <div class="activity-tags-wrapper mt-2">
+                                {% for activity, score in place.top_activities %}
+                                <span class="tag tag-{{ activity|lower }}">#{{ activity }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-3">
+                            <button type="button" class="button bg-primary flex-1 interested-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-star mr-1"></i>Interested
+                            </button>
+                            <button type="button" class="button bg-secondery flex-1 pass-btn" 
+                                    data-city="{{ place.city }}"
+                                    data-country="{{ place.country }}">
+                                <i class="fas fa-times mr-1"></i>Pass
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-heart"></i>
+                <h3>No Favorites Yet</h3>
+                <p>Add destinations to your favorites by clicking the heart icon on a destination card.</p>
+                <a href="#" class="empty-state-btn" onclick="switchToTab('homeCountry')">
+                    <i class="fas fa-map-marked-alt"></i> Explore Destinations
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Utility Functions
+function showMessage(text, type = 'success') {
+    const message = document.createElement('div');
+    message.className = `message ${type}`;
+    message.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${text}`;
+    document.body.appendChild(message);
+    setTimeout(() => {
+        message.style.opacity = '0';
+        setTimeout(() => message.remove(), 300);
+    }, 3000);
+}
+
+function getCSRFToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    return csrfToken ? csrfToken.value : '';
+}
+
+// Authenticated API Request Function
+async function makeAuthenticatedRequest(url, data = {}) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showMessage('Please log in to perform this action', 'error');
+        setTimeout(() => window.location.href = '/login/', 1000);
+        return null;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: new URLSearchParams(data)
+        });
+
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            showMessage('Session expired. Please log in again.', 'error');
+            setTimeout(() => window.location.href = '/login/', 2000);
+            return null;
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('API request failed:', error);
+        showMessage('Network error. Please try again.', 'error');
+        return null;
+    }
+}
+
+// Tab Switching
+function switchToTab(tabName) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.nav-tab[data-tab="${tabName}"]`).classList.add('active');
+    
+    document.querySelectorAll('.tab-content > div').forEach(container => {
+        container.style.display = 'none';
+    });
+    document.getElementById(`${tabName}Container`).style.display = 'block';
+}
+
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchToTab(tab.dataset.tab);
+    });
+});
+
+// Advanced Filter System with Month Support
+class PlaceFilter {
+    constructor() {
+        this.filters = {
+            continent: [],
+            budget: [],
+            month: [],
+            activity: []
+        };
+        this.monthMap = {
+            'january': '1', 'february': '2', 'march': '3', 'april': '4',
+            'may': '5', 'june': '6', 'july': '7', 'august': '8',
+            'september': '9', 'october': '10', 'november': '11', 'december': '12'
+        };
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.applyFilters();
+        this.updateTemperatures();
+    }
+
+    setupEventListeners() {
+        document.getElementById('continentSelect').addEventListener('change', (e) => {
+            this.addFilter('continent', e.target.value, 'continentTags');
+            e.target.value = '';
+        });
+
+        document.getElementById('budgetSelect').addEventListener('change', (e) => {
+            this.addFilter('budget', e.target.value, 'budgetTags');
+            e.target.value = '';
+        });
+
+        document.getElementById('monthSelect').addEventListener('change', (e) => {
+            this.addFilter('month', e.target.value, 'monthTags');
+            e.target.value = '';
+        });
+
+        document.getElementById('activitySelect').addEventListener('change', (e) => {
+            this.addFilter('activity', e.target.value, 'activityTags');
+            e.target.value = '';
+        });
+
+        document.getElementById('clearFilters').addEventListener('click', () => {
+            this.clearFilters();
+        });
+    }
+
+    addFilter(type, value, tagsContainerId) {
+        if (!value || this.filters[type].includes(value)) return;
+
+        this.filters[type].push(value);
+        this.createFilterTag(type, value, tagsContainerId);
+        this.applyFilters();
+        this.updateTemperatures();
+    }
+
+    createFilterTag(type, value, containerId) {
+        const container = document.getElementById(containerId);
+        const tag = document.createElement('span');
+        tag.className = 'filter-tag';
+        tag.innerHTML = `
+            ${value} 
+            <button type="button" onclick="placeFilter.removeFilter('${type}', '${value}')">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(tag);
+    }
+
+    removeFilter(type, value) {
+        this.filters[type] = this.filters[type].filter(v => v !== value);
+        this.applyFilters();
+        this.updateFilterTags();
+        this.updateTemperatures();
+    }
+
+    clearFilters() {
+        this.filters = { continent: [], budget: [], month: [], activity: [] };
+        this.applyFilters();
+        this.updateFilterTags();
+        this.updateTemperatures();
+    }
+
+    updateFilterTags() {
+        ['continentTags', 'budgetTags', 'monthTags', 'activityTags'].forEach(containerId => {
+            document.getElementById(containerId).innerHTML = '';
+        });
+        this.updateFilterCount();
+    }
+
+    updateFilterCount() {
+        const total = Object.values(this.filters).reduce((sum, arr) => sum + arr.length, 0);
+        const countElement = document.getElementById('filterCount');
+        const countText = document.getElementById('filterCountText');
+        if (total > 0) {
+            countElement.classList.remove('hidden');
+            countText.textContent = `${total} filter${total > 1 ? 's' : ''} active`;
+        } else {
+            countElement.classList.add('hidden');
+        }
+    }
+
+    applyFilters() {
+        const cards = document.querySelectorAll('.place-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const matches = this.cardMatchesFilters(card);
+            card.style.display = matches ? 'flex' : 'none';
+            if (matches) visibleCount++;
+        });
+        
+        this.updateFilterCount();
+    }
+
+    cardMatchesFilters(card) {
+        const cardContinent = card.dataset.continent;
+        const cardBudget = card.dataset.budget;
+        const cardActivities = card.dataset.activities ? card.dataset.activities.split(',') : [];
+        const cardTemps = JSON.parse(card.dataset.temps || '{}');
+
+        // Continent filter
+        if (this.filters.continent.length > 0 && !this.filters.continent.includes(cardContinent)) {
+            return false;
+        }
+
+        // Budget filter
+        if (this.filters.budget.length > 0 && !this.filters.budget.includes(cardBudget)) {
+            return false;
+        }
+
+        // Activity filter
+        if (this.filters.activity.length > 0) {
+            const hasMatchingActivity = this.filters.activity.some(activity => 
+                cardActivities.includes(activity)
+            );
+            if (!hasMatchingActivity) return false;
+        }
+
+        // Month filter - check if destination has good temperatures for selected months
+        if (this.filters.month.length > 0) {
+            const hasGoodWeather = this.filters.month.some(month => {
+                const monthNum = this.monthMap[month.toLowerCase()];
+                const temp = cardTemps[monthNum]?.avg;
+                return temp && temp >= 10 && temp <= 35; // Good temperature range
+            });
+            if (!hasGoodWeather) return false;
+        }
+
+        return true;
+    }
+
+    updateTemperatures() {
+        document.querySelectorAll('.place-card').forEach(card => {
+            const tempData = JSON.parse(card.dataset.temps || '{}');
+            const display = card.querySelector('.temperature-display');
+            
+            if (this.filters.month.length > 0) {
+                display.innerHTML = '';
+                this.filters.month.forEach(month => {
+                    const monthNum = this.monthMap[month.toLowerCase()];
+                    const temp = tempData[monthNum]?.avg;
+                    const span = document.createElement('span');
+                    span.className = 'block text-xs text-gray-600 dark:text-gray-300';
+                    span.textContent = temp ? `${month}: ${temp}°C` : `${month}: N/A`;
+                    display.appendChild(span);
+                });
+            } else {
+                // Show current month temperature
+                const currentMonth = new Date().toLocaleString('en', { month: 'long' }).toLowerCase();
+                const monthNum = this.monthMap[currentMonth];
+                const temp = tempData[monthNum]?.avg;
+                display.textContent = temp ? `${temp}°C` : 'N/A';
+            }
+        });
+    }
+}
+
+// Initialize filter system
+const placeFilter = new PlaceFilter();
+
+// Function to add card to favorites in real-time
+function addCardToFavorites(card, city, country) {
+    const favoritesGrid = document.getElementById('favoritesGrid');
+    const emptyState = document.querySelector('#favoritesContainer .empty-state');
+    
+    // If there's an empty state, remove it
+    if (emptyState) {
+        emptyState.remove();
+    }
+    
+    // Create a clone of the card for favorites
+    const favoriteCard = card.cloneNode(true);
+    favoriteCard.classList.add('favorite-card');
+    favoriteCard.setAttribute('data-city', city);
+    favoriteCard.setAttribute('data-country', country);
+    
+    // Update the favorite button to active state
+    const favBtn = favoriteCard.querySelector('.favorite-btn');
+    favBtn.classList.add('active');
+    favBtn.innerHTML = '<i class="fas fa-heart"></i>';
+    
+    // Add delete button if not present
+    if (!favoriteCard.querySelector('.delete-btn')) {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.setAttribute('data-city', city);
+        deleteBtn.setAttribute('data-country', country);
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+        favoriteCard.querySelector('.card-media').appendChild(deleteBtn);
+        
+        // Add event listener to delete button
+        deleteBtn.addEventListener('click', async function() {
+            const result = await makeAuthenticatedRequest('/api/remove-favorite/', { 
+                city: this.dataset.city, 
+                country: this.dataset.country 
+            });
+
+            if (result && result.success) {
+                this.closest('.card').remove();
+                showMessage(result.message || 'Removed from favorites', 'success');
+                
+                // Update the original card's favorite button
+                const originalCard = document.querySelector(`.place-card[data-city="${city}"][data-country="${country}"]:not(.favorite-card)`);
+                if (originalCard) {
+                    const originalFavBtn = originalCard.querySelector('.favorite-btn');
+                    originalFavBtn.classList.remove('active');
+                    originalFavBtn.querySelector('i').classList.remove('fas');
+                    originalFavBtn.querySelector('i').classList.add('far');
+                }
+                
+                // If no more favorites, show empty state
+                if (!favoritesGrid.querySelector('.favorite-card')) {
+                    const newEmptyState = document.createElement('div');
+                    newEmptyState.className = 'empty-state';
+                    newEmptyState.innerHTML = `
+                        <i class="fas fa-heart"></i>
+                        <h3>No Favorites Yet</h3>
+                        <p>Add destinations to your favorites by clicking the heart icon on a destination card.</p>
+                        <a href="#" class="empty-state-btn" onclick="switchToTab('homeCountry')">
+                            <i class="fas fa-map-marked-alt"></i> Explore Destinations
+                        </a>
+                    `;
+                    favoritesGrid.parentNode.appendChild(newEmptyState);
+                    favoritesGrid.remove();
+                }
+            }
+        });
+    }
+    
+    // Ensure favorites grid exists
+    if (!favoritesGrid) {
+        const newFavoritesGrid = document.createElement('div');
+        newFavoritesGrid.className = 'grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-6';
+        newFavoritesGrid.id = 'favoritesGrid';
+        document.getElementById('favoritesContainer').appendChild(newFavoritesGrid);
+        newFavoritesGrid.appendChild(favoriteCard);
+    } else {
+        favoritesGrid.appendChild(favoriteCard);
+    }
+}
+
+// Favorite functionality
+document.querySelectorAll('.favorite-btn').forEach(button => {
+    button.addEventListener('click', async () => {
+        const city = button.dataset.city;
+        const country = button.dataset.country;
+        const isFavorite = button.classList.contains('active');
+        const card = button.closest('.place-card');
+        
+        const endpoint = isFavorite ? '/api/remove-favorite/' : '/api/add-favorite/';
+        const result = await makeAuthenticatedRequest(endpoint, { city, country });
+
+        if (result && result.success) {
+            button.classList.toggle('active');
+            button.querySelector('i').classList.toggle('far');
+            button.querySelector('i').classList.toggle('fas');
+            
+            const message = isFavorite ? 'Removed from favorites' : 'Added to favorites';
+            showMessage(result.message || message, 'success');
+
+            if (!isFavorite) {
+                // Add to favorites in real-time
+                addCardToFavorites(card, city, country);
+            } else {
+                // Remove from favorites in real-time
+                const favoriteCard = document.querySelector(`.favorite-card[data-city="${city}"][data-country="${country}"]`);
+                if (favoriteCard) {
+                    favoriteCard.remove();
+                    
+                    // If no more favorites, show empty state
+                    const favoritesGrid = document.getElementById('favoritesGrid');
+                    if (favoritesGrid && !favoritesGrid.querySelector('.favorite-card')) {
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'empty-state';
+                        emptyState.innerHTML = `
+                            <i class="fas fa-heart"></i>
+                            <h3>No Favorites Yet</h3>
+                            <p>Add destinations to your favorites by clicking the heart icon on a destination card.</p>
+                            <a href="#" class="empty-state-btn" onclick="switchToTab('homeCountry')">
+                                <i class="fas fa-map-marked-alt"></i> Explore Destinations
+                            </a>
+                        `;
+                        document.getElementById('favoritesContainer').appendChild(emptyState);
+                        favoritesGrid.remove();
+                    }
+                }
+            }
+        }
+    });
+});
+
+// Delete functionality (for favorites tab)
+document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', async () => {
+        const city = button.dataset.city;
+        const country = button.dataset.country;
+        
+        const result = await makeAuthenticatedRequest('/api/remove-favorite/', { city, country });
+
+        if (result && result.success) {
+            button.closest('.card').remove();
+            showMessage(result.message || 'Removed from favorites', 'success');
+            
+            // Update the original card's favorite button
+            const originalCard = document.querySelector(`.place-card[data-city="${city}"][data-country="${country}"]:not(.favorite-card)`);
+            if (originalCard) {
+                const originalFavBtn = originalCard.querySelector('.favorite-btn');
+                originalFavBtn.classList.remove('active');
+                originalFavBtn.querySelector('i').classList.remove('fas');
+                originalFavBtn.querySelector('i').classList.add('far');
+            }
+            
+            // If no more favorites, show empty state
+            const favoritesGrid = document.getElementById('favoritesGrid');
+            if (favoritesGrid && !favoritesGrid.querySelector('.favorite-card')) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.innerHTML = `
+                    <i class="fas fa-heart"></i>
+                    <h3>No Favorites Yet</h3>
+                    <p>Add destinations to your favorites by clicking the heart icon on a destination card.</p>
+                    <a href="#" class="empty-state-btn" onclick="switchToTab('homeCountry')">
+                        <i class="fas fa-map-marked-alt"></i> Explore Destinations
+                    </a>
+                `;
+                document.getElementById('favoritesContainer').appendChild(emptyState);
+                favoritesGrid.remove();
+            }
+        }
+    });
+});
+
+// Pass destination functionality
+document.querySelectorAll('.pass-btn').forEach(button => {
+    button.addEventListener('click', async () => {
+        const city = button.dataset.city;
+        const country = button.dataset.country;
+        
+        const result = await makeAuthenticatedRequest('/api/pass-destination/', { city, country });
+
+        if (result && result.success) {
+            // Hide card in all tabs except Favorites
+            document.querySelectorAll(`.card[data-city="${city}"][data-country="${country}"]`).forEach(card => {
+                if (!card.closest('#favoritesContainer')) {
+                    card.style.display = 'none';
+                }
+            });
+            showMessage(result.message || `Passed on ${city}, ${country}`, 'success');
+        }
+    });
+});
+
+// Interested functionality (frontend only)
+document.querySelectorAll('.interested-btn').forEach(button => {
+    button.addEventListener('click', () => {
+        const city = button.dataset.city;
+        const country = button.dataset.country;
+        showMessage(`Interested in ${city}, ${country}`, 'success');
+    });
+});
+</script>
+{% endblock %}

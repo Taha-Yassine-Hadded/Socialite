@@ -199,6 +199,19 @@
                 {% endfor %}
               </div>
             </div>
+
+
+<!-- future countries -->
+<div class="col-span-2">
+  <label for="future_countries" class="">Pays you may visit in the future</label>
+  <div class="mt-2.5">
+    <select id="future_countries" name="future_countries" multiple class="!w-full !rounded-lg !bg-transparent !shadow-sm !border-slate-200 focus:!border-primary focus:!ring-2 focus:!ring-primary/30 dark:!border-slate-800 dark:!bg-white/5">
+      {% for value, label in countries_list %}
+      <option value="{{ value }}" {% if value in form.future_countries %}selected{% endif %}>{{ label|capfirst }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
             <!-- password -->
             <div>
               <label for="password1" class="">Password</label>
@@ -323,6 +336,14 @@
         searchPlaceholderValue: 'Search languages...',
         itemSelectText: ''
       });
+     
+      new Choices('#future_countries', {
+        removeItemButton: true,
+        placeholderValue: 'Select countries you may visit',
+        searchEnabled: false,
+        itemSelectText: ''
+      });
+
       new Choices('#nationality', {
         removeItemButton: false,
         placeholderValue: 'Select a country',
