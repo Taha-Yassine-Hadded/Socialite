@@ -174,6 +174,8 @@
                                                 <div class="mt-1">Discover fun activities near you .</div>
                                             </div>
                                         </li>
+
+                                        
                                         <li class="flex items-center gap-4 hover:bg-secondery rounded-md p-1.5 cursor-pointer dark:hover:bg-white/10">
                                             <img src="{% static 'images/icons/market.webp' %}" alt="" class="w-8 -ml-1">
                                             <div class="flex-1">
@@ -582,6 +584,13 @@
                                 <a href="{% url 'place' %}">
                                     <img src="{% static 'images/icons/places.png' %}" alt="places" class="w-6">
                                     <span> Places </span> 
+                                </a>
+                            </li>
+
+                            <li class="{% if request.resolver_match.url_name == 'work' %}active{% endif %}">
+                                <a href="{% url 'work' %}">
+                                    <img src="{% static 'images/icons/work.png' %}" alt="work" class="w-6">
+                                    <span> Work </span> 
                                 </a>
                             </li>
                          

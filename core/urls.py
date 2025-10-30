@@ -18,9 +18,16 @@ urlpatterns = [
     path('timeline-funding/', views.timeline_funding, name='timeline_funding'),
     path('timeline-group/', views.timeline_group, name='timeline_group'),
     path('timeline-page/', views.timeline_page, name='timeline_page'),
-    
+    path('add_favorite/', views.add_favorite, name='add_favorite'),
+    path('remove_favorite/', views.remove_favorite, name='remove_favorite'),
+    path('place/', views.place, name='place'),
+    path('api/add-favorite/', views.add_favorite, name='add_favorite'),
+    path('api/remove-favorite/', views.remove_favorite, name='remove_favorite'),
+    path('api/pass-destination/', views.pass_destination, name='pass_destination'),
     # Feed
     path('feed/', views.feed, name='feed'),
+    # work
+    path('work/', views.work, name='work'),
     
     # Groups
     path('groups/', views.groups, name='groups'),

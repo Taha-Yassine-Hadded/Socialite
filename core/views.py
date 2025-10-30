@@ -3,6 +3,7 @@ import logging
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.db import IntegrityError
+from pymongo import MongoClient
 from .mongo import get_db
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
@@ -38,7 +39,7 @@ TRAVEL_TYPES = [
     ('couple', 'Couple'),
     ('friends', 'Friends')
 ]
-
+CITIES_CSV_PATH = r'D:\Django_Projet\Socialite\public\Cities.csv'
 # Liste des langues du monde (basée sur ISO 639-1 et langues courantes)
 LANGUAGES = [
     ('af', 'Afrikaans'), ('sq', 'Albanian'), ('am', 'Amharic'), ('ar', 'Arabic'), 
@@ -117,7 +118,8 @@ COUNTRIES = [
     ('VU', 'Vanuatu'), ('VE', 'Venezuela'), ('VN', 'Vietnam'), ('YE', 'Yemen'),
     ('ZM', 'Zambia'), ('ZW', 'Zimbabwe')
 ]
-
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 def format_follower_count(count):
     """Format follower count (e.g., 100000 -> 100K, 1000000 -> 1M)."""
     if count >= 1_000_000:
@@ -514,17 +516,33 @@ def feed(request):
 
         
 
+
+ 
+
+    
+
+
 @login_required(login_url='/login/')
 def place(request):
+    # Configurer le logger
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        filename='debug.log',
+        level=logging.DEBUG,
+        format='%(asctime)s %(levelname)s %(message)s'
+    )
+
     # Connexion à MongoDB
     db = get_db()
     user = request.user
     user_profile = db.profiles.find_one({'user_id': user.id})
+    logger.debug(f"User ID: {user.id}, User Profile: {user_profile}")
 
-    # Initialiser les listes pour les recommandations
+     # Initialiser les listes pour les recommandations
     home_country_places = []
     future_places = []
     similar_places = []
+    favorite_places = []
     countries = []
 
     # Vérifier si le profil existe
@@ -533,9 +551,11 @@ def place(request):
         future_countries = user_profile.get('future_countries', [])
         travel_budget = user_profile.get('travel_budget', '').lower()
         user_interests = user_profile.get('interests', [])
+        favorite_destinations = user_profile.get('favorite_destinations', [])
+        passed_destinations = user_profile.get('passed_destinations', [])  # Nouveau champ pour les destinations passées
 
         # Charger les datasets
-        cities_df = pd.read_csv(r"D:\Django_Projet\Socialite\public\Cities.csv")
+        cities_df = pd.read_csv(r'D:\Django_Projet\Socialite\public\Cities.csv')
         flags_df = pd.read_csv(r"D:\Django_Projet\Socialite\public\Flags.csv")
 
         # Normaliser les données
@@ -550,55 +570,55 @@ def place(request):
         # Dictionnaire de mappage des codes ISO aux noms de pays
         country_code_to_name = {
             code.lower(): name for code, name in [
-                ('AF', 'Afghanistan'), ('AL', 'Albania'), ('DZ', 'Algeria'), ('AD', 'Andorra'),
-                ('AO', 'Angola'), ('AG', 'Antigua and Barbuda'), ('AR', 'Argentina'), ('AM', 'Armenia'),
-                ('AU', 'Australia'), ('AT', 'Austria'), ('AZ', 'Azerbaijan'), ('BS', 'Bahamas'),
-                ('BH', 'Bahrain'), ('BD', 'Bangladesh'), ('BB', 'Barbados'), ('BY', 'Belarus'),
-                ('BE', 'Belgium'), ('BZ', 'Belize'), ('BJ', 'Benin'), ('BT', 'Bhutan'),
-                ('BO', 'Bolivia'), ('BA', 'Bosnia and Herzegovina'), ('BW', 'Botswana'), ('BR', 'Brazil'),
-                ('BN', 'Brunei'), ('BG', 'Bulgaria'), ('BF', 'Burkina Faso'), ('BI', 'Burundi'),
-                ('KH', 'Cambodia'), ('CM', 'Cameroon'), ('CA', 'Canada'), ('CV', 'Cape Verde'),
-                ('CF', 'Central African Republic'), ('TD', 'Chad'), ('CL', 'Chile'), ('CN', 'China'),
-                ('CO', 'Colombia'), ('KM', 'Comoros'), ('CG', 'Congo'), ('CD', 'Congo, Democratic Republic'),
-                ('CR', 'Costa Rica'), ('HR', 'Croatia'), ('CU', 'Cuba'), ('CY', 'Cyprus'),
-                ('CZ', 'Czech Republic'), ('DK', 'Denmark'), ('DJ', 'Djibouti'), ('DM', 'Dominica'),
-                ('DO', 'Dominican Republic'), ('EC', 'Ecuador'), ('EG', 'Egypt'), ('SV', 'El Salvador'),
-                ('GQ', 'Equatorial Guinea'), ('ER', 'Eritrea'), ('EE', 'Estonia'), ('ET', 'Ethiopia'),
-                ('FJ', 'Fiji'), ('FI', 'Finland'), ('FR', 'France'), ('GA', 'Gabon'),
-                ('GM', 'Gambia'), ('GE', 'Georgia'), ('DE', 'Germany'), ('GH', 'Ghana'),
-                ('GR', 'Greece'), ('GD', 'Grenada'), ('GT', 'Guatemala'), ('GN', 'Guinea'),
-                ('GW', 'Guinea-Bissau'), ('GY', 'Guyana'), ('HT', 'Haiti'), ('HN', 'Honduras'),
-                ('HU', 'Hungary'), ('IS', 'Iceland'), ('IN', 'India'), ('ID', 'Indonesia'),
-                ('IR', 'Iran'), ('IQ', 'Iraq'), ('IE', 'Ireland'), ('IL', 'Israel'),
-                ('IT', 'Italy'), ('JM', 'Jamaica'), ('JP', 'Japan'), ('JO', 'Jordan'),
-                ('KZ', 'Kazakhstan'), ('KE', 'Kenya'), ('KI', 'Kiribati'), ('KP', 'North Korea'),
-                ('KR', 'South Korea'), ('KW', 'Kuwait'), ('KG', 'Kyrgyzstan'), ('LA', 'Laos'),
-                ('LV', 'Latvia'), ('LB', 'Lebanon'), ('LS', 'Lesotho'), ('LR', 'Liberia'),
-                ('LY', 'Libya'), ('LI', 'Liechtenstein'), ('LT', 'Lithuania'), ('LU', 'Luxembourg'),
-                ('MG', 'Madagascar'), ('MW', 'Malawi'), ('MY', 'Malaysia'), ('MV', 'Maldives'),
-                ('ML', 'Mali'), ('MT', 'Malta'), ('MH', 'Marshall Islands'), ('MR', 'Mauritania'),
-                ('MU', 'Mauritius'), ('MX', 'Mexico'), ('FM', 'Micronesia'), ('MD', 'Moldova'),
-                ('MC', 'Monaco'), ('MN', 'Mongolia'), ('ME', 'Montenegro'), ('MA', 'Morocco'),
-                ('MZ', 'Mozambique'), ('MM', 'Myanmar'), ('NA', 'Namibia'), ('NR', 'Nauru'),
-                ('NP', 'Nepal'), ('NL', 'Netherlands'), ('NZ', 'New Zealand'), ('NI', 'Nicaragua'),
-                ('NE', 'Niger'), ('NG', 'Nigeria'), ('NO', 'Norway'), ('OM', 'Oman'),
-                ('PK', 'Pakistan'), ('PW', 'Palau'), ('PA', 'Panama'), ('PG', 'Papua New Guinea'),
-                ('PY', 'Paraguay'), ('PE', 'Peru'), ('PH', 'Philippines'), ('PL', 'Poland'),
-                ('PT', 'Portugal'), ('QA', 'Qatar'), ('RO', 'Romania'), ('RU', 'Russia'),
-                ('RW', 'Rwanda'), ('KN', 'Saint Kitts and Nevis'), ('LC', 'Saint Lucia'),
-                ('VC', 'Saint Vincent and the Grenadines'), ('WS', 'Samoa'), ('SM', 'San Marino'),
-                ('ST', 'Sao Tome and Principe'), ('SA', 'Saudi Arabia'), ('SN', 'Senegal'),
-                ('RS', 'Serbia'), ('SC', 'Seychelles'), ('SL', 'Sierra Leone'), ('SG', 'Singapore'),
-                ('SK', 'Slovakia'), ('SI', 'Slovenia'), ('SB', 'Solomon Islands'), ('SO', 'Somalia'),
-                ('ZA', 'South Africa'), ('SS', 'South Sudan'), ('ES', 'Spain'), ('LK', 'Sri Lanka'),
-                ('SD', 'Sudan'), ('SR', 'Suriname'), ('SE', 'Sweden'), ('CH', 'Switzerland'),
-                ('SY', 'Syria'), ('TW', 'Taiwan'), ('TJ', 'Tajikistan'), ('TZ', 'Tanzania'),
-                ('TH', 'Thailand'), ('TL', 'Timor-Leste'), ('TG', 'Togo'), ('TO', 'Tonga'),
-                ('TT', 'Trinidad and Tobago'), ('TN', 'Tunisia'), ('TR', 'Turkey'), ('TM', 'Turkmenistan'),
-                ('TV', 'Tuvalu'), ('UG', 'Uganda'), ('UA', 'Ukraine'), ('AE', 'United Arab Emirates'),
-                ('GB', 'United Kingdom'), ('US', 'United States'), ('UY', 'Uruguay'), ('UZ', 'Uzbekistan'),
-                ('VU', 'Vanuatu'), ('VE', 'Venezuela'), ('VN', 'Vietnam'), ('YE', 'Yemen'),
-                ('ZM', 'Zambia'), ('ZW', 'Zimbabwe')
+                ('af', 'Afghanistan'), ('al', 'Albania'), ('dz', 'Algeria'), ('ad', 'Andorra'),
+                ('ao', 'Angola'), ('ag', 'Antigua and Barbuda'), ('ar', 'Argentina'), ('am', 'Armenia'),
+                ('au', 'Australia'), ('at', 'Austria'), ('az', 'Azerbaijan'), ('bs', 'Bahamas'),
+                ('bh', 'Bahrain'), ('bd', 'Bangladesh'), ('bb', 'Barbados'), ('by', 'Belarus'),
+                ('be', 'Belgium'), ('bz', 'Belize'), ('bj', 'Benin'), ('bt', 'Bhutan'),
+                ('bo', 'Bolivia'), ('ba', 'Bosnia and Herzegovina'), ('bw', 'Botswana'), ('br', 'Brazil'),
+                ('bn', 'Brunei'), ('bg', 'Bulgaria'), ('bf', 'Burkina Faso'), ('bi', 'Burundi'),
+                ('kh', 'Cambodia'), ('cm', 'Cameroon'), ('ca', 'Canada'), ('cv', 'Cape Verde'),
+                ('cf', 'Central African Republic'), ('td', 'Chad'), ('cl', 'Chile'), ('cn', 'China'),
+                ('co', 'Colombia'), ('km', 'Comoros'), ('cg', 'Congo'), ('cd', 'Congo, Democratic Republic'),
+                ('cr', 'Costa Rica'), ('hr', 'Croatia'), ('cu', 'Cuba'), ('cy', 'Cyprus'),
+                ('cz', 'Czech Republic'), ('dk', 'Denmark'), ('dj', 'Djibouti'), ('dm', 'Dominica'),
+                ('do', 'Dominican Republic'), ('ec', 'Ecuador'), ('eg', 'Egypt'), ('sv', 'El Salvador'),
+                ('gq', 'Equatorial Guinea'), ('er', 'Eritrea'), ('ee', 'Estonia'), ('et', 'Ethiopia'),
+                ('fj', 'Fiji'), ('fi', 'Finland'), ('fr', 'France'), ('ga', 'Gabon'),
+                ('gm', 'Gambia'), ('ge', 'Georgia'), ('de', 'Germany'), ('gh', 'Ghana'),
+                ('gr', 'Greece'), ('gd', 'Grenada'), ('gt', 'Guatemala'), ('gn', 'Guinea'),
+                ('gw', 'Guinea-Bissau'), ('gy', 'Guyana'), ('ht', 'Haiti'), ('hn', 'Honduras'),
+                ('hu', 'Hungary'), ('is', 'Iceland'), ('in', 'India'), ('id', 'Indonesia'),
+                ('ir', 'Iran'), ('iq', 'Iraq'), ('ie', 'Ireland'), ('il', 'Israel'),
+                ('it', 'Italy'), ('jm', 'Jamaica'), ('jp', 'Japan'), ('jo', 'Jordan'),
+                ('kz', 'Kazakhstan'), ('ke', 'Kenya'), ('ki', 'Kiribati'), ('kp', 'North Korea'),
+                ('kr', 'South Korea'), ('kw', 'Kuwait'), ('kg', 'Kyrgyzstan'), ('la', 'Laos'),
+                ('lv', 'Latvia'), ('lb', 'Lebanon'), ('ls', 'Lesotho'), ('lr', 'Liberia'),
+                ('ly', 'Libya'), ('li', 'Liechtenstein'), ('lt', 'Lithuania'), ('lu', 'Luxembourg'),
+                ('mg', 'Madagascar'), ('mw', 'Malawi'), ('my', 'Malaysia'), ('mv', 'Maldives'),
+                ('ml', 'Mali'), ('mt', 'Malta'), ('mh', 'Marshall Islands'), ('mr', 'Mauritania'),
+                ('mu', 'Mauritius'), ('mx', 'Mexico'), ('fm', 'Micronesia'), ('md', 'Moldova'),
+                ('mc', 'Monaco'), ('mn', 'Mongolia'), ('me', 'Montenegro'), ('ma', 'Morocco'),
+                ('mz', 'Mozambique'), ('mm', 'Myanmar'), ('na', 'Namibia'), ('nr', 'Nauru'),
+                ('np', 'Nepal'), ('nl', 'Netherlands'), ('nz', 'New Zealand'), ('ni', 'Nicaragua'),
+                ('ne', 'Niger'), ('ng', 'Nigeria'), ('no', 'Norway'), ('om', 'Oman'),
+                ('pk', 'Pakistan'), ('pw', 'Palau'), ('pa', 'Panama'), ('pg', 'Papua New Guinea'),
+                ('py', 'Paraguay'), ('pe', 'Peru'), ('ph', 'Philippines'), ('pl', 'Poland'),
+                ('pt', 'Portugal'), ('qa', 'Qatar'), ('ro', 'Romania'), ('ru', 'Russia'),
+                ('rw', 'Rwanda'), ('kn', 'Saint Kitts and Nevis'), ('lc', 'Saint Lucia'),
+                ('vc', 'Saint Vincent and the Grenadines'), ('ws', 'Samoa'), ('sm', 'San Marino'),
+                ('st', 'Sao Tome and Principe'), ('sa', 'Saudi Arabia'), ('sn', 'Senegal'),
+                ('rs', 'Serbia'), ('sc', 'Seychelles'), ('sl', 'Sierra Leone'), ('sg', 'Singapore'),
+                ('sk', 'Slovakia'), ('si', 'Slovenia'), ('sb', 'Solomon Islands'), ('so', 'Somalia'),
+                ('za', 'South Africa'), ('ss', 'South Sudan'), ('es', 'Spain'), ('lk', 'Sri Lanka'),
+                ('sd', 'Sudan'), ('sr', 'Suriname'), ('se', 'Sweden'), ('ch', 'Switzerland'),
+                ('sy', 'Syria'), ('tw', 'Taiwan'), ('tj', 'Tajikistan'), ('tz', 'Tanzania'),
+                ('th', 'Thailand'), ('tl', 'Timor-Leste'), ('tg', 'Togo'), ('to', 'Tonga'),
+                ('tt', 'Trinidad and Tobago'), ('tn', 'Tunisia'), ('tr', 'Turkey'), ('tm', 'Turkmenistan'),
+                ('tv', 'Tuvalu'), ('ug', 'Uganda'), ('ua', 'Ukraine'), ('ae', 'United Arab Emirates'),
+                ('gb', 'United Kingdom'), ('us', 'United States'), ('uy', 'Uruguay'), ('uz', 'Uzbekistan'),
+                ('vu', 'Vanuatu'), ('ve', 'Venezuela'), ('vn', 'Vietnam'), ('ye', 'Yemen'),
+                ('zm', 'Zambia'), ('zw', 'Zimbabwe')
             ]
         }
 
@@ -625,9 +645,6 @@ def place(request):
             'oceania': 'Oceania',
             'antarctica': 'Antarctica'
         }
-
-        # Configurer le logger
-        logger = logging.getLogger(__name__)
 
         def get_random_continent_image(region):
             continent_folder = continent_mapping.get(region.lower(), 'Africa')
@@ -736,13 +753,17 @@ def place(request):
         future_country_names = [country_code_to_name.get(code.lower(), '') for code in future_countries]
         future_country_names = [name for name in future_country_names if name]  # Supprimer les entrées vides
 
+        # Fonction pour vérifier si une destination est passée
+        def is_passed_destination(city, country, passed_destinations):
+            return any(dest['city'].lower() == city.lower() and dest['country'].lower() == country.lower() for dest in passed_destinations)
+
         # Section 1 : Explorez votre pays (basé sur la nationalité)
         if nationality:
             country_name = country_code_to_name.get(nationality.lower(), '')
             if country_name:
                 country_places = cities_df[cities_df['country'].str.lower() == country_name.lower()]
                 for _, place in country_places.iterrows():
-                    if is_place_visible(place, travel_budget):
+                    if is_place_visible(place, travel_budget) and not is_passed_destination(place['city'], place['country'], passed_destinations):
                         interest_score = calculate_interest_score(place, user_interests, travel_budget)
                         activities = [
                             ('Culture', place['culture']),
@@ -757,6 +778,7 @@ def place(request):
                         ]
                         top_activities = [(name.title(), score) for name, score in activities if score >= 4]
                         monthly_temps_json = get_monthly_temps(place['avg_temp_monthly'])
+                        is_favorite = any(dest['city'].lower() == place['city'].lower() and dest['country'].lower() == place['country'].lower() for dest in favorite_destinations)
                         home_country_places.append({
                             'city': place['city'],
                             'country': place['country'],
@@ -767,15 +789,16 @@ def place(request):
                             'top_activities': top_activities,
                             'budget': place['budget_level'],
                             'ideal_durations': eval(place['ideal_durations']) if isinstance(place['ideal_durations'], str) else place['ideal_durations'],
-                            'monthly_temps_json': json.dumps(monthly_temps_json),  # Convertir en chaîne JSON
-                            'interest_score': interest_score
+                            'monthly_temps_json': json.dumps(monthly_temps_json),
+                            'interest_score': interest_score,
+                            'is_favorite': is_favorite
                         })
 
         # Section 2 : Destinations pour vos projets de voyage
         for country_name in future_country_names:
             country_places = cities_df[cities_df['country'].str.lower() == country_name.lower()]
             for _, place in country_places.iterrows():
-                if is_place_visible(place, travel_budget):
+                if is_place_visible(place, travel_budget) and not is_passed_destination(place['city'], place['country'], passed_destinations):
                     interest_score = calculate_interest_score(place, user_interests, travel_budget)
                     activities = [
                         ('Culture', place['culture']),
@@ -792,6 +815,7 @@ def place(request):
                     monthly_temps_json = get_monthly_temps(place['avg_temp_monthly'])
                     country_code = [k for k, v in country_code_to_name.items() if v.lower() == country_name.lower()]
                     flag = flag_dict.get(country_code[0].lower() if country_code else '', '/static/images/avatars/avatar-default.webp')
+                    is_favorite = any(dest['city'].lower() == place['city'].lower() and dest['country'].lower() == place['country'].lower() for dest in favorite_destinations)
                     future_places.append({
                         'city': place['city'],
                         'country': place['country'],
@@ -803,18 +827,57 @@ def place(request):
                         'budget': place['budget_level'],
                         'ideal_durations': eval(place['ideal_durations']) if isinstance(place['ideal_durations'], str) else place['ideal_durations'],
                         'monthly_temps_json': json.dumps(monthly_temps_json),
-                        'interest_score': interest_score
+                        'interest_score': interest_score,
+                        'is_favorite': is_favorite
                     })
 
         # Section 3 : Places You Might Like
         if future_country_names:
             future_continents = cities_df[cities_df['country'].isin(future_country_names)]['region'].unique()
             similar_places_df = cities_df[
-                (cities_df['region'].isin(future_continents)) & 
+                (cities_df['region'].isin(future_continents)) &
                 (~cities_df['country'].isin(future_country_names + [country_code_to_name.get(nationality.lower(), '')]))
             ]
             similar_places_df = similar_places_df.head(100)
             for _, place in similar_places_df.iterrows():
+                if is_place_visible(place, travel_budget) and not is_passed_destination(place['city'], place['country'], passed_destinations):
+                    interest_score = calculate_interest_score(place, user_interests, travel_budget)
+                    activities = [
+                        ('Culture', place['culture']),
+                        ('Adventure', place['adventure']),
+                        ('Nature', place['nature']),
+                        ('Beaches', place['beaches']),
+                        ('Nightlife', place['nightlife']),
+                        ('Cuisine', place['cuisine']),
+                        ('Wellness', place['wellness']),
+                        ('Urban', place['urban']),
+                        ('Seclusion', place['seclusion'])
+                    ]
+                    top_activities = [(name.title(), score) for name, score in activities if score >= 4]
+                    monthly_temps_json = get_monthly_temps(place['avg_temp_monthly'])
+                    country_code = [k for k, v in country_code_to_name.items() if v.lower() == place['country'].lower()]
+                    flag = flag_dict.get(country_code[0].lower() if country_code else '', '/static/images/avatars/avatar-default.webp')
+                    is_favorite = any(dest['city'].lower() == place['city'].lower() and dest['country'].lower() == place['country'].lower() for dest in favorite_destinations)
+                    similar_places.append({
+                        'city': place['city'],
+                        'country': place['country'],
+                        'continent': place['region'],
+                        'description': place['short_description'],
+                        'flag': flag,
+                        'continent_image': get_random_continent_image(place['region']),
+                        'top_activities': top_activities,
+                        'budget': place['budget_level'],
+                        'ideal_durations': eval(place['ideal_durations']) if isinstance(place['ideal_durations'], str) else place['ideal_durations'],
+                        'monthly_temps_json': json.dumps(monthly_temps_json),
+                        'interest_score': interest_score,
+                        'is_favorite': is_favorite
+                    })
+
+        # Section 4 : Favorites
+        for dest in favorite_destinations:
+            place = cities_df[(cities_df['city'].str.lower() == dest['city'].lower()) & (cities_df['country'].str.lower() == dest['country'].lower())]
+            if not place.empty:
+                place = place.iloc[0]
                 if is_place_visible(place, travel_budget):
                     interest_score = calculate_interest_score(place, user_interests, travel_budget)
                     activities = [
@@ -832,7 +895,7 @@ def place(request):
                     monthly_temps_json = get_monthly_temps(place['avg_temp_monthly'])
                     country_code = [k for k, v in country_code_to_name.items() if v.lower() == place['country'].lower()]
                     flag = flag_dict.get(country_code[0].lower() if country_code else '', '/static/images/avatars/avatar-default.webp')
-                    similar_places.append({
+                    favorite_places.append({
                         'city': place['city'],
                         'country': place['country'],
                         'continent': place['region'],
@@ -843,30 +906,305 @@ def place(request):
                         'budget': place['budget_level'],
                         'ideal_durations': eval(place['ideal_durations']) if isinstance(place['ideal_durations'], str) else place['ideal_durations'],
                         'monthly_temps_json': json.dumps(monthly_temps_json),
-                        'interest_score': interest_score
+                        'interest_score': interest_score,
+                        'is_favorite': True
                     })
 
         # Trier les destinations par score d'intérêt
         home_country_places.sort(key=lambda x: x['interest_score'], reverse=True)
         future_places.sort(key=lambda x: x['interest_score'], reverse=True)
         similar_places.sort(key=lambda x: x['interest_score'], reverse=True)
+        favorite_places.sort(key=lambda x: x['interest_score'], reverse=True)
 
     # Contexte pour le template
     context = {
         'home_country_places': home_country_places,
         'future_places': future_places,
         'similar_places': similar_places,
+        'favorite_places': favorite_places,
         'countries': countries,
         'user_nationality': country_code_to_name.get(nationality.lower(), '') if user_profile else '',
         'future_countries': future_country_names if user_profile else [],
     }
     return render(request, 'place.html', context)
 
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_favorite(request):
+    """Handle adding a destination to favorites."""
+    db = get_db()
+    user = request.user
+    city = request.POST.get('city')
+    country = request.POST.get('country')
 
-# Groups pages
+    if not city or not country:
+        return JsonResponse({'success': False, 'message': 'Ville et pays requis'}, status=400)
+
+    # Vérifier si la destination existe dans le dataset
+    cities_df = pd.read_csv(r'D:\Django_Projet\Socialite\public\Cities.csv')
+    cities_df['city'] = cities_df['city'].str.strip().str.title()
+    cities_df['country'] = cities_df['country'].str.strip().str.title()
+    place = cities_df[(cities_df['city'].str.lower() == city.lower()) & (cities_df['country'].str.lower() == country.lower())]
+
+    if place.empty:
+        return JsonResponse({'success': False, 'message': 'Destination introuvable'}, status=404)
+
+    # Ajouter au profil utilisateur
+    db.profiles.update_one(
+        {'user_id': user.id},
+        {'$addToSet': {'favorite_destinations': {'city': city.title(), 'country': country.title()}}},
+        upsert=True
+    )
+
+    return JsonResponse({'success': True, 'message': 'Added to favorites"'})
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def remove_favorite(request):
+    """Handle removing a destination from favorites."""
+    db = get_db()
+    user = request.user
+    city = request.POST.get('city')
+    country = request.POST.get('country')
+
+    if not city or not country:
+        return JsonResponse({'success': False, 'message': 'Ville et pays requis'}, status=400)
+
+    # Supprimer du profil utilisateur
+    result = db.profiles.update_one(
+        {'user_id': user.id},
+        {'$pull': {'favorite_destinations': {'city': city.title(), 'country': country.title()}}}
+    )
+
+    if result.modified_count > 0:
+        return JsonResponse({'success': True, 'message': 'Removed from favorites'})
+    else:
+        return JsonResponse({'success': False, 'message': 'Favori non trouvé'}, status=404)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def pass_destination(request):
+    """Handle marking a destination as passed."""
+    db = get_db()
+    user = request.user
+    city = request.POST.get('city')
+    country = request.POST.get('country')
+
+    if not city or not country:
+        return JsonResponse({'success': False, 'message': 'Ville et pays requis'}, status=400)
+
+    # Vérifier si la destination existe dans le dataset
+    cities_df = pd.read_csv(r'D:\Django_Projet\Socialite\public\Cities.csv')
+    cities_df['city'] = cities_df['city'].str.strip().str.title()
+    cities_df['country'] = cities_df['country'].str.strip().str.title()
+    place = cities_df[(cities_df['city'].str.lower() == city.lower()) & (cities_df['country'].str.lower() == country.lower())]
+
+    if place.empty:
+        return JsonResponse({'success': False, 'message': 'Destination introuvable'}, status=404)
+
+    # Ajouter à passed_destinations
+    db.profiles.update_one(
+        {'user_id': user.id},
+        {'$addToSet': {'passed_destinations': {'city': city.title(), 'country': country.title()}}},
+        upsert=True
+    )
+
+    return JsonResponse({'success': True, 'message': 'Destination hider'})
+
+
+
+
 @login_required(login_url='/login/')
 def groups(request):
     return render(request, 'groups.html')
+
+
+@login_required(login_url='/login/')
+def work(request):
+    # Configurer le logger
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        filename='debug.log',
+        level=logging.DEBUG,
+        format='%(asctime)s %(levelname)s %(message)s'
+    )
+
+    # Connexion à MongoDB
+    db = get_db()
+    user = request.user
+    user_profile = db.profiles.find_one({'user_id': user.id})
+
+    # Initialiser les listes pour les recommandations
+    recommended_places = []
+    other_places = []
+
+    # Dictionnaire de mappage des codes ISO aux noms de pays
+    country_code_to_name = {
+        'af': 'Afghanistan', 'al': 'Albania', 'dz': 'Algeria', 'ad': 'Andorra',
+        'ao': 'Angola', 'ag': 'Antigua and Barbuda', 'ar': 'Argentina', 'am': 'Armenia',
+        'au': 'Australia', 'at': 'Austria', 'az': 'Azerbaijan', 'bs': 'Bahamas',
+        'bh': 'Bahrain', 'bd': 'Bangladesh', 'bb': 'Barbados', 'by': 'Belarus',
+        'be': 'Belgium', 'bz': 'Belize', 'bj': 'Benin', 'bt': 'Bhutan',
+        'bo': 'Bolivia', 'ba': 'Bosnia and Herzegovina', 'bw': 'Botswana', 'br': 'Brazil',
+        'bn': 'Brunei', 'bg': 'Bulgaria', 'bf': 'Burkina Faso', 'bi': 'Burundi',
+        'kh': 'Cambodia', 'cm': 'Cameroon', 'ca': 'Canada', 'cv': 'Cape Verde',
+        'cf': 'Central African Republic', 'td': 'Chad', 'cl': 'Chile', 'cn': 'China',
+        'co': 'Colombia', 'km': 'Comoros', 'cg': 'Congo', 'cd': 'Congo, Democratic Republic',
+        'cr': 'Costa Rica', 'hr': 'Croatia', 'cu': 'Cuba', 'cy': 'Cyprus',
+        'cz': 'Czech Republic', 'dk': 'Denmark', 'dj': 'Djibouti', 'dm': 'Dominica',
+        'do': 'Dominican Republic', 'ec': 'Ecuador', 'eg': 'Egypt', 'sv': 'El Salvador',
+        'gq': 'Equatorial Guinea', 'er': 'Eritrea', 'ee': 'Estonia', 'et': 'Ethiopia',
+        'fj': 'Fiji', 'fi': 'Finland', 'fr': 'France', 'ga': 'Gabon',
+        'gm': 'Gambia', 'ge': 'Georgia', 'de': 'Germany', 'gh': 'Ghana',
+        'gr': 'Greece', 'gd': 'Grenada', 'gt': 'Guatemala', 'gn': 'Guinea',
+        'gw': 'Guinea-Bissau', 'gy': 'Guyana', 'ht': 'Haiti', 'hn': 'Honduras',
+        'hu': 'Hungary', 'is': 'Iceland', 'in': 'India', 'id': 'Indonesia',
+        'ir': 'Iran', 'iq': 'Iraq', 'ie': 'Ireland', 'il': 'Israel',
+        'it': 'Italy', 'jm': 'Jamaica', 'jp': 'Japan', 'jo': 'Jordan',
+        'kz': 'Kazakhstan', 'ke': 'Kenya', 'ki': 'Kiribati', 'kp': 'North Korea',
+        'kr': 'South Korea', 'kw': 'Kuwait', 'kg': 'Kyrgyzstan', 'la': 'Laos',
+        'lv': 'Latvia', 'lb': 'Lebanon', 'ls': 'Lesotho', 'lr': 'Liberia',
+        'ly': 'Libya', 'li': 'Liechtenstein', 'lt': 'Lithuania', 'lu': 'Luxembourg',
+        'mg': 'Madagascar', 'mw': 'Malawi', 'my': 'Malaysia', 'mv': 'Maldives',
+        'ml': 'Mali', 'mt': 'Malta', 'mh': 'Marshall Islands', 'mr': 'Mauritania',
+        'mu': 'Mauritius', 'mx': 'Mexico', 'fm': 'Micronesia', 'md': 'Moldova',
+        'mc': 'Monaco', 'mn': 'Mongolia', 'me': 'Montenegro', 'ma': 'Morocco',
+        'mz': 'Mozambique', 'mm': 'Myanmar', 'na': 'Namibia', 'nr': 'Nauru',
+        'np': 'Nepal', 'nl': 'Netherlands', 'nz': 'New Zealand', 'ni': 'Nicaragua',
+        'ne': 'Niger', 'ng': 'Nigeria', 'no': 'Norway', 'om': 'Oman',
+        'pk': 'Pakistan', 'pw': 'Palau', 'pa': 'Panama', 'pg': 'Papua New Guinea',
+        'py': 'Paraguay', 'pe': 'Peru', 'ph': 'Philippines', 'pl': 'Poland',
+        'pt': 'Portugal', 'qa': 'Qatar', 'ro': 'Romania', 'ru': 'Russia',
+        'rw': 'Rwanda', 'kn': 'Saint Kitts and Nevis', 'lc': 'Saint Lucia',
+        'vc': 'Saint Vincent and the Grenadines', 'ws': 'Samoa', 'sm': 'San Marino',
+        'st': 'Sao Tome and Principe', 'sa': 'Saudi Arabia', 'sn': 'Senegal',
+        'rs': 'Serbia', 'sc': 'Seychelles', 'sl': 'Sierra Leone', 'sg': 'Singapore',
+        'sk': 'Slovakia', 'si': 'Slovenia', 'sb': 'Solomon Islands', 'so': 'Somalia',
+        'za': 'South Africa', 'ss': 'South Sudan', 'es': 'Spain', 'lk': 'Sri Lanka',
+        'sd': 'Sudan', 'sr': 'Suriname', 'se': 'Sweden', 'ch': 'Switzerland',
+        'sy': 'Syria', 'tw': 'Taiwan', 'tj': 'Tajikistan', 'tz': 'Tanzania',
+        'th': 'Thailand', 'tl': 'Timor-Leste', 'tg': 'Togo', 'to': 'Tonga',
+        'tt': 'Trinidad and Tobago', 'tn': 'Tunisia', 'tr': 'Turkey', 'tm': 'Turkmenistan',
+        'tv': 'Tuvalu', 'ug': 'Uganda', 'ua': 'Ukraine', 'ae': 'United Arab Emirates',
+        'gb': 'United Kingdom', 'us': 'United States', 'uy': 'Uruguay', 'uz': 'Uzbekistan',
+        'vu': 'Vanuatu', 've': 'Venezuela', 'vn': 'Vietnam', 'ye': 'Yemen',
+        'zm': 'Zambia', 'zw': 'Zimbabwe', 'gl': 'Greenland'
+    }
+
+    if user_profile and 'work' in user_profile.get('interests', []):
+        nationality = user_profile.get('nationality', '')
+        future_countries = user_profile.get('future_countries', [])
+        travel_budget = user_profile.get('travel_budget', '').lower()
+
+        # Charger le dataset workation.csv
+        workation_df = pd.read_csv(r"D:\Django_Projet\Socialite\public\workation.csv")
+        print(workation_df.columns.tolist())
+        # Normaliser les colonnes texte
+        workation_df['City'] = workation_df['City'].str.strip().str.title()
+        workation_df['Country'] = workation_df['Country'].str.strip().str.title()
+
+        # Convertir les codes ISO en noms complets pour future_countries
+        future_country_names = [country_code_to_name.get(code.lower(), '') for code in future_countries]
+        future_country_names = [name for name in future_country_names if name]
+        nationality_name = country_code_to_name.get(nationality.lower(), '')
+
+        # Chemin vers les images
+        work_images_base = r"D:\Django_Projet\Socialite\public\assets\work"
+        def get_random_work_image():
+            images = [f for f in os.listdir(work_images_base) if f.lower().endswith('.jpg')]
+            if images:
+                chosen_image = random.choice(images)
+                return f"/assets/work/{chosen_image}"
+            logger.warning(f"No images found in directory: {work_images_base}")
+            return "/static/images/events/img-1.webp"
+
+        # Mappage du budget
+        budget_mapping = {
+            'economic': 'Budget',
+            'medium': 'Mid-range',
+            'comfort': 'Mid-range',
+            'luxury': 'Luxury'
+        }
+        target_budget = budget_mapping.get(travel_budget, 'Mid-range')
+
+        def calculate_work_score(row, user_budget):
+            # Normaliser les valeurs pour le score
+            wifi_score = row['Remote connection: Average WiFi speed (Mbps per second)'] / 54.0 * 40  # Max WiFi speed dans le dataset est 54
+            coworking_score = row['Co-working spaces: Number of co-working spaces'] / 165.0 * 40  # Max coworking spaces est 165
+            coffee_cost = row['Caffeine: Average price of buying a coffee']
+            coffee_score = (2.0 - coffee_cost) / 2.0 * 20 if coffee_cost <= 2.0 else 0  # Max coffee price ~2.0
+
+            # Score de budget
+            budget_hierarchy = {'Budget': 1, 'Mid-range': 2, 'Luxury': 3}
+            user_budget_level = budget_hierarchy.get(target_budget, 2)
+            accommodation = row['Accommodation: Average price of 1 bedroom apartment per month']
+            if user_budget in ['comfort', 'luxury'] and accommodation <= 800:
+                budget_score = 30 if accommodation <= 400 else 15
+            elif user_budget in ['economic', 'medium'] and accommodation <= 400:
+                budget_score = 30
+            else:
+                budget_score = 0
+
+            total_score = wifi_score + coworking_score + coffee_score + budget_score
+            return round(total_score, 1)
+
+        # Filtrer les destinations recommandées (pays futurs et nationalité)
+        recommended_df = workation_df[
+            workation_df['Country'].isin(future_country_names + [nationality_name])
+        ].copy()
+        recommended_df['work_score'] = recommended_df.apply(
+            lambda row: calculate_work_score(row, travel_budget), axis=1
+        )
+
+        for _, row in recommended_df.iterrows():
+            recommended_places.append({
+                'city': row['City'],
+                'country': row['Country'],
+                'wifi_speed': row['Remote connection: Average WiFi speed (Mbps per second)'],
+                'coworking_spaces': row['Co-working spaces: Number of co-working spaces'],
+                'coffee_price': row['Caffeine: Average price of buying a coffee'],
+                'accommodation_price': row['Accommodation: Average price of 1 bedroom apartment per month'],
+                'work_score': row['work_score'],
+                'image': get_random_work_image()
+            })
+
+        # Autres destinations, triées par score
+        other_df = workation_df[
+            ~workation_df['Country'].isin(future_country_names + [nationality_name])
+        ].copy()
+        other_df['work_score'] = other_df.apply(
+            lambda row: calculate_work_score(row, travel_budget), axis=1
+        )
+        other_df = other_df.sort_values(by='work_score', ascending=False)
+
+        for _, row in other_df.iterrows():
+            other_places.append({
+                'city': row['City'],
+                'country': row['Country'],
+                'wifi_speed': row['Remote connection: Average WiFi speed (Mbps per second)'],
+                'coworking_spaces': row['Co-working spaces: Number of co-working spaces'],
+                'coffee_price': row['Caffeine: Average price of buying a coffee'],
+                'accommodation_price': row['Accommodation: Average price of 1 bedroom apartment per month'],
+                'work_score': row['work_score'],
+                'image': get_random_work_image()
+            })
+
+        # Trier les recommandations par score
+        recommended_places.sort(key=lambda x: x['work_score'], reverse=True)
+
+    # Contexte pour le template
+    context = {
+        'recommended_places': recommended_places,
+        'other_places': other_places,
+        'user_nationality': nationality_name if user_profile else '',
+        'future_countries': future_country_names if user_profile else [],
+    }
+
+    return render(request, 'work.html', context)
+
 
 @login_required(login_url='/login/')
 def groups_2(request):
