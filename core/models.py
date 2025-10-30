@@ -5,6 +5,13 @@ from django.dispatch import receiver
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+
+
+# ============================================
+# PROFIL UTILISATEUR
+# ============================================
 
 class UserProfile(models.Model):
     # Lien avec l'utilisateur Django
@@ -71,19 +78,227 @@ class UserProfile(models.Model):
 
 
 # ============================================
-# SIGNAL IMPORTANT : Créer le profil automatiquement
+# SYSTÈME D'ABONNEMENT
 # ============================================
-@receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
+
+class Subscription(models.Model):
     """
-    Signal pour créer automatiquement un profil quand un utilisateur est créé
+    Gestion des abonnements utilisateurs (FREE, PREMIUM, BUSINESS)
     """
-    if created:
-        UserProfile.objects.create(user=instance)
+    PLAN_CHOICES = [
+        ('FREE', 'Gratuit'),
+        ('PREMIUM', 'Premium'),
+        ('BUSINESS', 'Business'),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('STRIPE', 'Stripe (International)'),
+        
+        ('MANUAL', 'Manuel (Admin)'),
+    ]
+    
+    # Relations
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
+    
+    # Plan et statut
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='FREE')
+    is_active = models.BooleanField(default=True)
+    
+    # Dates
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    trial_end_date = models.DateTimeField(null=True, blank=True)
+    
+    # Paiement
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='STRIPE')
+    stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
+    stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
+
+    
+    # Prix payé (pour historique)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField(max_length=3, default='EUR')
+    
+    # Auto-renouvellement
+    auto_renew = models.BooleanField(default=True)
+    
+    # Dates de suivi
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Abonnement'
+        verbose_name_plural = 'Abonnements'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_plan_display()}"
+    
+    @property
+    def is_premium(self):
+        """Vérifie si l'utilisateur a Premium ou Business"""
+        return self.plan in ['PREMIUM', 'BUSINESS'] and self.is_active
+    
+    @property
+    def is_business(self):
+        """Vérifie si l'utilisateur a Business"""
+        return self.plan == 'BUSINESS' and self.is_active
+    
+    @property
+    def is_expired(self):
+        """Vérifie si l'abonnement a expiré"""
+        if not self.end_date:
+            return False
+        return timezone.now() > self.end_date
+    
+    def cancel(self):
+        """Annuler l'abonnement"""
+        self.auto_renew = False
+        self.save()
+    
+    def upgrade_to_premium(self, duration_months=1, payment_method='STRIPE'):
+        """Passer à Premium"""
+        self.plan = 'PREMIUM'
+        self.is_active = True
+        self.payment_method = payment_method
+        self.start_date = timezone.now()
+        self.end_date = timezone.now() + relativedelta(months=duration_months)
+        self.save()
+    
+    def upgrade_to_business(self, duration_months=1, payment_method='STRIPE'):
+        """Passer à Business"""
+        self.plan = 'BUSINESS'
+        self.is_active = True
+        self.payment_method = payment_method
+        self.start_date = timezone.now()
+        self.end_date = timezone.now() + relativedelta(months=duration_months)
+        self.save()
+    
+    def downgrade_to_free(self):
+        """Retourner à Free"""
+        self.plan = 'FREE'
+        self.is_active = True
+        self.end_date = None
+        self.auto_renew = False
+        self.save()
+
+
+class UsageQuota(models.Model):
+    """
+    Suivi des quotas d'utilisation pour les comptes gratuits
+    """
+    # Relations
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='quota')
+    
+    # Compteurs mensuels (reset chaque mois)
+    posts_this_month = models.IntegerField(default=0)
+    messages_this_month = models.IntegerField(default=0)
+    events_created_this_month = models.IntegerField(default=0)
+    
+    # Compteurs permanents
+    trips_created = models.IntegerField(default=0)
+    groups_joined = models.IntegerField(default=0)
+    
+    # Date de dernier reset
+    last_reset = models.DateTimeField(auto_now_add=True)
+    
+    # Dates
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Quota d\'utilisation'
+        verbose_name_plural = 'Quotas d\'utilisation'
+    
+    def __str__(self):
+        return f"Quota de {self.user.username}"
+    
+    def reset_monthly_quotas(self):
+        """Réinitialiser les compteurs mensuels"""
+        self.posts_this_month = 0
+        self.messages_this_month = 0
+        self.events_created_this_month = 0
+        self.last_reset = timezone.now()
+        self.save()
+    
+    def can_create_post(self):
+        """Vérifier si l'utilisateur peut créer un post"""
+        if self.user.subscription.is_premium:
+            return True
+        return self.posts_this_month < 10
+    
+    def can_send_message(self):
+        """Vérifier si l'utilisateur peut envoyer un message"""
+        if self.user.subscription.is_premium:
+            return True
+        return self.messages_this_month < 50
+    
+    def can_create_trip(self):
+        """Vérifier si l'utilisateur peut créer un voyage"""
+        if self.user.subscription.is_premium:
+            return True
+        return self.trips_created < 3
+    
+    def can_join_group(self):
+        """Vérifier si l'utilisateur peut rejoindre un groupe"""
+        if self.user.subscription.is_premium:
+            return True
+        return self.groups_joined < 2
+    
+    def can_create_event(self):
+        """Vérifier si l'utilisateur peut créer un événement"""
+        if self.user.subscription.is_premium:
+            return True
+        return self.events_created_this_month < 1
+
+
+class PaymentHistory(models.Model):
+    """
+    Historique des paiements
+    """
+    STATUS_CHOICES = [
+        ('PENDING', 'En attente'),
+        ('COMPLETED', 'Complété'),
+        ('FAILED', 'Échoué'),
+        ('REFUNDED', 'Remboursé'),
+    ]
+    
+    # Relations
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    subscription = models.ForeignKey(Subscription, on_delete=models.SET_NULL, null=True)
+    
+    # Détails du paiement
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default='EUR')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    
+    # IDs externes
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
+    
+    
+    # Plan acheté
+    plan_purchased = models.CharField(max_length=20)
+    duration_months = models.IntegerField(default=1)
+    
+    # Métadonnées
+    payment_method = models.CharField(max_length=20)
+    invoice_url = models.URLField(blank=True, null=True)
+    
+    # Dates
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Historique de paiement'
+        verbose_name_plural = 'Historiques de paiements'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.amount}{self.currency} - {self.get_status_display()}"
 
 
 # ============================================
-# MODÈLES POUR LE SYSTÈME DE POSTS
+# SYSTÈME DE POSTS
 # ============================================
 
 class Post(models.Model):
@@ -116,28 +331,27 @@ class Post(models.Model):
     location = models.CharField(max_length=200, blank=True, null=True, help_text="Lieu du post")
     
     # Statistiques (dénormalisées pour performance)
-    # Ces compteurs sont mis à jour automatiquement pour éviter des requêtes SQL lourdes
     likes_count = models.IntegerField(default=0, help_text="Nombre de likes")
     comments_count = models.IntegerField(default=0, help_text="Nombre de commentaires")
     shares_count = models.IntegerField(default=0, help_text="Nombre de partages")
     
     # Visibilité du post
     VISIBILITY_CHOICES = [
-        ('public', 'Public'),          # Tout le monde peut voir
-        ('friends', 'Amis seulement'), # Seulement les amis
-        ('private', 'Privé'),          # Seulement moi
+        ('public', 'Public'),
+        ('friends', 'Amis seulement'),
+        ('private', 'Privé'),
     ]
     visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='public')
     
     # Dates
-    created_at = models.DateTimeField(auto_now_add=True)  # Date de création (automatique)
-    updated_at = models.DateTimeField(auto_now=True)      # Date de modification (automatique)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     # Post partagé (si c'est un partage d'un autre post)
     shared_post = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='shares')
     
     class Meta:
-        ordering = ['-created_at']  # Les posts les plus récents en premier
+        ordering = ['-created_at']
         verbose_name = 'Publication'
         verbose_name_plural = 'Publications'
     
@@ -158,8 +372,6 @@ class Comment(models.Model):
     content = models.TextField(help_text="Texte du commentaire")
     
     # Commentaire parent (pour les réponses)
-    # Si parent=None, c'est un commentaire principal
-    # Sinon, c'est une réponse à un autre commentaire
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     
     # Image optionnelle dans le commentaire
@@ -173,7 +385,7 @@ class Comment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        ordering = ['created_at']  # Les commentaires les plus anciens en premier
+        ordering = ['created_at']
         verbose_name = 'Commentaire'
         verbose_name_plural = 'Commentaires'
     
@@ -199,7 +411,7 @@ class Reaction(models.Model):
     # Relations
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reactions')
     
-    # Réaction sur un post OU un commentaire (pas les deux en même temps)
+    # Réaction sur un post OU un commentaire
     post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True, blank=True, related_name='reactions')
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE, null=True, blank=True, related_name='reactions')
     
@@ -210,8 +422,6 @@ class Reaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        # Contrainte : un utilisateur ne peut réagir qu'une fois par post/commentaire
-        # Mais il peut changer sa réaction
         unique_together = [
             ['user', 'post'],
             ['user', 'comment']
@@ -229,7 +439,6 @@ class Reaction(models.Model):
 class Share(models.Model):
     """
     Modèle pour le partage de posts.
-    Permet de tracker qui a partagé quel post et quand.
     """
     # Utilisateur qui partage le post
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shared_posts')
@@ -237,7 +446,7 @@ class Share(models.Model):
     # Post original qui est partagé
     original_post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_shares')
     
-    # Message optionnel lors du partage (comme sur Facebook/Twitter)
+    # Message optionnel lors du partage
     message = models.TextField(blank=True, null=True, help_text="Message d'accompagnement")
     
     # Date du partage
@@ -255,6 +464,7 @@ class Share(models.Model):
 # ============================================
 # AVIS (REVIEWS)
 # ============================================
+
 class Avis(models.Model):
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='avis_left')
     reviewee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='avis_received')
@@ -285,7 +495,6 @@ class Avis(models.Model):
             if (self.reviewee_id not in following_r) or (self.reviewer_id not in following_e):
                 raise ValidationError("Un suivi mutuel est requis pour laisser un avis.")
         except Exception:
-            # If mongo unavailable, be conservative: block review
             raise ValidationError("Impossible de vérifier le suivi mutuel pour le moment.")
 
     def save(self, *args, **kwargs):

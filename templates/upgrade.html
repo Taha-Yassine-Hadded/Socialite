@@ -1,240 +1,233 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Socialite - Upgrade{% endblock %}
-
 {% block content %}
-
-<div class="max-w-4xl mx-auto max-lg:px-4">
-
-
-    <div class="lg:py-20 py-12">
-        <div class="text-center">
-            <ion-icon name="sparkles-sharp" class="text-5xl mb-6 text-sky-500 opacity-70 rotate-12"></ion-icon>
-            <h1
-                class="lg:text-5xl lg:font-bold md:text-3xl text-xl font-semibold bg-gradient-to-tr from-indigo-500 to-sky-400 bg-clip-text !text-transparent leading-relaxed">
-                With Socialite Premium</h1>
-            <p class="text-sm text-gray-500 mt-2 dark:text-white/80"> Exclusive features and benefits on Socialite are
-                accessible to you. </p>
-        </div>
-
-
-        <!-- pricing lebel with slider -->
-        <div class="relative lg:mt-12 mt-8 max-w-2xl mx-auto" tabindex="-1" uk-slider="finite: true">
-
-            <div class="overflow-hidden uk-slider-container py-2">
-
-                <ul class="-ml-2 uk-slider-items w-[calc(100%+10px)]">
-
-                    <li class="lg:w-1/3 w-1/2 pr-[10px]">
-                        <label for="weekly">
-                            <input type="radio" name="radio-membership" id="weekly" class="peer appearance-none hidden"
-                                checked />
-                            <div
-                                class="relative p-4 bg-white shadow -sm rounded-xl cursor-pointer peer-checked:[&_.active]:block dark:bg-dark3">
-                                <div class="mb-4 text-sm"> Weekly </div>
-                                <h2 class="text-3xl font-bold text-black relative px-2 dark:text-white"> <span
-                                        class="text-sm absolute top-1.5 -left-1 font-normal text-gray-700">$</span>
-                                    12.99 </h2>
-                                <ion-icon name="checkmark-circle"
-                                    class="hidden active absolute top-0 right-0 m-4 text-2xl text-blue-600 uk-animation-scale-up"></ion-icon>
-                            </div>
-                        </label>
-                    </li>
-                    <li class="lg:w-1/3 w-1/2 pr-[10px]">
-                        <label for="monthly">
-                            <input type="radio" name="radio-membership" id="monthly"
-                                class="peer appearance-none hidden" />
-                            <div
-                                class="relative p-4 bg-white shadow -sm rounded-xl cursor-pointer peer-checked:[&_.active]:block dark:bg-dark3 ring ring-blue-600 ring-offset-2 dark:ring-offset-slate-900">
-                                <div class="mb-4 text-sm"> Monthly </div>
-                                <h2 class="text-3xl font-bold text-black relative px-2 dark:text-white"> <span
-                                        class="text-xs absolute top-1.5 -left-1 font-normal text-gray-400">$</span>
-                                    32.99 </h2>
-                                <ion-icon name="checkmark-circle"
-                                    class="hidden active absolute top-0 right-0 m-4 text-2xl text-blue-600 uk-animation-scale-up"></ion-icon>
-                            </div>
-                        </label>
-                    </li>
-                    <li class="lg:w-1/3 w-1/2 pr-[10px]">
-                        <label for="yearly">
-                            <input type="radio" name="radio-membership" id="yearly"
-                                class="peer appearance-none hidden" />
-                            <div
-                                class="relative p-4 bg-white shadow -sm rounded-xl cursor-pointer peer-checked:[&_.active]:block dark:bg-dark3">
-                                <div class="mb-4 text-sm"> Yearly </div>
-                                <h2 class="text-3xl font-bold text-black relative px-2 dark:text-white"> <span
-                                        class="text-xs absolute top-1.5 -left-1 font-normal text-gray-400">$</span>
-                                    62.99 </h2>
-                                <ion-icon name="checkmark-circle"
-                                    class="hidden active absolute top-0 right-0 m-4 text-2xl text-blue-600 uk-animation-scale-up"></ion-icon>
-                            </div>
-                        </label>
-                    </li>
-                    <li class="lg:w-1/3 w-1/2 pr-[10px]">
-                        <label for="forever">
-                            <input type="radio" name="radio-membership" id="forever"
-                                class="peer appearance-none hidden" />
-                            <div
-                                class="relative p-4 bg-white shadow -sm rounded-xl cursor-pointer peer-checked:[&_.active]:block dark:bg-dark3">
-                                <div class="mb-4 text-sm"> Forever </div>
-                                <h2 class="text-3xl font-bold text-black relative px-2 dark:text-white"> <span
-                                        class="text-sm absolute top-1.5 -left-1 font-normal text-gray-700">$</span>
-                                    92.99 </h2>
-                                <ion-icon name="checkmark-circle"
-                                    class="hidden active absolute top-0 right-0 m-4 text-2xl text-blue-600 uk-animation-scale-up"></ion-icon>
-                            </div>
-                        </label>
-                    </li>
-                </ul>
-
-            </div>
-
-            <!-- slide nav -->
-            <ul class="flex flex-wrap justify-center my-7 uk-dotnav uk-slider-nav gap-2.5"></ul>
-
-
-            <a class="hidden absolute -translate-y-1/2 bg-white rounded-full top-1/2 -left-4 flex w-8 h-8 p-2.5 place-items-center"
-                href="#" uk-slidenav-previous uk-slider-item="previous"></a>
-            <a class="hidden absolute -right-4 -translate-y-1/2 bg-white rounded-full top-1/2 flex w-8 h-8 p-2.5 place-items-center"
-                href="#" uk-slidenav-next uk-slider-item="next"></a>
-
-        </div>
-
-
-        <!-- pricing lebel with out slider ( remove the hidden class)-->
-        <div class="grid md:grid-cols-3 grid-cols-2 gap-5 max-w-2xl mx-auto mt-10 hidden">
-
-            <label for="monthly">
-                <input type="radio" name="radio" id="monthly" class="peer appearance-none hidden" checked />
-                <div class="relative p-4 bg-white shadow-sm rounded-xl cursor-pointer peer-checked:[&_.active]:block">
-                    <div class="mb-4 text-sm"> Monthly </div>
-                    <h2 class="text-3xl font-bold text-black relative px-2"> <span
-                            class="text-sm absolute top-1.5 -left-1 font-normal text-gray-700">$</span> 12.99 </h2>
-                    <ion-icon name="checkmark-circle"
-                        class="hidden active absolute top-0 right-0 m-4 text-2xl text-blue-600 uk-animation-scale-up"></ion-icon>
-                </div>
-            </label>
-            <label for="yearly">
-                <input type="radio" name="radio" id="yearly" class="peer appearance-none hidden" />
-                <div class="relative p-4 bg-white shadow-sm rounded-xl cursor-pointer peer-checked:[&_.active]:block">
-                    <div class="mb-4 text-sm"> Yearly </div>
-                    <h2 class="text-3xl font-bold text-black relative px-2"> <span
-                            class="text-sm absolute top-1.5 -left-1 font-normal text-gray-700">$</span> 32.99 </h2>
-                    <ion-icon name="checkmark-circle"
-                        class="hidden active absolute top-0 right-0 m-4 text-2xl text-blue-600 uk-animation-scale-up"></ion-icon>
-                </div>
-            </label>
-            <label for="forever">
-                <input type="radio" name="radio" id="forever" class="peer appearance-none hidden" />
-                <div class="relative p-4 bg-white shadow-sm rounded-xl cursor-pointer peer-checked:[&_.active]:block">
-                    <div class="mb-4 text-sm"> Forever </div>
-                    <h2 class="text-3xl font-bold text-black relative px-2"> <span
-                            class="text-sm absolute top-1.5 -left-1 font-normal text-gray-700">$</span> 92.99 </h2>
-                    <ion-icon name="checkmark-circle"
-                        class="hidden active absolute top-0 right-0 m-4 text-2xl text-blue-600 uk-animation-scale-up"></ion-icon>
-                </div>
-            </label>
-
-        </div>
-
-
-        <div class="md:p-8 p-5 bg-white shadow-sm rounded-xl mt-16 dark:bg-dark3">
-
-            <h1 class="text-base font-medium text-black dark:text-white">Why Choose Premium Membership </h1>
-
-            <div class=" text-sm text-gray-500 grid md:grid-cols-2 grid-cols-3 gap-10 mt-8 dark:text-white/80">
-
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="camera"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-sky-100 text-sky-500 dark:bg-sky-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Stories </h5>
-                        <p class="mt-1 max-md:hidden"> Post moments your everyday life that disappear after 24 hours
-                        </p>
-                    </div>
-                </div>
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="image"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-teal-100 text-teal-500 dark:bg-teal-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Images </h5>
-                        <p class="mt-1 max-md:hidden"> You can upload Unlimited photes and share with your friends </p>
-                    </div>
-                </div>
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="chatbox"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Messages </h5>
-                        <p class="mt-1 max-md:hidden"> Send photos, videos, and messages privately to your friends or
-                            groups </p>
-                    </div>
-                </div>
-
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="videocam"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-pink-100 text-pink-500 dark:bg-pink-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Shorts </h5>
-                        <p class="mt-1 max-md:hidden"> Create and share short, entertaining videos with music, filters,
-                            and effects </p>
-                    </div>
-                </div>
-
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="compass"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-purple-100 text-purple-500 dark:bg-purple-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Explore </h5>
-                        <p class="mt-1 max-md:hidden"> Discover content and creators based on their interests </p>
-                    </div>
-                </div>
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="bookmark"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-green-100 text-green-500 dark:bg-green-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Bookmark </h5>
-                        <p class="mt-1 max-md:hidden"> Create collections of saved posts based on themes, topics, or
-                            categories. </p>
-                    </div>
-                </div>
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="shield"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-red-100 text-red-500 dark:bg-red-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Privacy </h5>
-                        <p class="mt-1 max-md:hidden"> Make your account visible only to people who follow you </p>
-                    </div>
-                </div>
-                <div class="flex gap-5 max-md:items-center max-md:flex-col">
-                    <ion-icon name="cart"
-                        class="flex shrink-0 p-2 text-2xl rounded-full bg-sky-100 text-sky-500 dark:bg-sky-500/20"></ion-icon>
-                    <div>
-                        <h5 class="text-black text-base font-medium dark:text-white"> Shopping </h5>
-                        <p class="mt-1 max-md:hidden"> Browse and buy products from your favorite brands and creators
-                        </p>
-                    </div>
-                </div>
-
-
-            </div>
-
-        </div>
-
-
-        <div class="py-10 flex justify-between">
-
-            <p class="max-w-xl mx-auto text-center text-sm text-gray-500dark:text-white/80"> Socialite Premium is the
-                ultimate way to enhance your Socialite experience and connect with your passions. Try it free for 30
-                days and cancel anytime. </p>
-
-        </div>
-
-
+<div class="max-w-7xl mx-auto px-4 py-12">
+    <!-- Header -->
+    <div class="text-center mb-16">
+        <h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            Passez à la vitesse supérieure 🚀
+        </h1>
+        <p class="text-xl text-gray-600 dark:text-gray-300">
+            Débloquez toutes les fonctionnalités premium et partagez vos voyages sans limites
+        </p>
     </div>
 
+    <!-- Pricing Cards -->
+    <div class="grid md:grid-cols-3 gap-8 mb-16">
+        
+        <!-- FREE -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-2 border-gray-200 dark:border-gray-700">
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-4">🆓</div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Gratuit</h3>
+                <div class="text-4xl font-bold text-gray-900 dark:text-white">0€<span class="text-lg text-gray-500">/mois</span></div>
+            </div>
+            
+            <ul class="space-y-4 mb-8">
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300">10 posts par mois</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300">3 voyages max</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300">50 messages/mois</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-green-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300">2 groupes max</span>
+                </li>
+            </ul>
+            
+            <button disabled class="w-full bg-gray-300 text-gray-600 py-3 rounded-lg font-semibold cursor-not-allowed">
+                Votre plan actuel
+            </button>
+        </div>
 
+        <!-- PREMIUM -->
+        <div class="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-2xl p-8 transform scale-105 relative">
+            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-yellow-600 text-white px-4 py-1 rounded-full text-sm font-bold">
+                🌟 POPULAIRE
+            </div>
+            
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-4">⭐</div>
+                <h3 class="text-2xl font-bold text-white mb-2">Premium</h3>
+                <div class="text-4xl font-bold text-white">9.99€<span class="text-lg">/mois</span></div>
+                <p class="text-white/80 mt-2">ou 99€/an (économisez 20%)</p>
+            </div>
+            
+            <ul class="space-y-4 mb-8">
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-white mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Posts illimités</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-white mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Voyages illimités</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-white mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Carte mondiale interactive 🗺️</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-white mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Statistiques détaillées 📊</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-white mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Recommandations IA 🤖</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-white mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Sans publicité 🚫</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-white mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Badge Premium 🏅</span>
+                </li>
+            </ul>
+            
+            <div class="space-y-3">
+                <button onclick="selectPlan('premium', 'monthly')" class="w-full bg-white text-orange-600 py-3 rounded-lg font-bold hover:bg-orange-50 transition">
+                    Passer à Premium (Mensuel)
+                </button>
+                <button onclick="selectPlan('premium', 'yearly')" class="w-full bg-white/90 text-orange-600 py-2 rounded-lg font-semibold hover:bg-orange-50 transition text-sm">
+                    Passer à Premium (Annuel - 20% off)
+                </button>
+            </div>
+        </div>
+
+        <!-- BUSINESS -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-2 border-blue-500">
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-4">🏢</div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Business</h3>
+                <div class="text-4xl font-bold text-gray-900 dark:text-white">29.99€<span class="text-lg text-gray-500">/mois</span></div>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">ou 299€/an (économisez 17%)</p>
+            </div>
+            
+            <ul class="space-y-4 mb-8">
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Tout Premium inclus ✅</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Badge vérifié ✓</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Analytics avancés 📈</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Publication programmée ⏰</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-6 h-6 text-blue-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Support 24/7 ☎️</span>
+                </li>
+            </ul>
+            
+            <div class="space-y-3">
+                <button onclick="selectPlan('business', 'monthly')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition">
+                    Passer à Business (Mensuel)
+                </button>
+                <button onclick="selectPlan('business', 'yearly')" class="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition text-sm">
+                    Passer à Business (Annuel - 17% off)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Method -->
+    <div class="text-center mb-8">
+        <p class="text-gray-600 dark:text-gray-400 mb-4">Paiement sécurisé par :</p>
+        <div class="inline-block bg-white dark:bg-gray-800 px-8 py-4 rounded-lg shadow-lg">
+            <span class="font-bold text-xl text-blue-600">💳 Stripe</span>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="max-w-3xl mx-auto mt-16">
+        <h2 class="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+            Questions fréquentes
+        </h2>
+        <div class="space-y-4">
+            <details class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+                <summary class="font-semibold text-lg cursor-pointer text-gray-900 dark:text-white">
+                    Comment puis-je annuler mon abonnement ?
+                </summary>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">
+                    Vous pouvez annuler à tout moment depuis votre page de gestion d'abonnement. 
+                    Vous garderez l'accès Premium jusqu'à la fin de votre période payée.
+                </p>
+            </details>
+            
+            <details class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+                <summary class="font-semibold text-lg cursor-pointer text-gray-900 dark:text-white">
+                    Puis-je passer de Premium à Business ?
+                </summary>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">
+                    Oui ! Vous pouvez upgrader à tout moment. Le montant sera calculé au prorata.
+                </p>
+            </details>
+            
+            <details class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-md">
+                <summary class="font-semibold text-lg cursor-pointer text-gray-900 dark:text-white">
+                    Quels modes de paiement acceptez-vous ?
+                </summary>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">
+                    Nous acceptons toutes les cartes bancaires via Stripe (Visa, Mastercard, American Express).
+                </p>
+            </details>
+        </div>
+    </div>
 </div>
 
+<script>
+function selectPlan(plan, duration = 'monthly') {
+    console.log(`[UPGRADE] Selected plan: ${plan} - ${duration}`);
+    
+    // Rediriger vers la page de paiement avec le plan et la durée
+    window.location.href = `/subscription/checkout/${plan}/${duration}/`;
+}
+</script>
 {% endblock %}
