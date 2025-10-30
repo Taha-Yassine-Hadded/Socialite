@@ -2,79 +2,141 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Main page
+    # ============================================
+    # MAIN PAGE
+    # ============================================
     path('', views.feed, name='feed'),
     
-    # Authentication
-    path('api/user/', views.user_info, name='user_info'),  # ← NOUVELLE ROUTE user connecté chabeb
+    # ============================================
+    # AUTHENTICATION
+    # ============================================
+    path('api/user/', views.user_info, name='user_info'),
     path('login/', views.login_page, name='login_page'),
-    path('register/',  views.register_page, name='register_page'),
-    path('logout/', views.logout_view, name='logout'),  # ← AJOUTEZ CETTE LIGNE
-    # Timeline pages
+    path('register/', views.register_page, name='register_page'),
+    path('logout/', views.logout_view, name='logout'),
+    
+    # ============================================
+    # SOCIAL - FOLLOW/UNFOLLOW
+    # ============================================
     path('follow-unfollow/', views.follow_unfollow, name='follow_unfollow'),
-
+    
+    # ============================================
+    # TIMELINE PAGES
+    # ============================================
     path('timeline/', views.timeline, name='timeline'),
     path('timeline-event/', views.timeline_event, name='timeline_event'),
     path('timeline-funding/', views.timeline_funding, name='timeline_funding'),
     path('timeline-group/', views.timeline_group, name='timeline_group'),
     path('timeline-page/', views.timeline_page, name='timeline_page'),
     
-    # Feed
+    # ============================================
+    # FEED
+    # ============================================
     path('feed/', views.feed, name='feed'),
     
-    # Groups
+    # ============================================
+    # GROUPS
+    # ============================================
     path('groups/', views.groups, name='groups'),
     path('groups-2/', views.groups_2, name='groups_2'),
     
-    # Pages
+    # ============================================
+    # PAGES
+    # ============================================
     path('pages/', views.pages, name='pages'),
     
-    # Messages
+    # ============================================
+    # MESSAGES
+    # ============================================
     path('messages/', views.messages_view, name='messages'),
     
-    # Events
+    # ============================================
+    # EVENTS
+    # ============================================
     path('event/', views.event, name='event'),
     path('event-2/', views.event_2, name='event_2'),
     
-    # Market/Shopping
+    # ============================================
+    # MARKET/SHOPPING
+    # ============================================
     path('market/', views.market, name='market'),
     path('product-view-1/', views.product_view_1, name='product_view_1'),
     path('product-view-2/', views.product_view_2, name='product_view_2'),
     
-    # Videos
+    # ============================================
+    # VIDEOS
+    # ============================================
     path('video/', views.video, name='video'),
     path('video-watch/', views.video_watch, name='video_watch'),
     
-    # Blog
+    # ============================================
+    # BLOG
+    # ============================================
     path('blog/', views.blog, name='blog'),
     path('blog-2/', views.blog_2, name='blog_2'),
     path('blog-read/', views.blog_read, name='blog_read'),
     
-    # Games
+    # ============================================
+    # GAMES
+    # ============================================
     path('games/', views.games, name='games'),
     
-    # Funding
+    # ============================================
+    # FUNDING
+    # ============================================
     path('funding/', views.funding, name='funding'),
     
-    # Settings
+    # ============================================
+    # SETTINGS & ACCOUNT
+    # ============================================
     path('setting/', views.setting, name='setting'),
     path('upgrade/', views.upgrade, name='upgrade'),
     
-    # Single page
+    # ============================================
+    # SUBSCRIPTION MANAGEMENT
+    # ============================================
+    path('subscription/status/', views.subscription_status, name='subscription_status'),
+    path('subscription/manage/', views.manage_subscription, name='manage_subscription'),
+    path('subscription/cancel/', views.cancel_subscription, name='cancel_subscription'),
+    
+    # Checkout pages
+    path('subscription/checkout/<str:plan>/', views.checkout, name='checkout'),
+    path('subscription/checkout/<str:plan>/<str:duration>/', views.checkout, name='checkout_duration'),
+    
+    # Payment processing
+    path('subscription/process-stripe/', views.process_stripe_payment, name='process_stripe_payment'),
+    
+    # Payment success/failure
+    path('subscription/success/', views.payment_success, name='payment_success'),
+    path('subscription/failure/', views.payment_failure, name='payment_failure'),
+    
+    # Webhooks
+    path('webhooks/stripe/', views.stripe_webhook, name='stripe_webhook'),
+    
+    # Test endpoint
+    path('test-stripe/', views.test_stripe, name='test_stripe'),
+    
+    # ============================================
+    # SINGLE PAGE
+    # ============================================
     path('single/', views.single, name='single'),
     
-    # Profile
+    # ============================================
+    # PROFILE
+    # ============================================
     path('profile/', views.profile_view, name='profile_me'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change-password/', views.change_password, name='change_password'),
     path('profile/<slug:slug>/', views.profile_view, name='profile'),
-
-    # Reviews
+    
+    # ============================================
+    # REVIEWS
+    # ============================================
     path('profile/<slug:slug>/reviews/', views.reviews_list, name='reviews_list'),
     path('profile/<slug:slug>/reviews/new/', views.review_create, name='review_create'),
     
     # ============================================
-    # POSTS : Système de publications
+    # POSTS
     # ============================================
     path('posts/create/', views.create_post, name='create_post'),
     path('posts/', views.list_posts, name='list_posts'),
@@ -83,20 +145,20 @@ urlpatterns = [
     path('posts/<int:post_id>/delete/', views.delete_post, name='delete_post'),
     
     # ============================================
-    # COMMENTS : Commentaires
+    # COMMENTS
     # ============================================
     path('posts/<int:post_id>/comments/', views.add_comment, name='add_comment'),
     path('comments/<int:comment_id>/edit/', views.edit_comment, name='edit_comment'),
     path('comments/<int:comment_id>/delete/', views.delete_comment, name='delete_comment'),
     
     # ============================================
-    # REACTIONS : Likes et réactions
+    # REACTIONS
     # ============================================
     path('posts/<int:post_id>/react/', views.add_reaction, name='add_reaction'),
     path('comments/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
     
     # ============================================
-    # SHARE : Partage de posts
+    # SHARE
     # ============================================
     path('posts/<int:post_id>/share/', views.share_post, name='share_post'),
 ]

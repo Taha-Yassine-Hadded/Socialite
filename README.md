@@ -54,3 +54,4 @@ commands to run:
 pip install python-dateutil
 python manage.py makemigrations
 python manage.py migrate
+pip install stripe requests python-dateutil

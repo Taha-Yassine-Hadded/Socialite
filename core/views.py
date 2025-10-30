@@ -22,7 +22,14 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Q, Avg, Count
 from .models import Post, Comment, Reaction, Share, UserProfile, Avis
 import json
-
+import stripe
+import requests
+from django.conf import settings
+from decimal import Decimal
+from core.utils.subscription import can_user_perform_action, increment_usage
+from django.utils import timezone
+from dateutil.relativedelta import relativedelta
+from .models import Subscription, UsageQuota, PaymentHistory
 # Liste des intérêts pour le formulaire
 INTERESTS = ['adventure', 'culture', 'gastronomy', 'nature', 'sport', 'relaxation']
 
@@ -905,6 +912,60 @@ def review_create(request, slug):
 @login_required
 def create_post(request):
     """
+    Vue pour créer un nouveau post avec vérification des quotas.
+    Supporte : texte, image, vidéo, note vocale, localisation
+    """
+    if request.method == 'POST':
+        # ✅ VÉRIFIER LES QUOTAS AVANT DE CRÉER LE POST
+        can_post, error_msg = can_user_perform_action(request.user, 'post')
+        if not can_post:
+            return JsonResponse({
+                'success': False,
+                'error': error_msg,
+                'upgrade_url': '/upgrade/'
+            }, status=403)
+        
+        # Récupérer les données du formulaire
+        content = request.POST.get('content', '').strip()
+        location = request.POST.get('location', '').strip()
+        visibility = request.POST.get('visibility', 'public')
+        
+        # Récupérer les fichiers uploadés
+        image = request.FILES.get('image')
+        video = request.FILES.get('video')
+        voice_note = request.FILES.get('voice_note')
+        
+        # Validation : Au moins un contenu doit être présent
+        if not content and not image and not video and not voice_note:
+            return JsonResponse({
+                'success': False,
+                'error': 'Veuillez ajouter du contenu, une image, une vidéo ou une note vocale.'
+            }, status=400)
+        
+        # Créer le post
+        post = Post.objects.create(
+            user=request.user,
+            content=content,
+            image=image,
+            video=video,
+            voice_note=voice_note,
+            location=location,
+            visibility=visibility
+        )
+        
+        # ✅ INCRÉMENTER LE COMPTEUR DE QUOTAS
+        increment_usage(request.user, 'post')
+        
+        # Retourner une réponse JSON (succès)
+        return JsonResponse({
+            'success': True,
+            'message': 'Post créé avec succès !',
+            'post_id': post.id
+        })
+    
+    # Si GET : afficher le formulaire de création
+    return render(request, 'create_post.html')
+    """
     Vue pour créer un nouveau post.
     Supporte : texte, image, vidéo, note vocale, localisation
     """
@@ -1414,3 +1475,346 @@ def delete_comment(request, comment_id):
         'message': 'Commentaire supprimé avec succès !',
         'comments_count': post.comments_count
     })
+# ============================================
+# ABONNEMENTS : VUES
+# ============================================
+
+@login_required(login_url='/login/')
+def subscription_status(request):
+    """Affiche le statut de l'abonnement de l'utilisateur"""
+    try:
+        subscription = request.user.subscription
+        quota = request.user.quota
+    except (Subscription.DoesNotExist, UsageQuota.DoesNotExist):
+        return JsonResponse({
+            'success': False,
+            'error': 'Profil incomplet'
+        }, status=500)
+    
+    return JsonResponse({
+        'success': True,
+        'subscription': {
+            'plan': subscription.plan,
+            'plan_display': subscription.get_plan_display(),
+            'is_active': subscription.is_active,
+            'is_premium': subscription.is_premium,
+            'is_business': subscription.is_business,
+            'end_date': subscription.end_date.isoformat() if subscription.end_date else None,
+            'auto_renew': subscription.auto_renew,
+        },
+        'quota': {
+            'posts_this_month': quota.posts_this_month,
+            'messages_this_month': quota.messages_this_month,
+            'trips_created': quota.trips_created,
+            'groups_joined': quota.groups_joined,
+            'events_created_this_month': quota.events_created_this_month,
+        },
+        'limits': settings.SUBSCRIPTION_LIMITS[subscription.plan]
+    })
+
+
+@login_required(login_url='/login/')
+def manage_subscription(request):
+    """Page de gestion de l'abonnement"""
+    try:
+        subscription = request.user.subscription
+        payments = PaymentHistory.objects.filter(user=request.user).order_by('-created_at')[:10]
+    except Subscription.DoesNotExist:
+        return redirect('upgrade')
+    
+    context = {
+        'subscription': subscription,
+        'payments': payments,
+    }
+    return render(request, 'subscription/manage.html', context)
+
+
+@login_required(login_url='/login/')
+@require_http_methods(["POST"])
+def cancel_subscription(request):
+    """Annuler le renouvellement automatique"""
+    try:
+        subscription = request.user.subscription
+        subscription.cancel()
+        
+        messages.success(request, '✅ Le renouvellement automatique a été annulé. Votre abonnement restera actif jusqu\'à la date d\'expiration.')
+        return redirect('manage_subscription')
+    except Subscription.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Aucun abonnement trouvé'
+        }, status=404)
+# ============================================
+# PAIEMENTS : STRIPE UNIQUEMENT
+# ============================================
+
+# Initialiser Stripe
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+@login_required(login_url='/login/')
+def checkout(request, plan, duration='monthly'):
+    """
+    Page de checkout pour le paiement Stripe uniquement
+    """
+    # Calculer le prix
+    if plan.lower() == 'premium':
+        price_eur = 9.99 if duration == 'monthly' else 99
+        duration_months = 1 if duration == 'monthly' else 12
+    elif plan.lower() == 'business':
+        price_eur = 29.99 if duration == 'monthly' else 299
+        duration_months = 1 if duration == 'monthly' else 12
+    else:
+        messages.error(request, '❌ Plan invalide')
+        return redirect('upgrade')
+    
+    # IMPORTANT: Vérifier que la clé publique Stripe existe
+    stripe_public_key = settings.STRIPE_PUBLIC_KEY
+    if not stripe_public_key:
+        messages.error(request, '❌ Configuration Stripe manquante. Contactez le support.')
+        return redirect('upgrade')
+    
+    # Debug log
+    print(f"[CHECKOUT] Rendering checkout for {plan} - {duration}")
+    print(f"[CHECKOUT] Stripe public key: {stripe_public_key[:20]}...")
+    
+    context = {
+        'plan': plan.upper(),
+        'plan_display': 'Premium' if plan.lower() == 'premium' else 'Business',
+        'duration': duration,
+        'duration_display': 'Mensuel' if duration == 'monthly' else 'Annuel',
+        'duration_months': duration_months,
+        'price_eur': price_eur,
+        'stripe_public_key': stripe_public_key,
+    }
+    return render(request, 'subscription/checkout.html', context)
+
+
+@login_required(login_url='/login/')
+@require_http_methods(["POST"])
+def process_stripe_payment(request):
+    """
+    Traiter le paiement Stripe avec gestion d'erreurs détaillée
+    """
+    try:
+        # Vérifier la configuration Stripe
+        if not settings.STRIPE_SECRET_KEY:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Configuration Stripe manquante'
+            }, status=500)
+        
+        # Récupérer les données
+        plan = request.POST.get('plan', '').upper()
+        duration = request.POST.get('duration', 'monthly')
+        
+        print(f"[STRIPE] Processing payment for {request.user.username}: {plan} - {duration}")
+        
+        # Validation du plan
+        if plan not in ['PREMIUM', 'BUSINESS']:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Plan invalide'
+            }, status=400)
+        
+        # Calculer le prix et la durée
+        if plan == 'PREMIUM':
+            amount = 999 if duration == 'monthly' else 9900  # en centimes
+            duration_months = 1 if duration == 'monthly' else 12
+        elif plan == 'BUSINESS':
+            amount = 2999 if duration == 'monthly' else 29900
+            duration_months = 1 if duration == 'monthly' else 12
+        
+        # Créer ou récupérer le client Stripe
+        subscription = request.user.subscription
+        
+        if not subscription.stripe_customer_id:
+            print(f"[STRIPE] Creating new customer for {request.user.email}")
+            try:
+                customer = stripe.Customer.create(
+                    email=request.user.email,
+                    name=f"{request.user.first_name} {request.user.last_name}",
+                    metadata={'user_id': request.user.id}
+                )
+                subscription.stripe_customer_id = customer.id
+                subscription.save()
+                print(f"[STRIPE] Customer created: {customer.id}")
+            except stripe.error.StripeError as e:
+                print(f"[STRIPE ERROR] Customer creation failed: {str(e)}")
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Erreur Stripe: {str(e)}'
+                }, status=500)
+        
+        # Créer le PaymentIntent
+        print(f"[STRIPE] Creating PaymentIntent: {amount} cents")
+        try:
+            intent = stripe.PaymentIntent.create(
+                amount=amount,
+                currency='eur',
+                customer=subscription.stripe_customer_id,
+                metadata={
+                    'user_id': request.user.id,
+                    'plan': plan,
+                    'duration_months': duration_months
+                },
+                automatic_payment_methods={'enabled': True},
+            )
+            print(f"[STRIPE] PaymentIntent created: {intent.id}")
+        except stripe.error.StripeError as e:
+            print(f"[STRIPE ERROR] PaymentIntent failed: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Erreur création paiement: {str(e)}'
+            }, status=500)
+        
+        # Créer l'historique de paiement
+        payment = PaymentHistory.objects.create(
+            user=request.user,
+            subscription=subscription,
+            amount=Decimal(amount) / 100,
+            currency='EUR',
+            status='PENDING',
+            stripe_payment_intent_id=intent.id,
+            plan_purchased=plan,
+            duration_months=duration_months,
+            payment_method='STRIPE'
+        )
+        print(f"[STRIPE] Payment history created: {payment.id}")
+        
+        return JsonResponse({
+            'success': True,
+            'client_secret': intent.client_secret,
+            'payment_intent_id': intent.id
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Unexpected error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur serveur: {str(e)}'
+        }, status=500)
+
+
+@login_required(login_url='/login/')
+def payment_success(request):
+    """Page de succès après paiement"""
+    messages.success(request, '✅ Paiement réussi ! Votre abonnement a été activé.')
+    return redirect('manage_subscription')
+
+
+@login_required(login_url='/login/')
+def payment_failure(request):
+    """Page d'échec après paiement"""
+    messages.error(request, '❌ Le paiement a échoué. Veuillez réessayer.')
+    return redirect('upgrade')
+
+
+# ============================================
+# WEBHOOKS - STRIPE UNIQUEMENT
+# ============================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stripe_webhook(request):
+    """
+    Webhook Stripe pour gérer les événements de paiement
+    """
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        print("[WEBHOOK ERROR] Invalid payload")
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError:
+        print("[WEBHOOK ERROR] Invalid signature")
+        return JsonResponse({'error': 'Invalid signature'}, status=400)
+    
+    print(f"[WEBHOOK] Received event: {event['type']}")
+    
+    # Gérer les différents types d'événements
+    if event['type'] == 'payment_intent.succeeded':
+        payment_intent = event['data']['object']
+        
+        # Récupérer les métadonnées
+        user_id = int(payment_intent['metadata']['user_id'])
+        plan = payment_intent['metadata']['plan']
+        duration_months = int(payment_intent['metadata']['duration_months'])
+        
+        print(f"[WEBHOOK] Payment succeeded for user {user_id}: {plan} - {duration_months} months")
+        
+        try:
+            user = User.objects.get(id=user_id)
+            subscription = user.subscription
+            
+            # Mettre à jour l'abonnement
+            if plan == 'PREMIUM':
+                subscription.upgrade_to_premium(duration_months=duration_months, payment_method='STRIPE')
+            elif plan == 'BUSINESS':
+                subscription.upgrade_to_business(duration_months=duration_months, payment_method='STRIPE')
+            
+            subscription.stripe_subscription_id = payment_intent.get('subscription')
+            subscription.save()
+            
+            print(f"[WEBHOOK] Subscription updated for user {user_id}")
+            
+            # Mettre à jour l'historique de paiement
+            payment = PaymentHistory.objects.filter(
+                stripe_payment_intent_id=payment_intent['id']
+            ).first()
+            if payment:
+                payment.status = 'COMPLETED'
+                payment.save()
+                print(f"[WEBHOOK] Payment history updated: {payment.id}")
+                
+        except User.DoesNotExist:
+            print(f"[WEBHOOK ERROR] User {user_id} not found")
+    
+    elif event['type'] == 'payment_intent.payment_failed':
+        payment_intent = event['data']['object']
+        
+        print(f"[WEBHOOK] Payment failed: {payment_intent['id']}")
+        
+        # Marquer le paiement comme échoué
+        payment = PaymentHistory.objects.filter(
+            stripe_payment_intent_id=payment_intent['id']
+        ).first()
+        if payment:
+            payment.status = 'FAILED'
+            payment.save()
+            print(f"[WEBHOOK] Payment marked as failed: {payment.id}")
+    
+    return JsonResponse({'status': 'success'})
+
+
+# ============================================
+# TEST ENDPOINT (Development only)
+# ============================================
+
+@login_required
+def test_stripe(request):
+    """Test endpoint to verify Stripe configuration"""
+    try:
+        # Test API key
+        customers = stripe.Customer.list(limit=1)
+        return JsonResponse({
+            'success': True,
+            'message': 'Stripe API working correctly',
+            'api_key_prefix': settings.STRIPE_SECRET_KEY[:7] + '...',
+            'public_key_prefix': settings.STRIPE_PUBLIC_KEY[:7] + '...'
+        })
+    except stripe.error.AuthenticationError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid API key'
+        }, status=401)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
