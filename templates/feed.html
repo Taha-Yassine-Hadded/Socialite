@@ -724,16 +724,104 @@
                         </div>
                         </div>
 
+
+                        
     <!-- Sidebar (cartes statiques : Pro Members et autres) -->
     <div class="flex-1">
         <div class="lg:space-y-4 lg:pb-8 max-lg:grid sm:grid-cols-2 max-lg:gap-6"
             uk-sticky="media: 1024; end: #js-oversized; offset: 80">
             <!-- Pro Members -->
 
+
+            <!-- Just for you -->
+<!-- Just for you -->
+<div class="box p-4 px-5 border1 dark:bg-dark2 max-w-xs mx-auto">
+    <div class="flex justify-between text-black dark:text-white">
+        <h3 class="font-bold text-sm">Just for you</h3>
+    </div>
+    <div class="relative capitalize font-normal text-xs mt-3 mb-1" tabindex="-1"
+         uk-slider="autoplay: true;finite: true">
+        <div class="overflow-hidden uk-slider-container">
+            <ul class="-ml-1 uk-slider-items w-[calc(100%+0.25rem)]">
+                {% for place in future_places|slice:":6" %}
+                <li class="w-1/2 pr-1">
+                    <a href="{% url 'place' %}" class="block">
+                        <div class="relative flex flex-col shadow-sm rounded-lg border1 overflow-hidden hover:shadow-md transition-shadow duration-300">
+                            <!-- Image full container -->
+                            <div class="relative w-full h-40">
+                                <img src="{{ place.continent_image }}" 
+                                     alt="{{ place.city }}"
+                                     class="w-full h-full object-cover">
+                                <!-- Overlay avec informations -->
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                                    <h5 class="font-semibold text-white text-sm">{{ place.city }}</h5>
+                                    <div class="text-white/80 text-xs mt-0.5 font-medium">{{ place.country }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+                {% empty %}
+                <li class="w-full text-center py-4">
+                    <p class="text-gray-500 text-xs">No destinations available</p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if future_places|length > 1 %}
+            <button type="button"
+                    class="absolute -translate-y-1/2 bg-white/90 rounded-full top-1/2 -left-3 grid w-7 h-7 place-items-center dark:bg-dark3 z-10 shadow-md"
+                    uk-slider-item="previous">
+                <ion-icon name="chevron-back" class="text-lg"></ion-icon>
+            </button>
+            <button type="button"
+                    class="absolute -right-3 -translate-y-1/2 bg-white/90 rounded-full top-1/2 grid w-7 h-7 place-items-center dark:bg-dark3 z-10 shadow-md"
+                    uk-slider-item="next">
+                <ion-icon name="chevron-forward" class="text-lg"></ion-icon>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+            <!-- Find Your Adventure Duo -->
+<!-- Find Your Adventure Duo -->
+<div class="box p-5 px-6 border1 dark:bg-dark2 mt-4">
+    <div class="flex justify-between text-black dark:text-white">
+        <h3 class="font-bold text-base">Find Your Adventure Duo</h3>
+    </div>
+    <div class="mt-4">
+        <ul class="space-y-4">
+            {% for companion in travel_companions %}
+            <li>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="{{ companion.profile_image }}" alt="{{ companion.first_name }} {{ companion.last_name }}"
+                            class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <h5 class="font-semibold text-sm">{{ companion.first_name }} {{ companion.last_name }}</h5>
+                            <div class="text-xs text-gray-400">{{ companion.follower_count }} Followers {% if companion.score > 0 %}{% endif %}</div>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1 follow-btn"
+                            data-user-id="{{ companion.user_id }}"
+                            data-is-following="{% if companion.is_following %}true{% else %}false{% endif %}">
+                        {% if companion.is_following %}Unfollow{% else %}Follow{% endif %}
+                    </button>
+                </div>
+            </li>
+            {% empty %}
+            <li class="text-center text-gray-500">No travel companions found at the moment.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+
             <!-- Pro Members -->
 <div class="box p-5 px-6 border1 dark:bg-dark2">
     <div class="flex justify-between text-black dark:text-white">
-        <h3 class="font-bold text-base">Pro Members</h3>
+        <h3 class="font-bold text-base">People You May Like</h3>
     </div>
     <div class="relative capitalize font-normal text-sm mt-4 mb-2" tabindex="-1"
          uk-slider="autoplay: true;finite: true">
@@ -840,93 +928,11 @@
     });
 </script>
 
-            <!-- People you may know -->
-            <div class="box p-5 px-6 border1 dark:bg-dark2 mt-4">
-                <div class="flex justify-between text-black dark:text-white">
-                    <h3 class="font-bold text-base">People you may know</h3>
-                </div>
-                <div class="mt-4">
-                    <ul class="space-y-4">
-                        <li>
-                            <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                                    <img src="{% static 'images/avatars/avatar-1.webp' %}" alt=""
-                                        class="w-10 h-10 rounded-full object-cover">
-                                    <div>
-                                        <h5 class="font-semibold text-sm">Sarah Johnson</h5>
-                                        <div class="text-xs text-gray-400">8K Followers</div>
-                            </div>
-                        </div>
-                                <button type="button"
-                                    class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Add Friend</button>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                                    <img src="{% static 'images/avatars/avatar-2.webp' %}" alt=""
-                                        class="w-10 h-10 rounded-full object-cover">
-                                    <div>
-                                        <h5 class="font-semibold text-sm">Michael Chen</h5>
-                                        <div class="text-xs text-gray-400">5K Followers</div>
-                            </div>
-                        </div>
-                                <button type="button"
-                                    class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Add Friend</button>
-                </div>
-                        </li>
-                        <li>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <img src="{% static 'images/avatars/avatar-3.webp' %}" alt=""
-                                        class="w-10 h-10 rounded-full object-cover">
-                                    <div>
-                                        <h5 class="font-semibold text-sm">Emily Davis</h5>
-                                        <div class="text-xs text-gray-400">10K Followers</div>
-            </div>
-                        </div>
-                        <button type="button"
-                                    class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Add Friend</button>
-                    </div>
-                        </li>
-                    </ul>
-                                </div>
-                                    </div>
+           
+                                    <!-- Just for you -->
 
 
 
-            <!-- Find Your Adventure Duo -->
-<div class="box p-5 px-6 border1 dark:bg-dark2 mt-4">
-    <div class="flex justify-between text-black dark:text-white">
-        <h3 class="font-bold text-base">Find Your Adventure Duo</h3>
-    </div>
-    <div class="mt-4">
-        <ul class="space-y-4">
-            {% for companion in travel_companions %}
-            <li>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <img src="{{ companion.profile_image }}" alt="{{ companion.first_name }} {{ companion.last_name }}"
-                            class="w-10 h-10 rounded-full object-cover">
-                        <div>
-                            <h5 class="font-semibold text-sm">{{ companion.first_name }} {{ companion.last_name }}</h5>
-                            <div class="text-xs text-gray-400">{{ companion.follower_count }} Followers {% if companion.score > 0 %}| Score: {{ companion.score|floatformat:0 }}%{% endif %}</div>
-                        </div>
-                    </div>
-                    <form action="{% url 'plan_together' %}" method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="target_user_id" value="{{ companion.user_id }}">
-                        <button type="button"
-                        class="bg-secondery font-semibold py-1.5 px-4 rounded-lg text-sm border1">Co-Plan</button>
-                    </form>
-                </div>
-            </li>
-            {% empty %}
-            <li class="text-center text-gray-500">No travel companions found at the moment.</li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
 
 
             <!-- Suggested Groups -->

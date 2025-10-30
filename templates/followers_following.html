@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-lg mb-6">
+        <div class="p-6 border-b">
+            <div class="flex items-center gap-4">
+                <a href="{% url 'profile' profile.slug %}" class="flex items-center gap-3 hover:opacity-80 transition">
+                    {% if profile_user.profile.avatar %}
+                        <img src="{{ profile_user.profile.avatar.url }}" alt="{{ profile_user.username }}" 
+                             class="w-12 h-12 rounded-full object-cover">
+                    {% else %}
+                        <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                            {{ profile_user.username.0|upper }}
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h2 class="text-xl font-bold">{{ profile_user.first_name }} {{ profile_user.last_name }}</h2>
+                        <p class="text-gray-600">@{{ profile_user.username }}</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Navigation -->
+        <div class="flex border-b">
+            <a href="{% url 'followers_list' profile.slug %}" 
+               class="flex-1 text-center py-4 font-semibold {% if page_type == 'followers' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+                👥 Followers
+            </a>
+            <a href="{% url 'following_list' profile.slug %}" 
+               class="flex-1 text-center py-4 font-semibold {% if page_type == 'following' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+                🔄 Following
+            </a>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div class="bg-white rounded-lg shadow-lg">
+        {% if page_type == 'followers' %}
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">👥 Followers ({{ followers|length }})</h3>
+                {% if followers %}
+                    <div class="space-y-4">
+                        {% for follower in followers %}
+                        <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition">
+                            <div class="flex items-center gap-4">
+                                {% if follower.from_django %}
+                                    <!-- User exists in Django -->
+                                    <a href="{% url 'profile' follower.profile.slug %}">
+                                        {% if follower.profile.avatar %}
+                                            <img src="{{ follower.profile.avatar.url }}" alt="{{ follower.user.username }}" 
+                                                 class="w-12 h-12 rounded-full object-cover">
+                                        {% else %}
+                                            <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                                                {{ follower.user.username.0|upper }}
+                                            </div>
+                                        {% endif %}
+                                    </a>
+                                    <div>
+                                        <a href="{% url 'profile' follower.profile.slug %}" class="font-semibold hover:underline">
+                                            {{ follower.user.first_name }} {{ follower.user.last_name }}
+                                        </a>
+                                        <p class="text-sm text-gray-600">{{ follower.follower_count }} followers</p>
+                                        <p class="text-xs text-green-600">✓ Django User</p>
+                                    </div>
+                                {% else %}
+                                    <!-- User from MongoDB only -->
+                                    <div class="w-12 h-12 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold" title="User not found in Django">
+                                        ?
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold">
+                                            {{ follower.mongo_data.first_name|default:"Unknown" }} {{ follower.mongo_data.last_name|default:"User" }}
+                                        </p>
+                                        <p class="text-sm text-gray-600">{{ follower.follower_count }} followers</p>
+                                        <div class="flex gap-2 text-xs">
+                                            <span class="text-gray-500">ID: {{ follower.user_id }}</span>
+                                            <span class="text-orange-500">⚠️ MongoDB Only</span>
+                                        </div>
+                                        {% if follower.mongo_data.email %}
+                                        <p class="text-xs text-gray-500">{{ follower.mongo_data.email }}</p>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if request.user != follower.user and follower.from_django %}
+                            <button class="follow-btn {% if follower.is_following %}bg-gray-600 hover:bg-gray-700{% else %}bg-green-600 hover:bg-green-700{% endif %} text-white px-4 py-2 rounded-lg transition"
+                                    data-user-id="{{ follower.user.id }}"
+                                    data-is-following="{{ follower.is_following|yesno:'true,false' }}">
+                                {{ follower.is_following|yesno:'Unfollow,Follow' }}
+                            </button>
+                            {% elif not follower.from_django %}
+                            <span class="text-xs text-gray-400 px-3 py-1 border rounded">Cannot interact</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No followers yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">🔄 Following ({{ following|length }})</h3>
+                {% if following %}
+                    <div class="space-y-4">
+                        {% for follow in following %}
+                        <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition">
+                            <div class="flex items-center gap-4">
+                                {% if follow.from_django %}
+                                    <!-- User exists in Django -->
+                                    <a href="{% url 'profile' follow.profile.slug %}">
+                                        {% if follow.profile.avatar %}
+                                            <img src="{{ follow.profile.avatar.url }}" alt="{{ follow.user.username }}" 
+                                                 class="w-12 h-12 rounded-full object-cover">
+                                        {% else %}
+                                            <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                                                {{ follow.user.username.0|upper }}
+                                            </div>
+                                        {% endif %}
+                                    </a>
+                                    <div>
+                                        <a href="{% url 'profile' follow.profile.slug %}" class="font-semibold hover:underline">
+                                            {{ follow.user.first_name }} {{ follow.user.last_name }}
+                                        </a>
+                                        <p class="text-sm text-gray-600">{{ follow.follower_count }} followers</p>
+                                        <p class="text-xs text-green-600">✓ Django User</p>
+                                    </div>
+                                {% else %}
+                                    <!-- User from MongoDB only -->
+                                    <div class="w-12 h-12 rounded-full bg-gray-400 flex items-center justify-center text-white font-bold" title="User not found in Django">
+                                        ?
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold">
+                                            {{ follow.mongo_data.first_name|default:"Unknown" }} {{ follow.mongo_data.last_name|default:"User" }}
+                                        </p>
+                                        <p class="text-sm text-gray-600">{{ follow.follower_count }} followers</p>
+                                        <div class="flex gap-2 text-xs">
+                                            <span class="text-gray-500">ID: {{ follow.user_id }}</span>
+                                            <span class="text-orange-500">⚠️ MongoDB Only</span>
+                                        </div>
+                                        {% if follow.mongo_data.email %}
+                                        <p class="text-xs text-gray-500">{{ follow.mongo_data.email }}</p>
+                                        {% endif %}
+                                        {% if follow.mongo_data.future_countries %}
+                                        <p class="text-xs text-blue-500">
+                                            Countries: {{ follow.mongo_data.future_countries|join:", " }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if request.user != follow.user and follow.from_django %}
+                            <button class="follow-btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition"
+                                    data-user-id="{{ follow.user.id }}"
+                                    data-is-following="true">
+                                Unfollow
+                            </button>
+                            {% elif not follow.from_django %}
+                            <button class="unfollow-mongo-btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition"
+                                    data-user-id="{{ follow.user_id }}"
+                                    title="Remove from following list">
+                                Remove
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <p>Not following anyone yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- JavaScript for Follow/Unfollow -->
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const followButtons = document.querySelectorAll('.follow-btn');
+    const unfollowMongoButtons = document.querySelectorAll('.unfollow-mongo-btn');
+    const csrftoken = getCookie('csrftoken');
+
+    // Handle Django user follow/unfollow
+    followButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const isFollowing = this.getAttribute('data-is-following') === 'true';
+            const originalText = this.textContent;
+
+            // Show loading indicator
+            this.textContent = 'Loading...';
+            this.disabled = true;
+
+            fetch('{% url "follow_unfollow_user" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: `target_user_id=${userId}`
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '{% url "login" %}';
+                    throw new Error('Please log in to continue');
+                }
+                if (!response.ok) {
+                    throw new Error(`Network error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.success) {
+                    if (data.action === 'followed') {
+                        this.textContent = 'Unfollow';
+                        this.setAttribute('data-is-following', 'true');
+                        this.classList.remove('bg-green-600', 'hover:bg-green-700');
+                        this.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                    } else {
+                        this.textContent = 'Follow';
+                        this.setAttribute('data-is-following', 'false');
+                        this.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                        this.classList.add('bg-green-600', 'hover:bg-green-700');
+                        
+                        // If we're on the "following" page, remove the element
+                        if (window.location.pathname.includes('following')) {
+                            this.closest('.flex.items-center.justify-between').remove();
+                        }
+                    }
+                } else if (data) {
+                    alert(data.message || 'An error occurred');
+                    this.textContent = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (!error.message.includes('Please log in')) {
+                    alert(error.message || 'An error occurred while processing your request');
+                }
+                this.textContent = originalText;
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+
+    // Handle MongoDB-only user removal
+    unfollowMongoButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const originalText = this.textContent;
+
+            if (!confirm('Are you sure you want to remove this user from your following list?')) {
+                return;
+            }
+
+            // Show loading indicator
+            this.textContent = 'Removing...';
+            this.disabled = true;
+
+            fetch('{% url "follow_unfollow_user" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: `target_user_id=${userId}`
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '{% url "login" %}';
+                    throw new Error('Please log in to continue');
+                }
+                if (!response.ok) {
+                    throw new Error(`Network error: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.success) {
+                    // Remove the element from the list
+                    this.closest('.flex.items-center.justify-between').remove();
+                } else if (data) {
+                    alert(data.message || 'An error occurred');
+                    this.textContent = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while processing your request');
+                this.textContent = originalText;
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,5 +1,7 @@
 from datetime import datetime
 import logging
+from django.utils.decorators import method_decorator  # Ajoutez cette ligne
+
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.db import IntegrityError
@@ -376,6 +378,105 @@ def register_page(request):
         'countries_list': COUNTRIES
     })
 
+
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth.models import User
+
+@csrf_exempt
+@login_required
+def follow_unfollow_user(request):
+    """Handle follow/unfollow actions for Django templates"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Only POST method allowed'}, status=405)
+    
+    db = get_db()
+    user = request.user
+    target_user_id = request.POST.get('target_user_id')
+    
+    print(f"Follow/unfollow request from user {user.id} for target {target_user_id}")  # Debug
+    
+    if not target_user_id:
+        return JsonResponse({'success': False, 'message': 'Target user ID is required'}, status=400)
+    
+    try:
+        target_user_id = int(target_user_id)
+    except ValueError:
+        return JsonResponse({'success': False, 'message': 'Invalid user ID'}, status=400)
+    
+    if target_user_id == user.id:
+        return JsonResponse({'success': False, 'message': 'Cannot follow yourself'}, status=400)
+    
+    # Vérifier que l'utilisateur cible existe
+    try:
+        target_user = User.objects.get(id=target_user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Target user not found'}, status=404)
+    
+    user_profile = db.profiles.find_one({'user_id': user.id})
+    target_profile = db.profiles.find_one({'user_id': target_user_id})
+    
+    # Vérifier si le profil utilisateur existe, sinon le créer
+    if not user_profile:
+        user_profile = {
+            'user_id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'following': [],
+            'followers': [],
+            'follower_count': 0
+        }
+        db.profiles.insert_one(user_profile)
+        user_profile = db.profiles.find_one({'user_id': user.id})
+    
+    # Vérifier si le profil cible existe, sinon le créer
+    if not target_profile:
+        target_profile = {
+            'user_id': target_user.id,
+            'email': target_user.email,
+            'first_name': target_user.first_name,
+            'last_name': target_user.last_name,
+            'following': [],
+            'followers': [],
+            'follower_count': 0
+        }
+        db.profiles.insert_one(target_profile)
+        target_profile = db.profiles.find_one({'user_id': target_user_id})
+    
+    # Check if already following
+    is_following = target_user_id in user_profile.get('following', [])
+    
+    if is_following:
+        # Unfollow
+        db.profiles.update_one(
+            {'user_id': user.id},
+            {'$pull': {'following': target_user_id}}
+        )
+        db.profiles.update_one(
+            {'user_id': target_user_id},
+            {'$pull': {'followers': user.id}, '$inc': {'follower_count': -1}}
+        )
+        action = 'unfollowed'
+        print(f"User {user.id} unfollowed user {target_user_id}")  # Debug
+    else:
+        # Follow
+        db.profiles.update_one(
+            {'user_id': user.id},
+            {'$addToSet': {'following': target_user_id}}
+        )
+        db.profiles.update_one(
+            {'user_id': target_user_id},
+            {'$addToSet': {'followers': user.id}, '$inc': {'follower_count': 1}}
+        )
+        action = 'followed'
+        print(f"User {user.id} followed user {target_user_id}")  # Debug
+    
+    return JsonResponse({'success': True, 'action': action})
+
+
+
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -430,6 +531,8 @@ def follow_unfollow(request):
     
     return JsonResponse({'success': True, 'action': action})
 
+
+
 # Timeline pages
 @login_required(login_url='/login/')
 def timeline(request):
@@ -459,6 +562,14 @@ def feed(request):
     Affiche tous les posts publics + posts de l'utilisateur.
     Supporte le filtrage par catégorie d'image.
     """
+    # Imports nécessaires
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models import Count, Q
+    import os
+    import random
+    import pandas as pd
+    
     # Récupérer le filtre de catégorie depuis les paramètres GET
     category_filter = request.GET.get('category', 'all')
     
@@ -477,8 +588,6 @@ def feed(request):
     ).order_by('-created_at')
 
     # Stories actives (24h)
-    from django.utils import timezone
-    from datetime import timedelta
     cutoff = timezone.now() - timedelta(hours=24)
     try:
         active_stories_qs = (
@@ -493,7 +602,6 @@ def feed(request):
         active_stories = []
     
     # 📊 Compter les posts par catégorie (pour les badges de comptage)
-    from django.db.models import Count
     category_counts = Post.objects.filter(
         Q(visibility='public') | Q(user=request.user),
         image_category__isnull=False
@@ -537,11 +645,161 @@ def feed(request):
     except Exception:
         pass
 
+    # AJOUT : Récupérer les destinations "future_places" pour la section "Just for you"
+    future_places = []
+    db = get_db()
+    user_profile = db.profiles.find_one({'user_id': request.user.id})
+
+    if user_profile:
+        future_countries = user_profile.get('future_countries', [])
+        travel_budget = user_profile.get('travel_budget', '').lower()
+        
+        try:
+            # Charger les datasets
+            cities_df = pd.read_csv(r'D:\Django_Projet\Socialite\public\Cities.csv')
+            
+            # Normaliser les données
+            cities_df['city'] = cities_df['city'].str.strip().str.title()
+            cities_df['country'] = cities_df['country'].str.strip().str.title()
+            cities_df['region'] = cities_df['region'].str.strip().str.title()
+            cities_df['budget_level'] = cities_df['budget_level'].str.strip().str.title()
+            
+            # Dictionnaire de mappage des codes ISO aux noms de pays
+            country_code_to_name = {
+                'af': 'Afghanistan', 'al': 'Albania', 'dz': 'Algeria', 'ad': 'Andorra',
+                'ao': 'Angola', 'ag': 'Antigua and Barbuda', 'ar': 'Argentina', 'am': 'Armenia',
+                'au': 'Australia', 'at': 'Austria', 'az': 'Azerbaijan', 'bs': 'Bahamas',
+                'bh': 'Bahrain', 'bd': 'Bangladesh', 'bb': 'Barbados', 'by': 'Belarus',
+                'be': 'Belgium', 'bz': 'Belize', 'bj': 'Benin', 'bt': 'Bhutan',
+                'bo': 'Bolivia', 'ba': 'Bosnia and Herzegovina', 'bw': 'Botswana', 'br': 'Brazil',
+                'bn': 'Brunei', 'bg': 'Bulgaria', 'bf': 'Burkina Faso', 'bi': 'Burundi',
+                'kh': 'Cambodia', 'cm': 'Cameroon', 'ca': 'Canada', 'cv': 'Cape Verde',
+                'cf': 'Central African Republic', 'td': 'Chad', 'cl': 'Chile', 'cn': 'China',
+                'co': 'Colombia', 'km': 'Comoros', 'cg': 'Congo', 'cd': 'Congo, Democratic Republic',
+                'cr': 'Costa Rica', 'hr': 'Croatia', 'cu': 'Cuba', 'cy': 'Cyprus',
+                'cz': 'Czech Republic', 'dk': 'Denmark', 'dj': 'Djibouti', 'dm': 'Dominica',
+                'do': 'Dominican Republic', 'ec': 'Ecuador', 'eg': 'Egypt', 'sv': 'El Salvador',
+                'gq': 'Equatorial Guinea', 'er': 'Eritrea', 'ee': 'Estonia', 'et': 'Ethiopia',
+                'fj': 'Fiji', 'fi': 'Finland', 'fr': 'France', 'ga': 'Gabon',
+                'gm': 'Gambia', 'ge': 'Georgia', 'de': 'Germany', 'gh': 'Ghana',
+                'gr': 'Greece', 'gd': 'Grenada', 'gt': 'Guatemala', 'gn': 'Guinea',
+                'gw': 'Guinea-Bissau', 'gy': 'Guyana', 'ht': 'Haiti', 'hn': 'Honduras',
+                'hu': 'Hungary', 'is': 'Iceland', 'in': 'India', 'id': 'Indonesia',
+                'ir': 'Iran', 'iq': 'Iraq', 'ie': 'Ireland', 'il': 'Israel',
+                'it': 'Italy', 'jm': 'Jamaica', 'jp': 'Japan', 'jo': 'Jordan',
+                'kz': 'Kazakhstan', 'ke': 'Kenya', 'ki': 'Kiribati', 'kp': 'North Korea',
+                'kr': 'South Korea', 'kw': 'Kuwait', 'kg': 'Kyrgyzstan', 'la': 'Laos',
+                'lv': 'Latvia', 'lb': 'Lebanon', 'ls': 'Lesotho', 'lr': 'Liberia',
+                'ly': 'Libya', 'li': 'Liechtenstein', 'lt': 'Lithuania', 'lu': 'Luxembourg',
+                'mg': 'Madagascar', 'mw': 'Malawi', 'my': 'Malaysia', 'mv': 'Maldives',
+                'ml': 'Mali', 'mt': 'Malta', 'mh': 'Marshall Islands', 'mr': 'Mauritania',
+                'mu': 'Mauritius', 'mx': 'Mexico', 'fm': 'Micronesia', 'md': 'Moldova',
+                'mc': 'Monaco', 'mn': 'Mongolia', 'me': 'Montenegro', 'ma': 'Morocco',
+                'mz': 'Mozambique', 'mm': 'Myanmar', 'na': 'Namibia', 'nr': 'Nauru',
+                'np': 'Nepal', 'nl': 'Netherlands', 'nz': 'New Zealand', 'ni': 'Nicaragua',
+                'ne': 'Niger', 'ng': 'Nigeria', 'no': 'Norway', 'om': 'Oman',
+                'pk': 'Pakistan', 'pw': 'Palau', 'pa': 'Panama', 'pg': 'Papua New Guinea',
+                'py': 'Paraguay', 'pe': 'Peru', 'ph': 'Philippines', 'pl': 'Poland',
+                'pt': 'Portugal', 'qa': 'Qatar', 'ro': 'Romania', 'ru': 'Russia',
+                'rw': 'Rwanda', 'kn': 'Saint Kitts and Nevis', 'lc': 'Saint Lucia',
+                'vc': 'Saint Vincent and the Grenadines', 'ws': 'Samoa', 'sm': 'San Marino',
+                'st': 'Sao Tome and Principe', 'sa': 'Saudi Arabia', 'sn': 'Senegal',
+                'rs': 'Serbia', 'sc': 'Seychelles', 'sl': 'Sierra Leone', 'sg': 'Singapore',
+                'sk': 'Slovakia', 'si': 'Slovenia', 'sb': 'Solomon Islands', 'so': 'Somalia',
+                'za': 'South Africa', 'ss': 'South Sudan', 'es': 'Spain', 'lk': 'Sri Lanka',
+                'sd': 'Sudan', 'sr': 'Suriname', 'se': 'Sweden', 'ch': 'Switzerland',
+                'sy': 'Syria', 'tw': 'Taiwan', 'tj': 'Tajikistan', 'tz': 'Tanzania',
+                'th': 'Thailand', 'tl': 'Timor-Leste', 'tg': 'Togo', 'to': 'Tonga',
+                'tt': 'Trinidad and Tobago', 'tn': 'Tunisia', 'tr': 'Turkey', 'tm': 'Turkmenistan',
+                'tv': 'Tuvalu', 'ug': 'Uganda', 'ua': 'Ukraine', 'ae': 'United Arab Emirates',
+                'gb': 'United Kingdom', 'us': 'United States', 'uy': 'Uruguay', 'uz': 'Uzbekistan',
+                'vu': 'Vanuatu', 've': 'Venezuela', 'vn': 'Vietnam', 'ye': 'Yemen',
+                'zm': 'Zambia', 'zw': 'Zimbabwe'
+            }
+            
+            # Convertir les codes ISO en noms complets pour future_countries
+            future_country_names = [country_code_to_name.get(code.lower(), '') for code in future_countries]
+            future_country_names = [name for name in future_country_names if name]  # Supprimer les entrées vides
+            
+            # Fonction pour obtenir une image aléatoire du continent
+            def get_random_continent_image(region):
+                continent_images_base = r"D:\Django_Projet\Socialite\public\assets\images\Continent"
+                continent_mapping = {
+                    'africa': 'Africa',
+                    'asia': 'Asia', 
+                    'europe': 'Europe',
+                    'north_america': 'North America',
+                    'south_america': 'South America',
+                    'oceania': 'Oceania',
+                    'antarctica': 'Antarctica'
+                }
+                
+                continent_folder = continent_mapping.get(region.lower(), 'Africa')
+                continent_path = os.path.join(continent_images_base, continent_folder)
+                default_image = "/static/images/group/group-cover-1.webp"
+                
+                if os.path.exists(continent_path):
+                    try:
+                        images = [f for f in os.listdir(continent_path)
+                                 if f.lower().endswith(('.jpg', '.jpeg', '.png')) and os.path.isfile(os.path.join(continent_path, f))]
+                        if images:
+                            chosen_image = random.choice(images)
+                            image_url = f"/assets/images/Continent/{continent_folder}/{chosen_image}"
+                            return image_url
+                    except (OSError, PermissionError):
+                        pass
+                
+                return default_image
+            
+            # Fonction pour vérifier la visibilité selon le budget
+            def is_place_visible(place, user_budget):
+                budget_mapping = {
+                    'economic': 'Budget',
+                    'medium': 'Mid-range',
+                    'comfort': 'Mid-range', 
+                    'luxury': 'Luxury'
+                }
+                target_budget_mapped = budget_mapping.get(user_budget, 'Mid-range')
+                budget_hierarchy = {
+                    'Budget': 1,
+                    'Mid-range': 2,
+                    'Luxury': 3
+                }
+                user_budget_level = budget_hierarchy.get(target_budget_mapped, 2)
+                place_budget_level = budget_hierarchy.get(place['budget_level'].title(), 2)
+                return (user_budget in ['comfort', 'luxury'] and place_budget_level <= user_budget_level) or \
+                       (user_budget in ['economic', 'medium'] and place['budget_level'].title() == target_budget_mapped)
+            
+            # Récupérer les destinations pour les pays futurs
+            for country_name in future_country_names:
+                country_places = cities_df[cities_df['country'].str.lower() == country_name.lower()]
+                for _, place in country_places.iterrows():
+                    if is_place_visible(place, travel_budget):
+                        # Utiliser get_random_continent_image() au lieu de l'image par défaut
+                        destination = {
+                            'city': place['city'],
+                            'country': place['country'],
+                            'continent': place['region'],
+                            'description': place.get('short_description', 'Discover this amazing destination'),
+                            'continent_image': get_random_continent_image(place['region']),
+                            'budget': place['budget_level']
+                        }
+                        future_places.append(destination)
+            
+            # Limiter à 6 destinations maximum
+            future_places = future_places[:6]
+            
+        except Exception as e:
+            # En cas d'erreur avec les datasets, on continue sans future_places
+            print(f"Erreur lors du chargement des destinations: {e}")
+            future_places = []
+
     context = {
         'posts': posts,
         'categories': categories,
         'current_category': category_filter,
         'stories': active_stories,
+        'future_places': future_places,  # AJOUT : Destinations pour "Just for you"
     }
 
     # Ne modifie pas ces trois lignes et ne les supprime pas ines dahmani :)
@@ -591,17 +849,6 @@ def feed(request):
     context['suggested_users'] = suggested_users
 
     return render(request, 'feed.html', context)
-
-
-
-
-
-
-
-
-
-        
-
 
  
 
@@ -1455,6 +1702,8 @@ def upgrade(request):
 @login_required(login_url='/login/')
 def single(request):
     return render(request, 'single.html')
+
+
 @login_required(login_url='/login/')
 def profile_view(request, slug=None):
     """Affiche le profil d'un utilisateur avec ses posts (via son slug unique)"""
@@ -1505,6 +1754,25 @@ def profile_view(request, slug=None):
         avg_symp=Avg('sympathie'),
         reviews_count=Count('id')
     )
+    
+    # 🔥 AJOUT: Système Follow/Unfollow
+    db = get_db()
+    is_following = False
+    follower_count = 0
+    following_count = 0
+    
+    # Récupérer le profil MongoDB de l'utilisateur profil
+    user_mongo_profile = db.profiles.find_one({'user_id': user.id})
+    if user_mongo_profile:
+        follower_count = user_mongo_profile.get('follower_count', 0)
+        following_count = len(user_mongo_profile.get('following', []))
+    
+    # Vérifier si l'utilisateur connecté suit cet utilisateur
+    if request.user.is_authenticated and request.user != user:
+        current_user_profile = db.profiles.find_one({'user_id': request.user.id})
+        if current_user_profile and 'following' in current_user_profile:
+            is_following = user.id in current_user_profile['following']
+    
     context = {
         'user': user,
         'profile': user.profile,
@@ -1512,9 +1780,180 @@ def profile_view(request, slug=None):
         'posts_count': user_posts.count(),
         'avg_review_note': round(stats['avg_note'] or 0, 2),
         'reviews_count': stats['reviews_count'] or 0,
+        # 🔥 AJOUT: Données Follow/Unfollow
+        'is_following': is_following,
+        'follower_count': follower_count,
+        'following_count': following_count,
     }
     return render(request, 'profile.html', context)
 
+@login_required(login_url='/login/')
+def followers_list(request, slug):
+    """Affiche la liste des followers d'un utilisateur avec données MongoDB"""
+    profile = get_object_or_404(UserProfile, slug=slug)
+    user = profile.user
+    
+    db = get_db()
+    user_profile = db.profiles.find_one({'user_id': user.id})
+    
+    followers = []
+    if user_profile and 'followers' in user_profile:
+        follower_ids = user_profile['followers']
+        
+        for follower_id in follower_ids:
+            try:
+                # Try to get user from Django first
+                follower_user = User.objects.get(id=follower_id)
+                follower_profile, created = UserProfile.objects.get_or_create(
+                    user=follower_user,
+                    defaults={
+                        'slug': f"user-{follower_user.id}",
+                        'bio': f"Profile of {follower_user.first_name} {follower_user.last_name}" if follower_user.first_name else f"Profile of {follower_user.username}"
+                    }
+                )
+                
+                # Clean the slug if it contains invalid characters
+                if created or not follower_profile.slug or any(char in follower_profile.slug for char in ['@', '.', '+']):
+                    follower_profile.slug = f"user-{follower_user.id}"
+                    follower_profile.save()
+                
+                # Get MongoDB data
+                follower_mongo = db.profiles.find_one({'user_id': follower_id})
+                
+                followers.append({
+                    'user': follower_user,
+                    'profile': follower_profile,
+                    'follower_count': follower_mongo.get('follower_count', 0) if follower_mongo else 0,
+                    'is_following': follower_id in user_profile.get('following', []) if user_profile else False,
+                    'from_django': True,
+                    'user_id': follower_id,
+                    'has_valid_slug': True
+                })
+                
+            except User.DoesNotExist:
+                # User doesn't exist in Django, use MongoDB data only
+                follower_mongo = db.profiles.find_one({'user_id': follower_id})
+                if follower_mongo:
+                    followers.append({
+                        'user': None,  # No Django user
+                        'profile': None,
+                        'mongo_data': follower_mongo,
+                        'follower_count': follower_mongo.get('follower_count', 0),
+                        'is_following': follower_id in user_profile.get('following', []) if user_profile else False,
+                        'from_django': False,
+                        'user_id': follower_id,
+                        'has_valid_slug': False
+                    })
+                else:
+                    # Even MongoDB doesn't have this user, create basic info
+                    followers.append({
+                        'user': None,
+                        'profile': None,
+                        'mongo_data': {
+                            'user_id': follower_id,
+                            'first_name': 'Unknown',
+                            'last_name': 'User',
+                            'email': 'unknown@example.com'
+                        },
+                        'follower_count': 0,
+                        'is_following': follower_id in user_profile.get('following', []) if user_profile else False,
+                        'from_django': False,
+                        'user_id': follower_id,
+                        'has_valid_slug': False
+                    })
+    
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'followers': followers,
+        'page_type': 'followers'
+    }
+    return render(request, 'followers_following.html', context)
+
+
+
+@login_required(login_url='/login/')
+def following_list(request, slug):
+    """Display the list of users being followed with MongoDB data"""
+    profile = get_object_or_404(UserProfile, slug=slug)
+    user = profile.user
+    
+    db = get_db()
+    user_profile = db.profiles.find_one({'user_id': user.id})
+    
+    following = []
+    if user_profile and 'following' in user_profile:
+        following_ids = user_profile['following']
+        
+        for following_id in following_ids:
+            try:
+                # Try to get user from Django first
+                following_user = User.objects.get(id=following_id)
+                following_profile, created = UserProfile.objects.get_or_create(
+                    user=following_user,
+                    defaults={
+                        'slug': f"user-{following_user.id}",
+                        'bio': f"Profile of {following_user.first_name} {following_user.last_name}" if following_user.first_name else f"Profile of {following_user.username}"
+                    }
+                )
+                
+                # Clean the slug if it contains invalid characters
+                if created or not following_profile.slug or any(char in following_profile.slug for char in ['@', '.', '+']):
+                    following_profile.slug = f"user-{following_user.id}"
+                    following_profile.save()
+                
+                # Get MongoDB data
+                following_mongo = db.profiles.find_one({'user_id': following_id})
+                
+                following.append({
+                    'user': following_user,
+                    'profile': following_profile,
+                    'follower_count': following_mongo.get('follower_count', 0) if following_mongo else 0,
+                    'is_following': True,
+                    'from_django': True,
+                    'user_id': following_id,
+                    'has_valid_slug': True
+                })
+                
+            except User.DoesNotExist:
+                # User doesn't exist in Django, use MongoDB data only
+                following_mongo = db.profiles.find_one({'user_id': following_id})
+                if following_mongo:
+                    following.append({
+                        'user': None,  # No Django user
+                        'profile': None,
+                        'mongo_data': following_mongo,
+                        'follower_count': following_mongo.get('follower_count', 0),
+                        'is_following': True,
+                        'from_django': False,
+                        'user_id': following_id,
+                        'has_valid_slug': False
+                    })
+                else:
+                    # Even MongoDB doesn't have this user, create basic info
+                    following.append({
+                        'user': None,
+                        'profile': None,
+                        'mongo_data': {
+                            'user_id': following_id,
+                            'first_name': 'Unknown',
+                            'last_name': 'User',
+                            'email': 'unknown@example.com'
+                        },
+                        'follower_count': 0,
+                        'is_following': True,
+                        'from_django': False,
+                        'user_id': following_id,
+                        'has_valid_slug': False
+                    })
+    
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'following': following,
+        'page_type': 'following'
+    }
+    return render(request, 'followers_following.html', context)
 
 @login_required(login_url='/login/')
 def profile_albums(request, slug):
@@ -1714,6 +2153,8 @@ def edit_profile(request):
         'countries_list': countries_with_flags,
     }
     return render(request, 'edit_profile.html', context)
+
+
 
 @login_required
 def change_password(request):
