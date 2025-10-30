@@ -2357,3 +2357,413 @@ def test_stripe(request):
             'success': False,
             'error': str(e)
         }, status=500)
+    
+    # ============================================
+# VUES PREMIUM/BUSINESS : WALLET
+# ============================================
+
+from core.decorators import premium_required, business_required
+from .forms import (WalletForm, WalletTransactionForm, AddFundsForm, 
+                    BucketListForm, TripForm, TripExpenseForm)
+from .models import Wallet, WalletTransaction, BucketList, Trip
+from .ai_services_gemini import (generate_destination_recommendations, 
+                                  generate_bucket_list_description,
+                                  generate_trip_itinerary,
+                                  generate_travel_tips,
+                                  analyze_spending_pattern)
+
+@login_required(login_url='/login/')
+@premium_required
+def wallet_dashboard(request):
+    """
+    Tableau de bord du portefeuille (PREMIUM/BUSINESS uniquement)
+    """
+    # Récupérer ou créer le wallet
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
+    
+    # Récupérer les transactions
+    transactions = wallet.transactions.all()[:20]
+    
+    # Statistiques
+    total_transactions = wallet.transactions.count()
+    total_deposits = wallet.transactions.filter(transaction_type='DEPOSIT').aggregate(
+        total=models.Sum('amount')
+    )['total'] or 0
+    
+    total_expenses = wallet.transactions.filter(transaction_type='EXPENSE').aggregate(
+        total=models.Sum('amount')
+    )['total'] or 0
+    
+    # Analyse IA des dépenses
+    ai_analysis = None
+    if total_transactions > 5:
+        ai_analysis = analyze_spending_pattern(wallet.transactions.all()[:20])
+    
+    context = {
+        'wallet': wallet,
+        'transactions': transactions,
+        'total_transactions': total_transactions,
+        'total_deposits': total_deposits,
+        'total_expenses': total_expenses,
+        'ai_analysis': ai_analysis,
+    }
+    return render(request, 'premium/wallet_dashboard.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def wallet_add_funds(request):
+    """
+    Ajouter des fonds au portefeuille
+    """
+    form = AddFundsForm(request.POST)
+    
+    if form.is_valid():
+        amount = form.cleaned_data['amount']
+        wallet = request.user.wallet
+        
+        # Ajouter les fonds
+        wallet.add_funds(amount)
+        
+        # Créer une transaction
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            transaction_type='DEPOSIT',
+            amount=amount,
+            description=f'Dépôt de fonds'
+        )
+        
+        messages.success(request, f'✅ {amount} {wallet.currency} ajoutés à votre portefeuille !')
+        return redirect('wallet_dashboard')
+    
+    messages.error(request, '❌ Montant invalide')
+    return redirect('wallet_dashboard')
+
+
+@login_required(login_url='/login/')
+@premium_required
+def wallet_transactions(request):
+    """
+    Liste complète des transactions
+    """
+    wallet = request.user.wallet
+    transactions = wallet.transactions.all()
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'wallet': wallet,
+        'page_obj': page_obj,
+    }
+    return render(request, 'premium/wallet_transactions.html', context)
+
+
+# ============================================
+# VUES PREMIUM/BUSINESS : BUCKET LIST
+# ============================================
+
+@login_required(login_url='/login/')
+@premium_required
+def bucket_list(request):
+    """
+    Liste des destinations de rêve (PREMIUM/BUSINESS uniquement)
+    """
+    items = BucketList.objects.filter(user=request.user)
+    
+    # Filtres
+    status_filter = request.GET.get('status', 'all')
+    if status_filter != 'all':
+        items = items.filter(status=status_filter)
+    
+    # Statistiques
+    total_destinations = items.count()
+    completed = items.filter(status='COMPLETED').count()
+    planned = items.filter(status='PLANNED').count()
+    
+    context = {
+        'bucket_items': items,
+        'status_filter': status_filter,
+        'total_destinations': total_destinations,
+        'completed': completed,
+        'planned': planned,
+    }
+    return render(request, 'premium/bucket_list.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def bucket_list_create(request):
+    """
+    Créer un nouvel élément de bucket list
+    """
+    if request.method == 'POST':
+        form = BucketListForm(request.POST, request.FILES)
+        if form.is_valid():
+            item = form.save(commit=False)
+            item.user = request.user
+            
+            # Générer une description IA si vide
+            if not item.description:
+                item.description = generate_bucket_list_description(
+                    item.destination, 
+                    item.country
+                )
+            
+            item.save()
+            messages.success(request, f'✅ {item.destination} ajouté à votre bucket list !')
+            return redirect('bucket_list')
+    else:
+        form = BucketListForm()
+    
+    context = {'form': form}
+    return render(request, 'premium/bucket_list_form.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def bucket_list_edit(request, item_id):
+    """
+    Modifier un élément de bucket list
+    """
+    item = get_object_or_404(BucketList, id=item_id, user=request.user)
+    
+    if request.method == 'POST':
+        form = BucketListForm(request.POST, request.FILES, instance=item)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '✅ Destination mise à jour !')
+            return redirect('bucket_list')
+    else:
+        form = BucketListForm(instance=item)
+    
+    context = {'form': form, 'item': item}
+    return render(request, 'premium/bucket_list_form.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def bucket_list_delete(request, item_id):
+    """
+    Supprimer un élément de bucket list
+    """
+    item = get_object_or_404(BucketList, id=item_id, user=request.user)
+    destination_name = item.destination
+    item.delete()
+    
+    messages.success(request, f'✅ {destination_name} supprimé de votre bucket list')
+    return redirect('bucket_list')
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def bucket_list_mark_visited(request, item_id):
+    """
+    Marquer une destination comme visitée
+    """
+    item = get_object_or_404(BucketList, id=item_id, user=request.user)
+    item.mark_as_visited()
+    
+    messages.success(request, f'🎉 Félicitations ! Vous avez visité {item.destination} !')
+    return redirect('bucket_list')
+
+
+# ============================================
+# VUES PREMIUM/BUSINESS : TRIPS
+# ============================================
+
+@login_required(login_url='/login/')
+@premium_required
+def trips_list(request):
+    """
+    Liste des voyages (PREMIUM/BUSINESS uniquement)
+    """
+    trips = Trip.objects.filter(user=request.user)
+    
+    # Statistiques
+    total_trips = trips.count()
+    ongoing = trips.filter(status='ONGOING').count()
+    completed = trips.filter(status='COMPLETED').count()
+    
+    context = {
+        'trips': trips,
+        'total_trips': total_trips,
+        'ongoing': ongoing,
+        'completed': completed,
+    }
+    return render(request, 'premium/trips_list.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def trip_create(request):
+    """
+    Créer un nouveau voyage
+    """
+    if request.method == 'POST':
+        form = TripForm(request.POST, user=request.user)
+        if form.is_valid():
+            trip = form.save(commit=False)
+            trip.user = request.user
+            trip.save()
+            
+            messages.success(request, f'✅ Voyage "{trip.title}" créé avec succès !')
+            return redirect('trips_list')
+    else:
+        form = TripForm(user=request.user)
+    
+    context = {'form': form}
+    return render(request, 'premium/trip_form.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+def trip_detail(request, trip_id):
+    """
+    Détails d'un voyage avec itinéraire IA
+    """
+    trip = get_object_or_404(Trip, id=trip_id, user=request.user)
+    
+    # Générer un itinéraire IA
+    from .mongo import get_db
+    db = get_db()
+    user_profile = db.profiles.find_one({'user_id': request.user.id})
+    interests = user_profile.get('interests', []) if user_profile else []
+    
+    itinerary = generate_trip_itinerary(
+        trip.destination, 
+        trip.duration_days, 
+        interests
+    )
+    
+    # Conseils de voyage
+    nationality = user_profile.get('nationality', '') if user_profile else ''
+    travel_tips = generate_travel_tips(trip.destination, nationality)
+    
+    context = {
+        'trip': trip,
+        'itinerary': itinerary,
+        'travel_tips': travel_tips,
+    }
+    return render(request, 'premium/trip_detail.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def trip_add_expense(request, trip_id):
+    """
+    Ajouter une dépense à un voyage
+    """
+    trip = get_object_or_404(Trip, id=trip_id, user=request.user)
+    form = TripExpenseForm(request.POST)
+    
+    if form.is_valid():
+        amount = form.cleaned_data['amount']
+        description = form.cleaned_data['description']
+        deduct_from_wallet = form.cleaned_data['deduct_from_wallet']
+        
+        # Ajouter la dépense au voyage
+        trip.actual_spent += amount
+        trip.save()
+        
+        # Déduire du wallet si demandé
+        if deduct_from_wallet and hasattr(request.user, 'wallet'):
+            wallet = request.user.wallet
+            if wallet.withdraw_funds(amount):
+                # Créer une transaction
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type='EXPENSE',
+                    amount=amount,
+                    description=description,
+                    related_trip=trip
+                )
+                messages.success(request, f'✅ Dépense ajoutée et déduite du portefeuille')
+            else:
+                messages.warning(request, '⚠️ Dépense ajoutée mais solde insuffisant dans le portefeuille')
+        else:
+            messages.success(request, f'✅ Dépense ajoutée au voyage')
+        
+        return redirect('trip_detail', trip_id=trip.id)
+    
+    messages.error(request, '❌ Formulaire invalide')
+    return redirect('trip_detail', trip_id=trip.id)
+
+
+# ============================================
+# VUE IA : RECOMMANDATIONS DE DESTINATIONS
+# ============================================
+
+@login_required(login_url='/login/')
+@premium_required
+def ai_recommendations(request):
+    """
+    Recommandations IA de destinations (PREMIUM/BUSINESS uniquement)
+    """
+    from .mongo import get_db
+    db = get_db()
+    user_profile = db.profiles.find_one({'user_id': request.user.id})
+    
+    # Récupérer le solde du wallet
+    wallet_balance = None
+    if hasattr(request.user, 'wallet'):
+        wallet_balance = float(request.user.wallet.balance)
+    
+    # Générer les recommandations
+    recommendations_result = generate_destination_recommendations(
+        user_profile or {},
+        wallet_balance=wallet_balance,
+        max_recommendations=6
+    )
+    
+    context = {
+        'recommendations': recommendations_result.get('recommendations', []),
+        'success': recommendations_result.get('success', False),
+        'error': recommendations_result.get('error'),
+        'wallet_balance': wallet_balance,
+    }
+    return render(request, 'premium/ai_recommendations.html', context)
+
+
+@login_required(login_url='/login/')
+@premium_required
+@require_http_methods(["POST"])
+def ai_add_to_bucket_list(request):
+    """
+    Ajouter une recommandation IA directement à la bucket list
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # Créer l'élément de bucket list depuis la recommandation
+        item = BucketList.objects.create(
+            user=request.user,
+            destination=data.get('destination'),
+            country=data.get('country'),
+            description=data.get('description'),
+            estimated_budget=data.get('estimated_budget'),
+            currency=data.get('currency', 'EUR'),
+            priority=data.get('priority', 3),
+            ai_tags=data.get('tags', []),
+            ai_recommendations=data.get('why_recommended', ''),
+            status='PLANNED'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{item.destination} ajouté à votre bucket list !',
+            'item_id': item.id
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)

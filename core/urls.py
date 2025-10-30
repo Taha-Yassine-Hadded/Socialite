@@ -181,4 +181,33 @@ urlpatterns = [
     # ============================================
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
     path('api/analytics/', views.analytics_data, name='analytics_data'),
+     # ============================================
+    # PREMIUM/BUSINESS : WALLET
+    # ============================================
+    path('wallet/', views.wallet_dashboard, name='wallet_dashboard'),
+    path('wallet/add-funds/', views.wallet_add_funds, name='wallet_add_funds'),
+    path('wallet/transactions/', views.wallet_transactions, name='wallet_transactions'),
+    
+    # ============================================
+    # PREMIUM/BUSINESS : BUCKET LIST
+    # ============================================
+    path('bucket-list/', views.bucket_list, name='bucket_list'),
+    path('bucket-list/create/', views.bucket_list_create, name='bucket_list_create'),
+    path('bucket-list/<int:item_id>/edit/', views.bucket_list_edit, name='bucket_list_edit'),
+    path('bucket-list/<int:item_id>/delete/', views.bucket_list_delete, name='bucket_list_delete'),
+    path('bucket-list/<int:item_id>/mark-visited/', views.bucket_list_mark_visited, name='bucket_list_mark_visited'),
+    
+    # ============================================
+    # PREMIUM/BUSINESS : TRIPS
+    # ============================================
+    path('trips/', views.trips_list, name='trips_list'),
+    path('trips/create/', views.trip_create, name='trip_create'),
+    path('trips/<int:trip_id>/', views.trip_detail, name='trip_detail'),
+    path('trips/<int:trip_id>/add-expense/', views.trip_add_expense, name='trip_add_expense'),
+    
+    # ============================================
+    # AI RECOMMENDATIONS
+    # ============================================
+    path('ai/recommendations/', views.ai_recommendations, name='ai_recommendations'),
+    path('ai/add-to-bucket-list/', views.ai_add_to_bucket_list, name='ai_add_to_bucket_list'),
 ]

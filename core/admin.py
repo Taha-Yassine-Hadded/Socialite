@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.contrib import messages
 from .models import (
     UserProfile, Post, Comment, Reaction, Share, Avis,
-    Subscription, UsageQuota, PaymentHistory
+    Subscription, UsageQuota, PaymentHistory,Wallet, WalletTransaction, BucketList, Trip
 )
 
 # ============================================
@@ -389,3 +389,239 @@ class AvisAdmin(admin.ModelAdmin):
     list_display = ['reviewer', 'reviewee', 'note', 'communication', 'fiabilite', 'sympathie', 'created_at']
     list_filter = ['note', 'created_at']
     search_fields = ['reviewer__username', 'reviewee__username']
+
+@admin.register(Wallet)
+class WalletAdmin(admin.ModelAdmin):
+    list_display = ['user', 'balance_display', 'currency', 'total_spent', 'total_saved', 'updated_at']
+    list_filter = ['currency', 'created_at']
+    search_fields = ['user__username', 'user__email']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Utilisateur', {
+            'fields': ('user',)
+        }),
+        ('Solde', {
+            'fields': ('balance', 'currency')
+        }),
+        ('Statistiques', {
+            'fields': ('total_spent', 'total_saved')
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def balance_display(self, obj):
+        return format_html(
+            '<strong style="color: #10b981; font-size: 1.1em;">{}</strong>',
+            obj.get_balance_display()
+        )
+    balance_display.short_description = 'Solde'
+
+
+@admin.register(WalletTransaction)
+class WalletTransactionAdmin(admin.ModelAdmin):
+    list_display = ['wallet_user', 'transaction_badge', 'amount_display', 'description', 'created_at']
+    list_filter = ['transaction_type', 'created_at']
+    search_fields = ['wallet__user__username', 'description']
+    readonly_fields = ['created_at']
+    
+    fieldsets = (
+        ('Transaction', {
+            'fields': ('wallet', 'transaction_type', 'amount', 'description')
+        }),
+        ('Lien', {
+            'fields': ('related_trip',)
+        }),
+        ('Date', {
+            'fields': ('created_at',)
+        }),
+    )
+    
+    def wallet_user(self, obj):
+        return obj.wallet.user.username
+    wallet_user.short_description = 'Utilisateur'
+    
+    def transaction_badge(self, obj):
+        colors = {
+            'DEPOSIT': '#10b981',
+            'WITHDRAWAL': '#f59e0b',
+            'TRANSFER': '#3b82f6',
+            'EXPENSE': '#ef4444'
+        }
+        icons = {
+            'DEPOSIT': '💰',
+            'WITHDRAWAL': '💸',
+            'TRANSFER': '🔄',
+            'EXPENSE': '🛒'
+        }
+        color = colors.get(obj.transaction_type, '#6b7280')
+        icon = icons.get(obj.transaction_type, '📌')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 5px 10px; border-radius: 5px;">{} {}</span>',
+            color, icon, obj.get_transaction_type_display()
+        )
+    transaction_badge.short_description = 'Type'
+    
+    def amount_display(self, obj):
+        color = '#10b981' if obj.transaction_type == 'DEPOSIT' else '#ef4444'
+        return format_html(
+            '<strong style="color: {};">{} {}</strong>',
+            color,
+            obj.amount,
+            obj.wallet.currency
+        )
+    amount_display.short_description = 'Montant'
+
+
+@admin.register(BucketList)
+class BucketListAdmin(admin.ModelAdmin):
+    list_display = ['destination', 'country', 'user', 'status_badge', 'priority_badge', 
+                    'estimated_budget', 'target_date', 'created_at']
+    list_filter = ['status', 'priority', 'created_at']
+    search_fields = ['destination', 'country', 'city', 'user__username']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Utilisateur', {
+            'fields': ('user',)
+        }),
+        ('Destination', {
+            'fields': ('destination', 'country', 'city', 'image')
+        }),
+        ('Détails', {
+            'fields': ('description', 'estimated_budget', 'currency')
+        }),
+        ('Dates', {
+            'fields': ('target_date', 'visited_date')
+        }),
+        ('Statut', {
+            'fields': ('status', 'priority')
+        }),
+        ('Notes', {
+            'fields': ('notes',)
+        }),
+        ('IA', {
+            'fields': ('ai_tags', 'ai_recommendations'),
+            'classes': ('collapse',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def status_badge(self, obj):
+        colors = {
+            'PLANNED': '#f59e0b',
+            'IN_PROGRESS': '#3b82f6',
+            'COMPLETED': '#10b981',
+            'CANCELLED': '#6b7280'
+        }
+        icons = {
+            'PLANNED': '📅',
+            'IN_PROGRESS': '✈️',
+            'COMPLETED': '✅',
+            'CANCELLED': '❌'
+        }
+        color = colors.get(obj.status, '#000')
+        icon = icons.get(obj.status, '📌')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 5px 10px; border-radius: 5px;">{} {}</span>',
+            color, icon, obj.get_status_display()
+        )
+    status_badge.short_description = 'Statut'
+    
+    def priority_badge(self, obj):
+        colors = {1: '#ef4444', 2: '#f59e0b', 3: '#3b82f6', 4: '#6b7280'}
+        color = colors.get(obj.priority, '#000')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 5px 10px; border-radius: 5px;">{} {}</span>',
+            color, obj.get_priority_display_icon(), obj.get_priority_display()
+        )
+    priority_badge.short_description = 'Priorité'
+    
+    actions = ['mark_as_completed', 'mark_as_planned']
+    
+    def mark_as_completed(self, request, queryset):
+        count = 0
+        for item in queryset:
+            item.mark_as_visited()
+            count += 1
+        self.message_user(request, f'✅ {count} destination(s) marquée(s) comme visitée(s)')
+    mark_as_completed.short_description = '✅ Marquer comme visité'
+    
+    def mark_as_planned(self, request, queryset):
+        count = queryset.update(status='PLANNED')
+        self.message_user(request, f'📅 {count} destination(s) marquée(s) comme planifiée(s)')
+    mark_as_planned.short_description = '📅 Marquer comme planifié'
+
+
+@admin.register(Trip)
+class TripAdmin(admin.ModelAdmin):
+    list_display = ['title', 'destination', 'user', 'status_badge', 'start_date', 
+                    'end_date', 'budget_status', 'created_at']
+    list_filter = ['status', 'start_date', 'created_at']
+    search_fields = ['title', 'destination', 'user__username']
+    readonly_fields = ['created_at', 'updated_at', 'duration_days']
+    filter_horizontal = ['participants']
+    
+    fieldsets = (
+        ('Utilisateur', {
+            'fields': ('user', 'bucket_list_item')
+        }),
+        ('Voyage', {
+            'fields': ('title', 'destination', 'description')
+        }),
+        ('Dates', {
+            'fields': ('start_date', 'end_date', 'duration_days')
+        }),
+        ('Budget', {
+            'fields': ('estimated_budget', 'actual_spent', 'currency')
+        }),
+        ('Participants', {
+            'fields': ('participants',)
+        }),
+        ('Statut', {
+            'fields': ('status',)
+        }),
+        ('Métadonnées', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def status_badge(self, obj):
+        colors = {
+            'PLANNING': '#6b7280',
+            'CONFIRMED': '#3b82f6',
+            'ONGOING': '#f59e0b',
+            'COMPLETED': '#10b981',
+            'CANCELLED': '#ef4444'
+        }
+        color = colors.get(obj.status, '#000')
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 5px 10px; border-radius: 5px;">{}</span>',
+            color, obj.get_status_display()
+        )
+    status_badge.short_description = 'Statut'
+    
+    def budget_status(self, obj):
+        if obj.is_over_budget():
+            return format_html(
+                '<span style="color: #ef4444; font-weight: bold;">⚠️ Dépassé ({} {})</span>',
+                obj.actual_spent, obj.currency
+            )
+        else:
+            remaining = obj.estimated_budget - obj.actual_spent
+            return format_html(
+                '<span style="color: #10b981;">✅ OK (reste {} {})</span>',
+                remaining, obj.currency
+            )
+    budget_status.short_description = 'Budget'
+    
+    def duration_days(self, obj):
+        return f'{obj.duration_days} jours'
+    duration_days.short_description = 'Durée'

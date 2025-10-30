@@ -77,7 +77,7 @@ class Command(BaseCommand):
                         f'      ✅ Prolongé jusqu\'au {subscription.end_date.strftime("%d/%m/%Y")}'
                     ))
                     
-                    # TODO: Déclencher le paiement automatique via Stripe/Flouci
+                   
         else:
             self.stdout.write(self.style.SUCCESS('\n✅ Aucun abonnement à renouveler'))
         

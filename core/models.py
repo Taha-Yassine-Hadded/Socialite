@@ -591,3 +591,251 @@ class StoryView(models.Model):
 
     def __str__(self):
         return f"view {self.viewer.username} -> story {self.story_id}"
+    
+
+    # ============================================
+# FONCTIONNALITÉS PREMIUM/BUSINESS
+# ============================================
+
+class Wallet(models.Model):
+    """
+    Portefeuille virtuel pour gérer les budgets de voyage (PREMIUM/BUSINESS uniquement)
+    """
+    CURRENCY_CHOICES = [
+        ('EUR', 'Euro (€)'),
+        ('USD', 'Dollar ($)'),
+        ('GBP', 'Livre Sterling (£)'),
+        ('TND', 'Dinar Tunisien (TND)'),
+        ('MAD', 'Dirham Marocain (MAD)'),
+    ]
+    
+    # Relations
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='wallet')
+    
+    # Informations financières
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, 
+                                   help_text="Solde disponible")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='EUR')
+    
+    # Statistiques
+    total_spent = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_saved = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Portefeuille'
+        verbose_name_plural = 'Portefeuilles'
+    
+    def __str__(self):
+        return f"Wallet de {self.user.username} - {self.balance} {self.currency}"
+    
+    def add_funds(self, amount):
+        """Ajouter des fonds au portefeuille"""
+        self.balance += amount
+        self.total_saved += amount
+        self.save()
+    
+    def withdraw_funds(self, amount):
+        """Retirer des fonds du portefeuille"""
+        if self.balance >= amount:
+            self.balance -= amount
+            self.total_spent += amount
+            self.save()
+            return True
+        return False
+    
+    def get_balance_display(self):
+        """Affichage formaté du solde"""
+        symbols = {'EUR': '€', 'USD': '$', 'GBP': '£', 'TND': 'TND', 'MAD': 'MAD'}
+        symbol = symbols.get(self.currency, self.currency)
+        return f"{self.balance:.2f} {symbol}"
+
+
+class WalletTransaction(models.Model):
+    """
+    Historique des transactions du portefeuille
+    """
+    TRANSACTION_TYPES = [
+        ('DEPOSIT', '💰 Dépôt'),
+        ('WITHDRAWAL', '💸 Retrait'),
+        ('TRANSFER', '🔄 Transfert'),
+        ('EXPENSE', '🛒 Dépense'),
+    ]
+    
+    # Relations
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
+    
+    # Détails de la transaction
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=255)
+    
+    # Lien optionnel vers un voyage ou événement
+    related_trip = models.ForeignKey('Trip', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Transaction'
+        verbose_name_plural = 'Transactions'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - {self.amount} - {self.created_at.strftime('%d/%m/%Y')}"
+
+
+class BucketList(models.Model):
+    """
+    Liste de destinations de rêve (PREMIUM/BUSINESS uniquement)
+    """
+    STATUS_CHOICES = [
+        ('PLANNED', '📅 Planifié'),
+        ('IN_PROGRESS', '✈️ En cours'),
+        ('COMPLETED', '✅ Visité'),
+        ('CANCELLED', '❌ Annulé'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        (1, '🔥 Très haute'),
+        (2, '⭐ Haute'),
+        (3, '📌 Moyenne'),
+        (4, '💭 Basse'),
+    ]
+    
+    # Relations
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bucket_list')
+    
+    # Destination
+    destination = models.CharField(max_length=200, help_text="Nom de la destination")
+    country = models.CharField(max_length=100, help_text="Pays")
+    city = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Image de la destination
+    image = models.ImageField(upload_to='bucket_list/', blank=True, null=True)
+    
+    # Détails
+    description = models.TextField(blank=True, null=True, help_text="Pourquoi cette destination ?")
+    estimated_budget = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    currency = models.CharField(max_length=3, default='EUR')
+    
+    # Dates
+    target_date = models.DateField(blank=True, null=True, help_text="Date souhaitée de visite")
+    visited_date = models.DateField(blank=True, null=True, help_text="Date de visite réelle")
+    
+    # Statut et priorité
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PLANNED')
+    priority = models.IntegerField(choices=PRIORITY_CHOICES, default=3)
+    
+    # Notes personnelles
+    notes = models.TextField(blank=True, null=True)
+    
+    # IA - Tags générés automatiquement
+    ai_tags = models.JSONField(blank=True, null=True, help_text="Tags générés par IA")
+    ai_recommendations = models.TextField(blank=True, null=True, help_text="Recommandations IA")
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Destination de rêve'
+        verbose_name_plural = 'Bucket List'
+        ordering = ['priority', '-created_at']
+    
+    def __str__(self):
+        return f"{self.destination} ({self.country}) - {self.user.username}"
+    
+    def mark_as_visited(self):
+        """Marquer comme visité"""
+        self.status = 'COMPLETED'
+        self.visited_date = timezone.now().date()
+        self.save()
+    
+    def get_priority_display_icon(self):
+        """Icône de priorité"""
+        icons = {1: '🔥', 2: '⭐', 3: '📌', 4: '💭'}
+        return icons.get(self.priority, '📌')
+
+
+class Trip(models.Model):
+    """
+    Voyages planifiés (lien avec Wallet et BucketList)
+    """
+    # Relations
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='trips')
+    bucket_list_item = models.ForeignKey(BucketList, on_delete=models.SET_NULL, 
+                                          null=True, blank=True, 
+                                          related_name='trips')
+    
+    # Détails du voyage
+    title = models.CharField(max_length=200)
+    destination = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    
+    # Dates
+    start_date = models.DateField()
+    end_date = models.DateField()
+    
+    # Budget
+    estimated_budget = models.DecimalField(max_digits=10, decimal_places=2)
+    actual_spent = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    currency = models.CharField(max_length=3, default='EUR')
+    
+    # Participants
+    participants = models.ManyToManyField(User, related_name='joined_trips', blank=True)
+    
+    # Statut
+    STATUS_CHOICES = [
+        ('PLANNING', 'En planification'),
+        ('CONFIRMED', 'Confirmé'),
+        ('ONGOING', 'En cours'),
+        ('COMPLETED', 'Terminé'),
+        ('CANCELLED', 'Annulé'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PLANNING')
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Voyage'
+        verbose_name_plural = 'Voyages'
+        ordering = ['-start_date']
+    
+    def __str__(self):
+        return f"{self.title} - {self.destination}"
+    
+    @property
+    def duration_days(self):
+        """Durée du voyage en jours"""
+        return (self.end_date - self.start_date).days
+    
+    def is_over_budget(self):
+        """Vérifier si le budget est dépassé"""
+        return self.actual_spent > self.estimated_budget
+
+
+# ============================================
+# SIGNAL POUR CRÉER AUTOMATIQUEMENT UN WALLET
+# ============================================
+
+@receiver(post_save, sender=User)
+def create_user_wallet(sender, instance, created, **kwargs):
+    """
+    Crée automatiquement un wallet pour les utilisateurs Premium/Business
+    """
+    if created:
+        try:
+            if instance.subscription.is_premium:
+                Wallet.objects.get_or_create(
+                    user=instance,
+                    defaults={'balance': 0.00, 'currency': 'EUR'}
+                )
+                print(f"✅ [WALLET] Portefeuille créé pour {instance.username}")
+        except Exception as e:
+            print(f"⚠️ [WALLET] Impossible de créer le wallet : {e}")

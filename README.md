@@ -107,8 +107,8 @@ python manage.py runserver
 - **📈 Analytics**: Track community growth and engagement.
 - **🔒 Content Moderation**: Moderate posts and comments
 commands to run:
-
 pip install python-dateutil
 python manage.py makemigrations
 python manage.py migrate
 pip install stripe requests python-dateutil
+pip install -q -U google-generativeai

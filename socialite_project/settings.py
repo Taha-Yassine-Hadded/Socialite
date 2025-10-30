@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from a .env file if present
 load_dotenv(BASE_DIR / '.env')
-
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-a82c#@++6fwzd419jdxvk4_5dxz+#9h0k)64t^fwjpuqf_@%hy')
 
